@@ -1,0 +1,6 @@
+[submodule "src/demeter_by_ai"]
+	path = src/demeter_by_ai
+	url = git@github.com:yonghan1999/demeter_by_ai.git
+[submodule "src/project"]
+	path = src/project
+	url = git@github.com:yonghan1999/project.git
