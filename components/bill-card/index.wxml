@@ -1,0 +1,41 @@
+<view
+  class="bill-card {{bill.status}} {{selectableClass}} {{selectedClass}} {{compactClass}}"
+  bindtap="onTap"
+>
+  <view wx:if="{{selectable}}" class="check">
+    <text wx:if="{{selected}}">✓</text>
+  </view>
+
+  <view class="body">
+    <view class="top-row">
+      <view class="shipper">{{bill.shipper}}</view>
+      <view class="amount-block">
+        <view class="amount mono">{{amount}}</view>
+        <view class="amount-label">{{bill.amountLabel}}</view>
+      </view>
+    </view>
+
+    <view class="status-row">
+      <view class="status-pill {{bill.status}}">
+        <view class="status-dot"></view>
+        <text>{{bill.statusText}}</text>
+      </view>
+    </view>
+
+    <view class="summary-row">
+      <view class="route">
+        <view class="route-pin"><view class="route-pin-dot"></view></view>
+        <text>{{bill.from}}</text>
+        <text class="arrow">→</text>
+        <text>{{bill.to}}</text>
+      </view>
+      <view class="trip-meta">
+        <text class="vehicle">{{vehicle}}</text>
+        <text class="meta-dot">·</text>
+        <text class="mono">{{dateShort}}</text>
+      </view>
+    </view>
+
+    <view class="code mono"># {{bill.code}}</view>
+  </view>
+</view>

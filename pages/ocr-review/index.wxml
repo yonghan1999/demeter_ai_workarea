@@ -1,0 +1,72 @@
+<view class="page review-page" wx:if="{{task}}">
+  <view class="nav" style="{{systemLayout.navStyle}}">
+    <button class="nav-action nav-muted" bindtap="back">←</button>
+    <view class="nav-title">识别结果</view>
+    <button class="nav-action review-nav-action" style="{{systemLayout.navActionStyle}}" bindtap="toggleAll">{{allText}}</button>
+  </view>
+
+  <view class="summary-card card">
+    <view class="summary-image">
+      <image wx:if="{{task.imagePath}}" class="summary-photo" src="{{task.imagePath}}" mode="aspectFill"></image>
+      <text wx:else>▧</text>
+    </view>
+    <view>
+      <view class="summary-title">共识别 {{reviewBills.length}} 笔账单</view>
+      <text class="summary-copy">{{task.timeText}} 拍摄</text>
+      <text class="summary-copy">点击账单卡片可直接编辑字段</text>
+    </view>
+  </view>
+
+  <view class="review-list">
+    <view wx:for="{{reviewBills}}" wx:key="id" class="review-card card {{item.mutedClass}}">
+      <view class="review-card-head">
+        <button class="check {{item.selectedClass}}" data-id="{{item.id}}" bindtap="toggle">
+          <text wx:if="{{item.selected}}">✓</text>
+        </button>
+        <view class="confidence {{item.confidenceClass}}">
+          可信度 {{item.confidenceLevel}} {{item.confidencePercent}}%
+        </view>
+      </view>
+
+      <view class="edit-grid">
+        <view class="edit-field wide">
+          <view class="label">托运人</view>
+          <input class="review-input" data-id="{{item.id}}" data-field="shipper" value="{{item.shipper}}" bindinput="setField" />
+        </view>
+        <view class="edit-field amount">
+          <view class="label">金额</view>
+          <view class="review-amount-shell"><text>¥</text><input class="review-input amount-input" type="digit" data-id="{{item.id}}" data-field="amount" value="{{item.amount}}" bindinput="setField" /></view>
+        </view>
+        <view class="edit-field">
+          <view class="label">始发地</view>
+          <input class="review-input" data-id="{{item.id}}" data-field="from" value="{{item.from}}" bindinput="setField" />
+        </view>
+        <view class="edit-field">
+          <view class="label">目的地</view>
+          <input class="review-input" data-id="{{item.id}}" data-field="to" value="{{item.to}}" bindinput="setField" />
+        </view>
+        <view class="edit-field">
+          <view class="label">车型/货物</view>
+          <input class="review-input" data-id="{{item.id}}" data-field="vehicleCargo" value="{{item.vehicleCargo}}" bindinput="setField" />
+        </view>
+        <view class="edit-field">
+          <view class="label">日期</view>
+          <input class="review-input" data-id="{{item.id}}" data-field="date" value="{{item.date}}" bindinput="setField" />
+        </view>
+      </view>
+
+      <view class="status-pair">
+        <button class="review-status-button {{item.unpaidClass}}" data-id="{{item.id}}" data-status="unpaid" bindtap="setStatus">未支付</button>
+        <button class="review-status-button {{item.paidClass}}" data-id="{{item.id}}" data-status="paid" bindtap="setStatus">已支付</button>
+      </view>
+    </view>
+  </view>
+
+  <view class="bottom-bar review-bottom" style="{{systemLayout.bottomSafeStyle}}">
+    <view class="merge-meta">
+      <text>已选 {{selectedIds.length}} 笔</text>
+      <text class="merge-total">合计 {{total}}</text>
+    </view>
+    <button class="primary-button {{mergeDisabledClass}}" bindtap="merge">⌘  合并 {{selectedIds.length}} 笔账单到列表</button>
+  </view>
+</view>

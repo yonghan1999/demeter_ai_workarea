@@ -1,0 +1,31 @@
+.form-page { padding-bottom: 150rpx; background: #edf0f6; }
+.form-nav { position: sticky; top: 0; z-index: 30; display: grid; grid-template-columns: 88rpx minmax(0,1fr) 88rpx; align-items: center; height: 112rpx; padding: 36rpx 28rpx 0; border-bottom: 1rpx solid #eaecf2; background: #fff; }
+.back-button,.save-link { height: 64rpx; font-size: 28rpx; line-height: 64rpx; }
+.back-button { color: #4a5568; font-size: 40rpx; text-align: left; }
+.save-link { position:absolute; width:80rpx; color: #1143b4; font-weight: 700; text-align: right; }
+.form-nav-title { color: #17213a; font-size: 32rpx; font-weight: 700; text-align: center; }
+.form-content { display: flex; flex-direction: column; gap: 24rpx; padding: 28rpx 28rpx 40rpx; }
+.bill-code { color: #b6c3d5; font-size: 18rpx; letter-spacing: 2rpx; }
+.form-card { border-radius: 28rpx; background: #fff; padding: 28rpx; box-shadow: 0 2rpx 8rpx rgba(17,32,80,.04); }
+.form-label,.field-label { color: #8c9bae; font-size: 21rpx; font-weight: 600; }
+.amount-input-row { display: flex; align-items: center; gap: 12rpx; margin-top: 18rpx; padding-bottom: 20rpx; border-bottom: 1rpx solid #eef0f6; color: #1143b4; font-size: 34rpx; font-weight: 800; }
+.amount-input { flex: 1; height: 68rpx; color: #17213a; font-size: 48rpx; font-weight: 800; }
+.status-toggle { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 14rpx; margin-top: 18rpx; }
+.status-button { height: 70rpx; border-radius: 30rpx; background: #f2f4f9; color: #4a5568; font-size: 27rpx; font-weight: 700; }
+.status-toggle .active.unpaid { background: #ef7900; color: #fff; }
+.status-toggle .active.paid { background: #1d8a4e; color: #fff; }
+.form-section { display: flex; flex-direction: column; gap: 22rpx; }
+.section-label { margin-bottom: 2rpx; }
+.form-field { position: relative; }
+.field-label { margin-bottom: 9rpx; }
+.input-shell { display: flex; align-items: center; gap: 15rpx; height: 84rpx; border-radius: 28rpx; background: #f3f5f9; padding: 0 25rpx; }
+.field-icon { flex: none; color: #9dafc6; font-size: 25rpx; }
+.field-input { flex: 1; height: 84rpx; color: #17213a; font-size: 27rpx; }
+.date-field { color: #17213a; font-size: 27rpx; }
+.suggestions { position: absolute; top: 126rpx; right: 0; left: 0; z-index: 20; overflow: hidden; border-radius: 20rpx; background: #fff; box-shadow: 0 10rpx 40rpx rgba(17,32,80,.14); }
+.suggestion-button { display: block; width: 100%; height: 80rpx; padding: 0 28rpx; border-bottom: 1rpx solid #eef0f6; color: #17213a; font-size: 26rpx; text-align: left; }
+.route-divider { display: flex; align-items: center; gap: 18rpx; padding: 0 42rpx; color: #a6b6ca; font-size: 20rpx; }
+.route-line { flex: 1; height: 1rpx; background: #e5eaf2; }
+.route-copy { border-radius: 999rpx; background: #f3f6fb; padding: 7rpx 16rpx; }
+.form-bottom { position: fixed; right: 0; bottom: 0; left: 0; z-index: 30; padding: 18rpx 28rpx calc(18rpx + env(safe-area-inset-bottom)); background: rgba(255,255,255,.96); }
+.form-bottom .primary-button { width: 100%; }

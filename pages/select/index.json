@@ -1,0 +1,5 @@
+{
+  "usingComponents": {
+    "bill-card": "/components/bill-card/index"
+  }
+}

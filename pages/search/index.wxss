@@ -1,0 +1,111 @@
+.search-nav {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  padding: 36rpx 32rpx 12rpx;
+  border-bottom: 1rpx solid #eaecf2;
+  background: rgba(248, 249, 251, 0.96);
+}
+
+.back {
+  width: 56rpx;
+  height: 56rpx;
+  color: #002046;
+  font-size: 52rpx;
+  line-height: 48rpx;
+}
+
+.search-input-wrap {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  height: 80rpx;
+  border-radius: 16rpx;
+  background: #e0e3e5;
+  padding: 0 24rpx;
+}
+
+.search-icon {
+  margin-right: 16rpx;
+  color: #44474e;
+  font-size: 32rpx;
+}
+
+.search-input {
+  flex: 1;
+  height: 80rpx;
+  color: #17213a;
+  font-size: 28rpx;
+}
+
+.confirm {
+  width: 72rpx;
+  color: #002046;
+  font-size: 28rpx;
+  font-weight: 700;
+}
+
+.history-section,
+.result-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+  padding: 40rpx 32rpx;
+}
+
+.list-title {
+  color: #002046;
+  font-size: 30rpx;
+  font-weight: 700;
+}
+
+.history-card {
+  overflow: hidden;
+  border-radius: 16rpx;
+  background: #ffffff;
+  padding: 12rpx;
+}
+
+.history-item {
+  display: flex;
+  align-items: center;
+  gap: 24rpx;
+  height: 88rpx;
+  border-radius: 12rpx;
+  padding: 0 24rpx;
+  color: #191c1e;
+  font-size: 30rpx;
+  text-align: left;
+}
+
+.history-icon {
+  color: #74777f;
+  font-size: 30rpx;
+}
+
+.clear-button {
+  align-self: center;
+  height: 72rpx;
+  border: 1rpx solid rgba(196, 198, 207, 0.4);
+  border-radius: 24rpx;
+  padding: 0 44rpx;
+  color: #74777f;
+  font-size: 28rpx;
+}
+
+.empty {
+  padding-top: 180rpx;
+  text-align: center;
+  color: #8c9bae;
+  font-size: 26rpx;
+}
+
+.empty-title {
+  margin-bottom: 12rpx;
+  color: #17213a;
+  font-size: 32rpx;
+  font-weight: 800;
+}

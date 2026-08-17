@@ -1,0 +1,19 @@
+<view class="page filter-page">
+  <view class="filter-nav" style="{{systemLayout.navStyle}}">
+    <button class="filter-back" bindtap="back">←</button>
+    <view class="filter-title">高级筛选</view>
+    <button class="filter-reset" style="{{systemLayout.navActionStyle}}" bindtap="reset">重置</button>
+  </view>
+  <view class="filter-content">
+    <view class="filter-card info-card">
+      <view class="filter-label section-label">账单信息</view>
+      <view class="filter-field"><view class="filter-label">订单号</view><view class="filter-input-shell"><text>#</text><input class="filter-input" data-field="code" value="{{form.code}}" placeholder="输入或扫描订单编号" bindinput="setField" /></view></view>
+      <view class="filter-field"><view class="filter-label">托运人</view><view class="filter-input-shell"><text>♙</text><input class="filter-input" data-field="shipper" value="{{form.shipper}}" placeholder="托运单位或个人姓名" bindinput="setField" /></view></view>
+    </view>
+    <view class="filter-card">
+      <view class="filter-label">支付状态</view>
+      <view class="segmented"><button wx:for="{{statusOptions}}" wx:key="key" data-status="{{item.key}}" class="status-option {{item.className}}" bindtap="setStatus">{{item.text}}</button></view>
+    </view>
+  </view>
+  <view class="filter-bottom" style="{{systemLayout.bottomSafeStyle}}"><button class="primary-button" bindtap="submit">▽  确定筛选</button></view>
+</view>

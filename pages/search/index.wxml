@@ -1,0 +1,44 @@
+<view class="page search-page">
+  <view class="search-nav" style="{{systemLayout.navStyle}}">
+    <button class="back" bindtap="back">‹</button>
+    <view class="search-input-wrap">
+      <text class="search-icon">⌕</text>
+      <input
+        class="search-input"
+        value="{{query}}"
+        focus
+        placeholder="搜索托运人、单号或线路"
+        bindinput="onInput"
+        bindconfirm="confirmSearch"
+      />
+    </view>
+    <button class="confirm" bindtap="confirmSearch">确认</button>
+  </view>
+
+  <view wx:if="{{hasSearched && results.length > 0}}" class="result-list">
+    <view class="list-title">搜索结果</view>
+    <bill-card
+      wx:for="{{results}}"
+      wx:key="id"
+      bill="{{item}}"
+      compact
+      bind:tapbill="editBill"
+    />
+  </view>
+
+  <view wx:elif="{{hasSearched}}" class="empty">
+    <view class="empty-title">没有找到相关账单</view>
+    <text>换个托运人、单号或线路试试</text>
+  </view>
+
+  <view wx:else class="history-section">
+    <view class="list-title">最近搜索</view>
+    <view class="history-card">
+      <button wx:for="{{history}}" wx:key="*this" class="history-item" data-keyword="{{item}}" bindtap="useHistory">
+        <text class="history-icon">↺</text>
+        <text>{{item}}</text>
+      </button>
+    </view>
+    <button wx:if="{{history.length > 0}}" class="clear-button" bindtap="clearHistory">清除历史</button>
+  </view>
+</view>

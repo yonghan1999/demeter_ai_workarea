@@ -1,0 +1,221 @@
+.bill-card {
+  position: relative;
+  display: flex;
+  width: 100%;
+  overflow: hidden;
+  border: 1rpx solid #eef1f6;
+  border-left-width: 5rpx;
+  height: 296rpx;
+  border-radius: 34rpx;
+  background: #ffffff;
+  box-shadow: 0 2rpx 4rpx rgba(17, 32, 80, 0.03);
+}
+
+.bill-card.paid { border-left-color: #27a550; }
+.bill-card.unpaid,
+.bill-card.overdue { border-left-color: #e87a0a; }
+
+.bill-card.selected {
+  border-color: #1a51c7;
+  border-left-width: 5rpx;
+  background: #f7f9ff;
+}
+
+.body {
+  flex: 1;
+  min-width: 0;
+  padding: 27rpx 30rpx 0;
+}
+
+.bill-card.compact .body { padding: 26rpx 26rpx 0; }
+
+.check {
+  position: absolute;
+  top: 50%;
+  left: 28rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 40rpx;
+  height: 40rpx;
+  margin: -20rpx 0 0;
+  border: 3rpx solid #c5cfe0;
+  border-radius: 50%;
+  color: #ffffff;
+  font-size: 22rpx;
+  font-weight: 800;
+}
+
+.selected .check {
+  border-color: #174fc4;
+  background: #174fc4;
+}
+
+.selectable .body { padding-left: 106rpx; }
+
+.top-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20rpx;
+}
+
+.shipper {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: #13203b;
+  font-size: 29rpx;
+  font-weight: 800;
+  line-height: 48rpx;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.amount-block {
+  flex: none;
+  text-align: right;
+}
+
+.amount {
+  color: #164bb8;
+  font-size: 38rpx;
+  font-weight: 800;
+  line-height: 48rpx;
+}
+
+.paid .amount { color: #17833e; }
+
+.amount-label {
+  margin-top: 2rpx;
+  color: #a7b4c8;
+  font-size: 21rpx;
+  line-height: 30rpx;
+}
+
+.status-row {
+  display: flex;
+  align-items: flex-start;
+  margin-top: 8rpx;
+}
+
+.status-pill {
+  display: flex;
+  align-items: center;
+  flex: none;
+  gap: 9rpx;
+  min-height: 46rpx;
+  border-radius: 999rpx;
+  padding: 3rpx 17rpx;
+  font-size: 21rpx;
+  font-weight: 700;
+  line-height: 36rpx;
+}
+
+.status-dot {
+  flex: none;
+  width: 12rpx;
+  height: 12rpx;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.status-pill.unpaid,
+.status-pill.overdue {
+  background: #fff4ec;
+  color: #b55800;
+}
+
+.status-pill.paid {
+  background: #e8f7ee;
+  color: #1a7a38;
+}
+
+.summary-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18rpx;
+  min-height: 76rpx;
+  margin-top: 8rpx;
+  border-top: 1rpx solid #e9edf4;
+}
+
+.route {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: #3d577d;
+  font-size: 27rpx;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.route-pin {
+  position: relative;
+  flex: none;
+  width: 20rpx;
+  height: 24rpx;
+  margin-right: 14rpx;
+  border: 3rpx solid #9cb0cb;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+}
+
+.route-pin-dot {
+  position: absolute;
+  top: 5rpx;
+  left: 5rpx;
+  width: 5rpx;
+  height: 5rpx;
+  border-radius: 50%;
+  background: #9cb0cb;
+}
+
+.arrow {
+  margin: 0 12rpx;
+  color: #b8c4d5;
+}
+
+.trip-meta {
+  display: flex;
+  align-items: center;
+  flex: none;
+  color: #9bacc3;
+  font-size: 22rpx;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.vehicle {
+  max-width: 140rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.meta-dot {
+  margin: 0 17rpx;
+  color: #cbd4e1;
+}
+
+.code {
+  height: 52rpx;
+  margin: 0 -30rpx;
+  border-top: 1rpx solid #f0f2f6;
+  padding: 17rpx 30rpx 0;
+  color: #b6c3d5;
+  font-size: 18rpx;
+  font-weight: 700;
+  letter-spacing: 2rpx;
+  line-height: 24rpx;
+}
+
+.compact .code {
+  margin-right: -26rpx;
+  margin-left: -26rpx;
+  padding-right: 26rpx;
+  padding-left: 26rpx;
+}

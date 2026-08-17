@@ -1,0 +1,28 @@
+<view class="page select-page">
+  <view class="select-nav" style="{{systemLayout.navStyle}}">
+    <button class="select-nav-button" bindtap="back">取消</button>
+    <view class="select-nav-title">已选 {{selectedIds.length}} 项</view>
+    <button class="select-all-button" style="{{systemLayout.navActionStyle}}" bindtap="toggleAll">{{allText}}</button>
+  </view>
+
+  <view class="select-content">
+    <view class="select-list">
+      <bill-card
+        wx:for="{{bills}}"
+        wx:key="id"
+        bill="{{item}}"
+        selectable
+        selected="{{item.selected}}"
+        bind:tapbill="toggle"
+      />
+    </view>
+  </view>
+
+  <view class="bottom-bar select-bottom" style="{{systemLayout.bottomSafeStyle}}">
+    <view>
+      <view class="bottom-title">已选 {{selectedIds.length}} 笔合计</view>
+      <view class="bottom-total mono">{{totalAmount}}</view>
+    </view>
+    <button class="delete-confirm {{deleteDisabledClass}}" bindtap="deleteSelected"><text class="trash-icon">▥</text>删除所选</button>
+  </view>
+</view>

@@ -1,0 +1,84 @@
+<view class="page home-page">
+  <view class="topbar" style="{{systemLayout.navStyle}}">
+    <view class="brand">
+      <view class="brand-icon"></view>
+      <view class="brand-title">货运账单</view>
+    </view>
+    <button class="more-button" style="{{systemLayout.navTitleStyle}}" bindtap="toggleMenu">⋮</button>
+    <view wx:if="{{menuOpen}}" class="mask" bindtap="closeOverlays"></view>
+    <view wx:if="{{menuOpen}}" class="menu" style="{{systemLayout.navRightStyle}}">
+      <button class="menu-item" bindtap="goOcrTasks">
+        <text>识别任务</text>
+        <text wx:if="{{pendingOcr + unmergedOcr > 0}}" class="menu-badge">{{pendingOcr + unmergedOcr}}</text>
+      </button>
+      <button class="menu-item" bindtap="goFilter">高级筛选</button>
+      <button class="menu-item" bindtap="goSelect">批量管理</button>
+    </view>
+  </view>
+
+  <view wx:if="{{unmergedOcr > 0}}" class="ocr-banner" bindtap="goOcrTasks">
+    <view class="ocr-icon">✦</view>
+    <view class="ocr-copy">
+      <view>有 {{unmergedOcr}} 份识别结果待处理</view>
+      <text class="ocr-subtitle">点击查看并合并到账单列表</text>
+    </view>
+    <text class="banner-arrow">›</text>
+  </view>
+
+  <view class="search-card" bindtap="openSearch">
+    <text class="search-icon">⌕</text>
+    <text>搜索托运人、单号或路线</text>
+  </view>
+
+  <view class="tabs">
+    <button
+      wx:for="{{tabs}}"
+      wx:key="key"
+      data-key="{{item.key}}"
+      class="tab {{item.className}}"
+      bindtap="onTabTap"
+    >
+      {{item.text}}
+    </button>
+  </view>
+
+  <view class="list-meta">
+    <text>{{total}} 条账单</text>
+    <text class="swipe-hint">← 左滑标记 / 删除</text>
+  </view>
+
+  <view class="bill-list">
+    <view wx:for="{{bills}}" wx:key="id" wx:for-index="index" class="swipe-wrap">
+      <view class="swipe-actions">
+        <button class="action paid-action" data-id="{{item.id}}" bindtap="markPaid">已收款</button>
+        <button class="action delete-action" data-id="{{item.id}}" bindtap="deleteBill">删除</button>
+      </view>
+      <view
+        class="card-front"
+        data-index="{{index}}"
+        style="transform: translateX({{item.offset}}px);"
+        bindtouchstart="onTouchStart"
+        bindtouchmove="onTouchMove"
+        bindtouchend="onTouchEnd"
+        bindtouchcancel="onTouchEnd"
+      >
+        <bill-card bill="{{item}}" bind:tapbill="editBill" />
+      </view>
+    </view>
+  </view>
+
+  <view wx:if="{{dialOpen}}" class="fab-mask" bindtap="closeOverlays"></view>
+  <view class="fab-group">
+    <block wx:if="{{dialOpen}}">
+      <button class="fab-option" bindtap="goCamera">
+        <text class="fab-small-icon">拍</text>
+        <text>拍照识别</text>
+      </button>
+      <button class="fab-option" bindtap="goCreate">
+        <text class="fab-small-icon muted">+</text>
+        <text>手动新增</text>
+      </button>
+    </block>
+    <button class="fab" bindtap="toggleDial">+</button>
+  </view>
+</view>
