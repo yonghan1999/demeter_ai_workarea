@@ -72,7 +72,8 @@ function listBills(filters) {
 
 function getBill(id) {
   const store = getStore();
-  return wait(billViewModel(store.bills.find((bill) => bill.id === id)));
+  const bill = store.bills.find((item) => item.id === id);
+  return wait(bill ? billViewModel(bill) : null);
 }
 
 function createBill(payload) {
@@ -97,6 +98,8 @@ function createBill(payload) {
 
 function updateBill(id, payload) {
   const store = getStore();
+  const exists = store.bills.some((bill) => bill.id === id);
+  if (!exists) return wait(null);
   store.bills = store.bills.map((bill) => {
     if (bill.id !== id) return bill;
     return {
@@ -112,21 +115,25 @@ function updateBill(id, payload) {
 
 function deleteBill(id) {
   const store = getStore();
+  const before = store.bills.length;
   store.bills = store.bills.filter((bill) => bill.id !== id);
   saveStore(store);
-  return wait({ ok: true });
+  return wait({ ok: store.bills.length < before });
 }
 
 function deleteBills(ids) {
   const set = new Set(ids);
   const store = getStore();
+  const before = store.bills.length;
   store.bills = store.bills.filter((bill) => !set.has(bill.id));
   saveStore(store);
-  return wait({ ok: true });
+  return wait({ ok: true, count: before - store.bills.length });
 }
 
 function markPaid(id) {
   const store = getStore();
+  const exists = store.bills.some((bill) => bill.id === id);
+  if (!exists) return wait(null);
   store.bills = store.bills.map((bill) => (
     bill.id === id ? { ...bill, status: 'paid' } : bill
   ));
@@ -193,13 +200,36 @@ function createOcrTask(imagePath) {
 
 function getOcrTask(id) {
   const store = getStore();
-  return wait(store.ocrTasks.find((task) => task.id === id));
+  return wait(store.ocrTasks.find((task) => task.id === id) || null);
+}
+
+function retryOcrTask(id) {
+  const store = getStore();
+  let found = false;
+  store.ocrTasks = store.ocrTasks.map((task) => {
+    if (task.id !== id) return task;
+    found = true;
+    return { ...task, status: 'processing', merged: false, bills: [] };
+  });
+  saveStore(store);
+  if (!found) return wait({ ok: false });
+
+  setTimeout(() => {
+    const latest = getStore();
+    latest.ocrTasks = latest.ocrTasks.map((task) => (
+      task.id === id && task.status === 'processing'
+        ? { ...task, status: 'completed', bills: mockOcrBills }
+        : task
+    ));
+    saveStore(latest);
+  }, 3200);
+  return wait({ ok: true });
 }
 
 function mergeOcrTask(taskId, selectedIds, edits) {
   const store = getStore();
   const task = store.ocrTasks.find((item) => item.id === taskId);
-  if (!task) return wait({ ok: false });
+  if (!task || task.status !== 'completed' || task.merged) return wait({ ok: false });
 
   const selected = new Set(selectedIds);
   const bills = task.bills
@@ -220,6 +250,8 @@ function mergeOcrTask(taskId, selectedIds, edits) {
         tags: []
       };
     });
+
+  if (bills.length === 0) return wait({ ok: false });
 
   store.bills = [...bills, ...store.bills];
   store.ocrTasks = store.ocrTasks.map((item) => (
@@ -244,6 +276,7 @@ module.exports = {
   listOcrTasks,
   createOcrTask,
   getOcrTask,
+  retryOcrTask,
   mergeOcrTask,
   resetStore,
   statusText,

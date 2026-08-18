@@ -1,74 +1,80 @@
 <view class="page home-page">
-  <view class="topbar" style="{{systemLayout.navStyle}}">
-    <view class="brand">
-      <view class="brand-icon"></view>
-      <view class="brand-title">货运账单</view>
+  <view class="system-header-spacer" style="{{systemLayout.navStyle}}" aria-hidden="true"></view>
+
+  <view class="home-controls">
+    <view class="search-card {{batchMode ? 'control-disabled' : ''}}" bindtap="openSearch">
+      <image class="search-icon" src="/assets/icons/search.svg" mode="aspectFit" />
+      <text>搜索托运人、单号或路线</text>
     </view>
-    <button class="more-button" style="{{systemLayout.navTitleStyle}}" bindtap="toggleMenu">⋮</button>
-    <view wx:if="{{menuOpen}}" class="mask" bindtap="closeOverlays"></view>
-    <view wx:if="{{menuOpen}}" class="menu" style="{{systemLayout.navRightStyle}}">
-      <button class="menu-item" bindtap="goOcrTasks">
-        <text>识别任务</text>
-        <text wx:if="{{pendingOcr + unmergedOcr > 0}}" class="menu-badge">{{pendingOcr + unmergedOcr}}</text>
-      </button>
-      <button class="menu-item" bindtap="goFilter">高级筛选</button>
-      <button class="menu-item" bindtap="goSelect">批量管理</button>
+
+    <scroll-view class="quick-tools-scroll" scroll-x enhanced show-scrollbar="{{false}}">
+      <view class="quick-tools">
+        <view class="quick-tool primary {{batchMode ? 'control-disabled' : ''}}" bindtap="goCamera"><image class="quick-tool-icon" src="/assets/icons/camera.svg" mode="aspectFit" /><text>拍照识别</text></view>
+        <view class="quick-tool {{batchMode ? 'control-disabled' : ''}}" bindtap="goOcrTasks">
+          <image class="quick-tool-icon" src="/assets/icons/sparkles.svg" mode="aspectFit" /><text>识别任务</text>
+          <text wx:if="{{pendingOcr + unmergedOcr > 0}}" class="quick-badge">{{pendingOcr + unmergedOcr}}</text>
+        </view>
+        <view class="quick-tool {{batchMode ? 'managing' : ''}}" bindtap="goSelect"><image class="quick-tool-icon" src="/assets/icons/sliders.svg" mode="aspectFit" /><text>{{batchMode ? '退出管理' : '批量管理'}}</text></view>
+        <view class="quick-tool {{filterCount > 0 ? 'filtered' : ''}} {{batchMode ? 'control-disabled' : ''}}" bindtap="goFilter"><image class="quick-tool-icon" src="/assets/icons/filter.svg" mode="aspectFit" /><text>高级筛选</text><text wx:if="{{filterCount > 0}}" class="filter-badge">{{filterCount}}</text></view>
+      </view>
+    </scroll-view>
+
+    <view class="tabs">
+      <view wx:for="{{tabs}}" wx:key="key" data-key="{{item.key}}" class="tab {{item.className}}" bindtap="onTabTap">{{item.text}}</view>
     </view>
   </view>
 
-  <view wx:if="{{unmergedOcr > 0}}" class="ocr-banner" bindtap="goOcrTasks">
-    <view class="ocr-icon">✦</view>
-    <view class="ocr-copy">
-      <view>有 {{unmergedOcr}} 份识别结果待处理</view>
-      <text class="ocr-subtitle">点击查看并合并到账单列表</text>
-    </view>
-    <text class="banner-arrow">›</text>
+  <view wx:if="{{!initialLoading && !loadFailed}}" class="list-meta {{batchMode ? 'batch-list-meta' : ''}}">
+    <block wx:if="{{batchMode}}">
+      <text><text class="selected-count">{{selectedIds.length}}</text> / {{total}} 笔已选</text>
+      <button class="select-all" bindtap="toggleAll">{{allSelected ? '取消全选' : '全选'}}</button>
+    </block>
+    <block wx:else>
+      <view class="result-count"><text>{{total}} 条账单</text><button wx:if="{{filterCount > 0}}" class="filter-summary" bindtap="clearAdvancedFilters">已筛选 · 清除</button></view>
+      <text class="swipe-hint">← 左滑标记 / 删除</text>
+    </block>
   </view>
 
-  <view class="search-card" bindtap="openSearch">
-    <text class="search-icon">⌕</text>
-    <text>搜索托运人、单号或路线</text>
-  </view>
-
-  <view class="tabs">
-    <button
-      wx:for="{{tabs}}"
-      wx:key="key"
-      data-key="{{item.key}}"
-      class="tab {{item.className}}"
-      bindtap="onTabTap"
-    >
-      {{item.text}}
-    </button>
-  </view>
-
-  <view class="list-meta">
-    <text>{{total}} 条账单</text>
-    <text class="swipe-hint">← 左滑标记 / 删除</text>
-  </view>
-
-  <view class="bill-list">
+  <view wx:if="{{bills.length > 0}}" class="bill-list">
     <view wx:for="{{bills}}" wx:key="id" wx:for-index="index" class="swipe-wrap">
-      <view class="swipe-actions">
-        <button class="action paid-action" data-id="{{item.id}}" bindtap="markPaid">已收款</button>
-        <button class="action delete-action" data-id="{{item.id}}" bindtap="deleteBill">删除</button>
+      <view wx:if="{{!batchMode}}" class="swipe-actions">
+        <button class="action paid-action" data-id="{{item.id}}" bindtap="markPaid"><image class="action-icon" src="/assets/icons/check.svg" mode="aspectFit" /><text>已收款</text></button>
+        <button class="action delete-action" data-id="{{item.id}}" bindtap="deleteBill"><image class="action-icon" src="/assets/icons/trash.svg" mode="aspectFit" /><text>删除</text></button>
       </view>
       <view
         class="card-front"
         data-index="{{index}}"
-        style="transform: translateX({{item.offset}}px);"
+        style="transform: translateX({{batchMode ? 0 : item.offset}}px);"
         bindtouchstart="onTouchStart"
         bindtouchmove="onTouchMove"
         bindtouchend="onTouchEnd"
         bindtouchcancel="onTouchEnd"
       >
-        <bill-card bill="{{item}}" bind:tapbill="editBill" />
+        <bill-card bill="{{item}}" selectable="{{batchMode}}" selected="{{item.selected}}" bind:tapbill="handleBillTap" />
       </view>
     </view>
   </view>
 
+  <view wx:if="{{initialLoading}}" class="home-skeleton" aria-label="正在加载账单">
+    <view wx:for="{{[1,2,3]}}" wx:key="*this" class="home-skeleton-card"><view class="skeleton-row"><view class="skeleton-line title"></view><view class="skeleton-line amount"></view></view><view class="skeleton-line pill"></view><view class="skeleton-divider"></view><view class="skeleton-row"><view class="skeleton-line route"></view><view class="skeleton-line meta"></view></view></view>
+  </view>
+
+  <view wx:if="{{loadFailed}}" class="home-empty">
+    <view class="empty-title">账单加载失败</view>
+    <text>请检查网络后重新加载</text>
+    <button class="home-empty-button" bindtap="retryLoad">重新加载</button>
+  </view>
+
+  <view wx:if="{{!loading && !loadFailed && bills.length === 0}}" class="home-empty">
+    <view class="empty-icon"><image class="empty-state-icon" src="/assets/icons/search.svg" mode="aspectFit" /></view>
+    <view class="empty-title">暂无符合条件的账单</view>
+    <text>{{filterCount > 0 ? '可以调整或清除高级筛选条件' : '可以切换状态筛选或新增一笔账单'}}</text>
+    <button wx:if="{{filterCount > 0}}" class="home-empty-button" bindtap="clearAdvancedFilters">清除高级筛选</button>
+    <button wx:else class="home-empty-button" bindtap="goCreate">新增账单</button>
+  </view>
+
   <view wx:if="{{dialOpen}}" class="fab-mask" bindtap="closeOverlays"></view>
-  <view class="fab-group">
+  <view wx:if="{{!batchMode && !filterOpen}}" class="fab-group">
     <block wx:if="{{dialOpen}}">
       <button class="fab-option" bindtap="goCamera">
         <text class="fab-small-icon">拍</text>
@@ -80,5 +86,44 @@
       </button>
     </block>
     <button class="fab" bindtap="toggleDial">+</button>
+  </view>
+
+  <view wx:if="{{batchMode}}" class="batch-bottom" style="{{systemLayout.bottomSafeStyle}}">
+    <view class="batch-total">
+      <text>已选 {{selectedIds.length}} 笔合计</text>
+      <view class="mono">{{selectedAmount}}</view>
+    </view>
+    <button class="batch-delete {{selectedIds.length === 0 || deleting ? 'disabled' : ''}}" disabled="{{selectedIds.length === 0 || deleting}}" bindtap="deleteSelected">
+      <image class="batch-delete-icon" src="/assets/icons/trash.svg" mode="aspectFit" />
+      <text>{{deleteText}}</text>
+    </button>
+  </view>
+
+  <view wx:if="{{filterOpen}}" class="filter-overlay" bindtap="closeFilter">
+    <view class="filter-sheet" style="{{systemLayout.bottomSafeStyle}}" catchtap="stopPropagation">
+      <view class="filter-sheet-header">
+        <view>
+          <view class="filter-sheet-title">高级筛选</view>
+          <text class="filter-sheet-subtitle">筛选当前账单列表</text>
+        </view>
+        <button class="filter-close" bindtap="closeFilter"><image class="filter-close-icon" src="/assets/icons/close.svg" mode="aspectFit" /></button>
+      </view>
+
+      <view class="filter-sheet-body">
+        <view class="inline-filter-toolbar"><text>筛选条件</text><button class="inline-filter-reset" bindtap="resetFilterDraft">重置</button></view>
+        <view class="inline-filter-card">
+          <view class="inline-filter-label">订单号</view>
+          <view class="inline-filter-input"><text>#</text><input class="inline-filter-input-field" data-field="code" value="{{filterDraft.code}}" placeholder="输入订单编号" bindinput="setFilterField" /></view>
+          <view class="inline-filter-label second">托运人</view>
+          <view class="inline-filter-input"><image class="inline-filter-input-icon" src="/assets/icons/person.svg" mode="aspectFit" /><input class="inline-filter-input-field" data-field="shipper" value="{{filterDraft.shipper}}" placeholder="托运单位或个人姓名" maxlength="60" bindinput="setFilterField" /></view>
+        </view>
+        <view class="inline-filter-card">
+          <view class="inline-filter-label">支付状态</view>
+          <view class="inline-segmented"><button wx:for="{{filterStatusOptions}}" wx:key="key" data-status="{{item.key}}" class="inline-status-option {{item.className}}" bindtap="setFilterStatus">{{item.text}}</button></view>
+        </view>
+      </view>
+
+      <button class="apply-filter" bindtap="applyFilter"><image class="apply-filter-icon" src="/assets/icons/filter.svg" mode="aspectFit" /><text>查看筛选结果</text></button>
+    </view>
   </view>
 </view>

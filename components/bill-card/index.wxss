@@ -3,12 +3,12 @@
   display: flex;
   width: 100%;
   overflow: hidden;
-  border: 1rpx solid #eef1f6;
-  border-left-width: 5rpx;
+  border: 0;
+  border-left: 5rpx solid transparent;
   height: 296rpx;
   border-radius: 34rpx;
   background: #ffffff;
-  box-shadow: 0 2rpx 4rpx rgba(17, 32, 80, 0.03);
+  box-shadow: 0 2rpx 12rpx rgba(17, 32, 80, 0.07);
 }
 
 .bill-card.paid { border-left-color: #27a550; }
@@ -155,24 +155,10 @@
 }
 
 .route-pin {
-  position: relative;
   flex: none;
-  width: 20rpx;
-  height: 24rpx;
-  margin-right: 14rpx;
-  border: 3rpx solid #9cb0cb;
-  border-radius: 50% 50% 50% 0;
-  transform: rotate(-45deg);
-}
-
-.route-pin-dot {
-  position: absolute;
-  top: 5rpx;
-  left: 5rpx;
-  width: 5rpx;
-  height: 5rpx;
-  border-radius: 50%;
-  background: #9cb0cb;
+  width: 28rpx;
+  height: 28rpx;
+  margin-right: 12rpx;
 }
 
 .arrow {

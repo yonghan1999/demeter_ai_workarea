@@ -1,6 +1,6 @@
 const billService = require('../../services/bill-service');
 const { money } = require('../../utils/format');
-const { withSystemLayout } = require('../../utils/system');
+const { withSystemLayout, safeBack } = require('../../utils/system');
 
 Page(withSystemLayout({
   data: {
@@ -8,7 +8,12 @@ Page(withSystemLayout({
     selectedIds: [],
     totalAmount: '¥0.00',
     allText: '全选',
-    deleteDisabledClass: 'disabled'
+    deleteDisabledClass: 'disabled',
+    deleteDisabled: true,
+    loading: true,
+    loadFailed: false,
+    deleting: false,
+    deleteText: '删除所选'
   },
 
   onShow() {
@@ -16,13 +21,24 @@ Page(withSystemLayout({
   },
 
   async loadBills() {
-    const bills = await billService.listBills();
-    this.setData({
-      bills: bills.map((bill) => ({
-        ...bill,
-        selected: false
-      }))
-    }, () => this.computeTotal());
+    this.setData({ loading: true, loadFailed: false });
+    try {
+      const bills = await billService.listBills();
+      this.setData({
+        loading: false,
+        loadFailed: false,
+        bills: bills.map((bill) => ({ ...bill, selected: false })),
+        selectedIds: [],
+        deleteDisabled: true
+      }, () => this.computeTotal());
+    } catch (error) {
+      this.setData({ loading: false, loadFailed: true });
+      wx.showToast({ title: '账单加载失败', icon: 'none' });
+    }
+  },
+
+  retryLoad() {
+    this.loadBills();
   },
 
   toggle(event) {
@@ -34,6 +50,7 @@ Page(withSystemLayout({
   },
 
   toggleAll() {
+    if (this.data.bills.length === 0) return;
     const allSelected = this.data.selectedIds.length === this.data.bills.length;
     this.applyBills(this.data.bills.map((bill) => ({
       ...bill,
@@ -54,13 +71,14 @@ Page(withSystemLayout({
       .reduce((sum, bill) => sum + Number(bill.amount || 0), 0);
     this.setData({
       totalAmount: money(total),
-      allText: this.data.selectedIds.length === this.data.bills.length ? '取消全选' : '全选',
-      deleteDisabledClass: this.data.selectedIds.length === 0 ? 'disabled' : ''
+      allText: this.data.bills.length > 0 && this.data.selectedIds.length === this.data.bills.length ? '取消全选' : '全选',
+      deleteDisabledClass: this.data.selectedIds.length === 0 ? 'disabled' : '',
+      deleteDisabled: this.data.selectedIds.length === 0
     });
   },
 
   async deleteSelected() {
-    if (this.data.selectedIds.length === 0) return;
+    if (this.data.selectedIds.length === 0 || this.data.deleting) return;
     wx.showModal({
       title: '确认删除',
       content: `将删除已选择的 ${this.data.selectedIds.length} 笔账单。`,
@@ -68,15 +86,27 @@ Page(withSystemLayout({
       confirmColor: '#ba1a1a',
       success: async (res) => {
         if (!res.confirm) return;
-        await billService.deleteBills(this.data.selectedIds);
-        wx.showToast({ title: '已删除', icon: 'success' });
-        this.setData({ selectedIds: [] });
-        this.loadBills();
+        this.setData({ deleting: true, deleteDisabled: true, deleteDisabledClass: 'disabled', deleteText: '正在删除' });
+        try {
+          const expectedCount = this.data.selectedIds.length;
+          const result = await billService.deleteBills(this.data.selectedIds);
+          if (!result.ok || result.count !== expectedCount) throw new Error('delete incomplete');
+          wx.showToast({ title: '已删除', icon: 'success' });
+          await this.loadBills();
+        } catch (error) {
+          wx.showToast({ title: '删除失败，请重试', icon: 'none' });
+        } finally {
+          this.setData({
+            deleting: false,
+            deleteDisabled: this.data.selectedIds.length === 0,
+            deleteText: '删除所选'
+          });
+        }
       }
     });
   },
 
   back() {
-    wx.navigateBack();
+    safeBack();
   }
 }));

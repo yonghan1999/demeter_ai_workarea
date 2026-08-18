@@ -2,9 +2,7 @@
   "pages": [
     "pages/home/index",
     "pages/search/index",
-    "pages/filter/index",
     "pages/bill-form/index",
-    "pages/select/index",
     "pages/ocr-camera/index",
     "pages/ocr-tasks/index",
     "pages/ocr-review/index"

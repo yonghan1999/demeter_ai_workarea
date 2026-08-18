@@ -1,11 +1,11 @@
 <view class="page camera-page">
   <view class="camera-panel">
-    <view class="camera-nav" style="{{systemLayout.navStyle}}"><button class="camera-close" bindtap="back">×</button><view class="camera-nav-title">拍照识别账本</view></view>
+    <view class="camera-nav" style="{{systemLayout.navStyle}}"><button class="camera-close" bindtap="back"><image src="/assets/icons/close.svg" mode="aspectFit" /></button><view class="camera-nav-title">拍照识别账本</view></view>
     <view class="camera-content">
-      <view class="capture-card" bindtap="chooseImage"><image wx:if="{{imagePath}}" class="camera-image" src="{{imagePath}}" mode="aspectFill"></image><view wx:else class="camera-placeholder"><view class="camera-icon">▣</view><view class="camera-title">拍摄手写账本</view><text>对准账本页面，确保字迹清晰</text><text>可一次拍摄多行账单</text></view></view>
+      <view class="capture-card" bindtap="chooseImage"><image wx:if="{{imagePath}}" class="camera-image" src="{{imagePath}}" mode="aspectFit"></image><view wx:else class="camera-placeholder"><view class="camera-icon"><image src="/assets/icons/camera.svg" mode="aspectFit" /></view><view class="camera-title">拍摄手写账本</view><text>对准账本页面，确保字迹清晰</text><text>可一次拍摄多行账单</text></view></view>
       <view class="capture-tips"><view class="capture-tip"><text class="tip-number">01</text><text>光线充足</text></view><view class="capture-tip"><text class="tip-number">02</text><text>页面摆正</text></view><view class="capture-tip"><text class="tip-number">03</text><text>字迹清晰</text></view></view>
-      <button class="capture-primary" bindtap="primaryAction">▣  {{primaryText}}</button>
-      <button class="capture-skip" bindtap="useDemo">跳过（使用演示数据）</button>
+      <button class="capture-primary {{primaryDisabledClass}}" disabled="{{submitting}}" bindtap="primaryAction"><image src="/assets/icons/camera.svg" mode="aspectFit" />{{primaryText}}</button>
+      <button class="capture-skip" disabled="{{submitting}}" bindtap="useDemo">跳过（使用演示数据）</button>
     </view>
   </view>
 </view>

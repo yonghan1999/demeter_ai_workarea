@@ -1,18 +1,21 @@
 .filter-page { min-height: 100vh; padding-bottom: 150rpx; background: #edf0f6; }
-.filter-nav { position: sticky; top: 0; z-index: 20; display: grid; grid-template-columns: 90rpx minmax(0,1fr) 90rpx; align-items: center; height: 112rpx; padding: 36rpx 28rpx 0; border-bottom: 1rpx solid #eaecf2; background: #fff; }
-.filter-back,.filter-reset { height: 64rpx; line-height: 64rpx; }
-.filter-back { color: #4a5568; font-size: 40rpx; text-align: left; }
-.filter-title { color: #17213a; font-size: 32rpx; font-weight: 700; text-align: center; }
-.filter-reset { position:absolute; width:88rpx; color: #8c9bae; font-size: 28rpx; text-align: right; }
+.filter-nav { position: sticky; top: 0; z-index: 20; display: grid; grid-template-columns: 72rpx minmax(0,1fr); align-items: center; height: 112rpx; padding: 36rpx 28rpx 0; border-bottom: 1rpx solid #eaecf2; background: #fff; }
+.filter-back { display:flex; align-items:center; justify-content:flex-start; flex:none; width:64rpx; min-width:64rpx; max-width:64rpx; height:64rpx; }
+.filter-back image { width:48rpx; height:48rpx; }
+.filter-title { position:absolute;bottom:18rpx;left:50%;max-width:360rpx;overflow:hidden;color:#17213a;font-size:32rpx;font-weight:700;text-align:center;text-overflow:ellipsis;transform:translateX(-50%);white-space:nowrap; }
 .filter-content { display: flex; flex-direction: column; gap: 30rpx; padding: 32rpx; }
+.filter-toolbar { display:flex; align-items:center; justify-content:space-between; min-height:58rpx; color:#17213a; font-size:29rpx; font-weight:800; }
+.filter-reset { height:58rpx; border-radius:22rpx; background:#fff; padding:0 25rpx; color:#64748b; font-size:24rpx; font-weight:700; box-shadow:0 2rpx 8rpx rgba(17,32,80,.05); }
 .filter-card { border-radius: 30rpx; background: #fff; padding: 28rpx; box-shadow: 0 2rpx 8rpx rgba(17,32,80,.04); }
 .filter-label { color: #8c9bae; font-size: 22rpx; font-weight: 600; }
 .section-label { margin-bottom: 26rpx; }
 .filter-field + .filter-field { margin-top: 27rpx; }
 .filter-input-shell { display: flex; align-items: center; gap: 16rpx; height: 94rpx; margin-top: 12rpx; border-radius: 34rpx; background: #f3f5f9; padding: 0 28rpx; color: #a8b7cb; font-size: 28rpx; }
+.filter-input-shell image { flex:none; width:34rpx; height:34rpx; }
 .filter-input { flex: 1; height: 94rpx; color: #17213a; font-size: 27rpx; }
 .segmented { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 14rpx; margin-top: 24rpx; }
 .status-option { height: 78rpx; border-radius: 34rpx; background: #f3f5f9; color: #4a5568; font-size: 27rpx; font-weight: 700; }
 .segmented .active { background: #1d50bf; color: #fff; }
 .filter-bottom { position: fixed; right: 0; bottom: 0; left: 0; z-index: 30; padding: 18rpx 32rpx calc(18rpx + env(safe-area-inset-bottom)); background: #fff; }
 .filter-bottom .primary-button { width: 100%; }
+.filter-bottom .primary-button image { width:34rpx; height:34rpx; filter:brightness(0) invert(1); margin-right:14rpx; }

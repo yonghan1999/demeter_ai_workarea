@@ -1,4 +1,5 @@
 const billService = require('../../services/bill-service');
+const { money } = require('../../utils/format');
 const { withSystemLayout } = require('../../utils/system');
 
 Page(withSystemLayout({
@@ -6,11 +7,32 @@ Page(withSystemLayout({
     bills: [],
     activeStatus: 'all',
     tabs: [],
-    menuOpen: false,
     dialOpen: false,
     unmergedOcr: 0,
     pendingOcr: 0,
-    total: 0
+    total: 0,
+    loading: true,
+    initialLoading: true,
+    loadFailed: false,
+    operatingId: '',
+    appliedFilters: {
+      code: '',
+      shipper: ''
+    },
+    filterDraft: {
+      code: '',
+      shipper: '',
+      status: 'all'
+    },
+    filterStatusOptions: [],
+    filterOpen: false,
+    filterCount: 0,
+    batchMode: false,
+    selectedIds: [],
+    selectedAmount: '¥0.00',
+    allSelected: false,
+    deleting: false,
+    deleteText: '删除所选'
   },
 
   onShow() {
@@ -33,19 +55,53 @@ Page(withSystemLayout({
   },
 
   async loadData() {
-    const bills = await billService.listBills({
-      status: this.data.activeStatus
-    });
-    const tasks = await billService.listOcrTasks();
+    const loadSeq = (this.loadSeq || 0) + 1;
+    this.loadSeq = loadSeq;
     this.setData({
-      bills: bills.map((bill) => ({ ...bill, offset: 0 })),
-      total: bills.length,
-      pendingOcr: tasks.filter((task) => task.status === 'processing').length,
-      unmergedOcr: tasks.filter((task) => task.status === 'completed' && !task.merged).length
+      loading: true,
+      initialLoading: this.data.bills.length === 0,
+      loadFailed: false
     });
+    try {
+      const [bills, tasks] = await Promise.all([
+        billService.listBills({
+          status: this.data.activeStatus,
+          ...this.data.appliedFilters
+        }),
+        billService.listOcrTasks()
+      ]);
+      if (loadSeq !== this.loadSeq) return;
+      const batchMode = this.data.batchMode && bills.length > 0;
+      this.setData({
+        bills: bills.map((bill) => ({ ...bill, offset: 0, selected: false })),
+        total: bills.length,
+        pendingOcr: tasks.filter((task) => task.status === 'processing').length,
+        unmergedOcr: tasks.filter((task) => task.status === 'completed' && !task.merged).length,
+        loading: false,
+        initialLoading: false,
+        loadFailed: false,
+        batchMode,
+        selectedIds: [],
+        selectedAmount: '¥0.00',
+        allSelected: false
+      });
+    } catch (error) {
+      if (loadSeq !== this.loadSeq) return;
+      this.setData({
+        loading: false,
+        initialLoading: false,
+        loadFailed: this.data.bills.length === 0
+      });
+      wx.showToast({ title: '账单加载失败，请重试', icon: 'none' });
+    }
+  },
+
+  retryLoad() {
+    this.loadData();
   },
 
   onTouchStart(event) {
+    if (this.data.batchMode) return;
     const index = event.currentTarget.dataset.index;
     const touch = event.touches[0];
     this.touchState = {
@@ -56,7 +112,7 @@ Page(withSystemLayout({
   },
 
   onTouchMove(event) {
-    if (!this.touchState) return;
+    if (this.data.batchMode || !this.touchState) return;
     const touch = event.touches[0];
     const dx = touch.clientX - this.touchState.startX;
     const offset = Math.max(-140, Math.min(0, this.touchState.base + dx));
@@ -66,7 +122,7 @@ Page(withSystemLayout({
   },
 
   onTouchEnd() {
-    if (!this.touchState) return;
+    if (this.data.batchMode || !this.touchState) return;
     const index = this.touchState.index;
     const offset = this.data.bills[index].offset < -70 ? -140 : 0;
     this.setData({
@@ -76,6 +132,10 @@ Page(withSystemLayout({
   },
 
   onTabTap(event) {
+    if (this.data.batchMode) {
+      wx.showToast({ title: '请先完成批量管理', icon: 'none' });
+      return;
+    }
     this.setData({ activeStatus: event.currentTarget.dataset.key }, () => {
       this.refreshTabs();
       this.loadData();
@@ -83,54 +143,217 @@ Page(withSystemLayout({
   },
 
   openSearch() {
+    if (this.data.batchMode) return;
     wx.navigateTo({ url: '/pages/search/index' });
   },
 
-  toggleMenu() {
-    this.setData({ menuOpen: !this.data.menuOpen, dialOpen: false });
-  },
-
   closeOverlays() {
-    this.setData({ menuOpen: false, dialOpen: false });
+    this.setData({ dialOpen: false });
   },
 
   goFilter() {
     this.closeOverlays();
-    wx.navigateTo({ url: '/pages/filter/index' });
+    if (this.data.batchMode) return;
+    this.setData({
+      filterOpen: true,
+      filterDraft: {
+        ...this.data.appliedFilters,
+        status: this.data.activeStatus
+      }
+    }, () => this.refreshFilterOptions());
   },
 
   goSelect() {
     this.closeOverlays();
-    wx.navigateTo({ url: '/pages/select/index' });
+    if (this.data.loading || this.data.deleting) return;
+    if (this.data.batchMode) {
+      this.exitBatchMode();
+      return;
+    }
+    if (this.data.bills.length === 0) {
+      wx.showToast({ title: '当前列表暂无可管理账单', icon: 'none' });
+      return;
+    }
+    this.setData({
+      batchMode: true,
+      bills: this.data.bills.map((bill) => ({ ...bill, offset: 0, selected: false })),
+      selectedIds: [],
+      selectedAmount: '¥0.00',
+      allSelected: false
+    });
+  },
+
+  exitBatchMode() {
+    if (this.data.deleting) return;
+    this.setData({
+      batchMode: false,
+      bills: this.data.bills.map((bill) => ({ ...bill, selected: false, offset: 0 })),
+      selectedIds: [],
+      selectedAmount: '¥0.00',
+      allSelected: false
+    });
+  },
+
+  refreshFilterOptions() {
+    const source = [
+      { key: 'all', text: '全部' },
+      { key: 'unpaid', text: '未支付' },
+      { key: 'paid', text: '已支付' }
+    ];
+    this.setData({
+      filterStatusOptions: source.map((item) => ({
+        ...item,
+        className: this.data.filterDraft.status === item.key ? 'active' : ''
+      }))
+    });
+  },
+
+  setFilterField(event) {
+    const field = event.currentTarget.dataset.field;
+    this.setData({ [`filterDraft.${field}`]: event.detail.value });
+  },
+
+  setFilterStatus(event) {
+    this.setData({ 'filterDraft.status': event.currentTarget.dataset.status }, () => {
+      this.refreshFilterOptions();
+    });
+  },
+
+  resetFilterDraft() {
+    this.setData({
+      filterDraft: { code: '', shipper: '', status: 'all' }
+    }, () => this.refreshFilterOptions());
+  },
+
+  closeFilter() {
+    this.setData({ filterOpen: false });
+  },
+
+  stopPropagation() {},
+
+  applyFilter() {
+    const code = this.data.filterDraft.code.trim();
+    const shipper = this.data.filterDraft.shipper.trim();
+    const status = this.data.filterDraft.status;
+    const filterCount = Number(Boolean(code)) + Number(Boolean(shipper));
+    this.setData({
+      filterOpen: false,
+      appliedFilters: { code, shipper },
+      activeStatus: status,
+      filterCount
+    }, () => {
+      this.refreshTabs();
+      this.loadData();
+    });
+  },
+
+  clearAdvancedFilters() {
+    this.setData({
+      appliedFilters: { code: '', shipper: '' },
+      filterCount: 0
+    }, () => this.loadData());
   },
 
   goOcrTasks() {
     this.closeOverlays();
+    if (this.data.batchMode) return;
     wx.navigateTo({ url: '/pages/ocr-tasks/index' });
   },
 
   toggleDial() {
-    this.setData({ dialOpen: !this.data.dialOpen, menuOpen: false });
+    if (this.data.batchMode) return;
+    this.setData({ dialOpen: !this.data.dialOpen });
   },
 
   goCreate() {
     this.closeOverlays();
+    if (this.data.batchMode) return;
     wx.navigateTo({ url: '/pages/bill-form/index?mode=create' });
   },
 
   goCamera() {
     this.closeOverlays();
+    if (this.data.batchMode) return;
     wx.navigateTo({ url: '/pages/ocr-camera/index' });
   },
 
-  editBill(event) {
-    wx.navigateTo({ url: `/pages/bill-form/index?mode=edit&id=${event.detail.id}` });
+  handleBillTap(event) {
+    const id = event.detail.id;
+    if (this.data.batchMode) {
+      this.toggleBillSelection(id);
+      return;
+    }
+    wx.navigateTo({ url: `/pages/bill-form/index?mode=edit&id=${id}` });
+  },
+
+  toggleBillSelection(id) {
+    const bills = this.data.bills.map((bill) => (
+      bill.id === id ? { ...bill, selected: !bill.selected } : bill
+    ));
+    this.applySelection(bills);
+  },
+
+  toggleAll() {
+    if (this.data.bills.length === 0 || this.data.deleting) return;
+    const selected = !this.data.allSelected;
+    this.applySelection(this.data.bills.map((bill) => ({ ...bill, selected })));
+  },
+
+  applySelection(bills) {
+    const selectedBills = bills.filter((bill) => bill.selected);
+    const selectedAmount = selectedBills.reduce((sum, bill) => sum + Number(bill.amount || 0), 0);
+    this.setData({
+      bills,
+      selectedIds: selectedBills.map((bill) => bill.id),
+      selectedAmount: money(selectedAmount),
+      allSelected: bills.length > 0 && selectedBills.length === bills.length
+    });
+  },
+
+  deleteSelected() {
+    if (this.data.selectedIds.length === 0 || this.data.deleting) return;
+    const ids = [...this.data.selectedIds];
+    wx.showModal({
+      title: '确认批量删除',
+      content: `仅删除当前列表中已选择的 ${ids.length} 笔账单，删除后不可恢复。`,
+      confirmText: '删除',
+      confirmColor: '#cc1d25',
+      success: async (res) => {
+        if (!res.confirm || this.data.deleting) return;
+        this.setData({ deleting: true, deleteText: '正在删除' });
+        try {
+          const result = await billService.deleteBills(ids);
+          if (!result.ok || result.count !== ids.length) throw new Error('delete incomplete');
+          this.setData({
+            selectedIds: [],
+            selectedAmount: '¥0.00',
+            allSelected: false
+          });
+          await this.loadData();
+          wx.showToast({ title: `已删除 ${ids.length} 笔`, icon: 'success' });
+        } catch (error) {
+          wx.showToast({ title: '删除失败，请重试', icon: 'none' });
+        } finally {
+          this.setData({ deleting: false, deleteText: '删除所选' });
+        }
+      }
+    });
   },
 
   async markPaid(event) {
-    await billService.markPaid(event.currentTarget.dataset.id);
-    wx.showToast({ title: '已标记收款', icon: 'success' });
-    this.loadData();
+    const id = event.currentTarget.dataset.id;
+    if (this.data.operatingId) return;
+    this.setData({ operatingId: id });
+    try {
+      const result = await billService.markPaid(id);
+      if (!result) throw new Error('bill missing');
+      wx.showToast({ title: '已标记收款', icon: 'success' });
+      await this.loadData();
+    } catch (error) {
+      wx.showToast({ title: '操作失败，请重试', icon: 'none' });
+    } finally {
+      this.setData({ operatingId: '' });
+    }
   },
 
   async deleteBill(event) {
@@ -142,9 +365,18 @@ Page(withSystemLayout({
       confirmColor: '#cc1d25',
       success: async (res) => {
         if (!res.confirm) return;
-        await billService.deleteBill(id);
-        wx.showToast({ title: '已删除', icon: 'success' });
-        this.loadData();
+        if (this.data.operatingId) return;
+        this.setData({ operatingId: id });
+        try {
+          const result = await billService.deleteBill(id);
+          if (!result.ok) throw new Error('delete failed');
+          wx.showToast({ title: '已删除', icon: 'success' });
+          await this.loadData();
+        } catch (error) {
+          wx.showToast({ title: '删除失败，请重试', icon: 'none' });
+        } finally {
+          this.setData({ operatingId: '' });
+        }
       }
     });
   }

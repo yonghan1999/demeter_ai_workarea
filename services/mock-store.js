@@ -147,26 +147,46 @@ let memory = null;
 function createInitialState() {
   return {
     billCounter: 100,
-    bills: initialBills,
-    ocrTasks: initialOcrTasks,
+    bills: clone(initialBills),
+    ocrTasks: clone(initialOcrTasks),
     searchHistory: ['张三物流', 'TR-20240520', '上海到北京', '冷链运输服务']
   };
 }
 
 function clone(value) {
+  if (value === undefined || value === null) return value;
   return JSON.parse(JSON.stringify(value));
+}
+
+function isValidStore(store) {
+  return Boolean(
+    store
+    && typeof store === 'object'
+    && Number.isFinite(store.billCounter)
+    && Array.isArray(store.bills)
+    && Array.isArray(store.ocrTasks)
+    && Array.isArray(store.searchHistory)
+  );
 }
 
 function getStore() {
   if (memory) return memory;
-  const cached = wx.getStorageSync(STORAGE_KEY);
-  memory = cached || createInitialState();
+  try {
+    const cached = wx.getStorageSync(STORAGE_KEY);
+    memory = isValidStore(cached) ? cached : createInitialState();
+  } catch (error) {
+    memory = createInitialState();
+  }
   return memory;
 }
 
 function saveStore(store) {
-  memory = store;
-  wx.setStorageSync(STORAGE_KEY, store);
+  memory = clone(store);
+  try {
+    wx.setStorageSync(STORAGE_KEY, memory);
+  } catch (error) {
+    // Keep the in-memory mock usable when local storage is unavailable.
+  }
 }
 
 function resetStore() {

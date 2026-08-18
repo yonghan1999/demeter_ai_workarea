@@ -1,14 +1,18 @@
 <view class="page review-page" wx:if="{{task}}">
   <view class="nav" style="{{systemLayout.navStyle}}">
-    <button class="nav-action nav-muted" bindtap="back">←</button>
+    <button class="nav-action nav-muted review-back" bindtap="back"><image src="/assets/icons/back.svg" mode="aspectFit" /></button>
     <view class="nav-title">识别结果</view>
-    <button class="nav-action review-nav-action" style="{{systemLayout.navActionStyle}}" bindtap="toggleAll">{{allText}}</button>
+  </view>
+
+  <view class="review-toolbar">
+    <view><text class="toolbar-count">{{selectedIds.length}}</text><text> / {{reviewBills.length}} 笔已选</text></view>
+    <view class="review-select-all" bindtap="toggleAll">{{allText}}</view>
   </view>
 
   <view class="summary-card card">
     <view class="summary-image">
       <image wx:if="{{task.imagePath}}" class="summary-photo" src="{{task.imagePath}}" mode="aspectFill"></image>
-      <text wx:else>▧</text>
+      <image wx:else src="/assets/icons/image.svg" mode="aspectFit" />
     </view>
     <view>
       <view class="summary-title">共识别 {{reviewBills.length}} 笔账单</view>
@@ -18,7 +22,7 @@
   </view>
 
   <view class="review-list">
-    <view wx:for="{{reviewBills}}" wx:key="id" class="review-card card {{item.mutedClass}}">
+    <view wx:for="{{reviewBills}}" wx:key="id" class="review-card card {{item.borderClass}} {{item.mutedClass}}">
       <view class="review-card-head">
         <button class="check {{item.selectedClass}}" data-id="{{item.id}}" bindtap="toggle">
           <text wx:if="{{item.selected}}">✓</text>
@@ -31,7 +35,7 @@
       <view class="edit-grid">
         <view class="edit-field wide">
           <view class="label">托运人</view>
-          <input class="review-input" data-id="{{item.id}}" data-field="shipper" value="{{item.shipper}}" bindinput="setField" />
+          <input class="review-input" data-id="{{item.id}}" data-field="shipper" value="{{item.shipper}}" maxlength="60" bindinput="setField" />
         </view>
         <view class="edit-field amount">
           <view class="label">金额</view>
@@ -39,19 +43,19 @@
         </view>
         <view class="edit-field">
           <view class="label">始发地</view>
-          <input class="review-input" data-id="{{item.id}}" data-field="from" value="{{item.from}}" bindinput="setField" />
+          <input class="review-input" data-id="{{item.id}}" data-field="from" value="{{item.from}}" maxlength="30" bindinput="setField" />
         </view>
         <view class="edit-field">
           <view class="label">目的地</view>
-          <input class="review-input" data-id="{{item.id}}" data-field="to" value="{{item.to}}" bindinput="setField" />
+          <input class="review-input" data-id="{{item.id}}" data-field="to" value="{{item.to}}" maxlength="30" bindinput="setField" />
         </view>
         <view class="edit-field">
           <view class="label">车型/货物</view>
-          <input class="review-input" data-id="{{item.id}}" data-field="vehicleCargo" value="{{item.vehicleCargo}}" bindinput="setField" />
+          <input class="review-input" data-id="{{item.id}}" data-field="vehicleCargo" value="{{item.vehicleCargo}}" maxlength="40" bindinput="setField" />
         </view>
         <view class="edit-field">
           <view class="label">日期</view>
-          <input class="review-input" data-id="{{item.id}}" data-field="date" value="{{item.date}}" bindinput="setField" />
+          <picker mode="date" value="{{item.date}}" data-id="{{item.id}}" bindchange="setDate"><view class="review-input date-value mono">{{item.date}}</view></picker>
         </view>
       </view>
 
@@ -62,11 +66,14 @@
     </view>
   </view>
 
-  <view class="bottom-bar review-bottom" style="{{systemLayout.bottomSafeStyle}}">
+  <view class="bottom-bar review-bottom">
     <view class="merge-meta">
       <text>已选 {{selectedIds.length}} 笔</text>
       <text class="merge-total">合计 {{total}}</text>
     </view>
-    <button class="primary-button {{mergeDisabledClass}}" bindtap="merge">⌘  合并 {{selectedIds.length}} 笔账单到列表</button>
+    <button class="primary-button {{mergeDisabledClass}}" disabled="{{mergeDisabled}}" bindtap="merge"><image src="/assets/icons/branch.svg" mode="aspectFit" />{{mergeText}}（{{selectedIds.length}} 笔）</button>
   </view>
 </view>
+
+<view wx:elif="{{loading}}" class="review-state"><view class="review-spinner"></view><text>正在加载识别结果</text></view>
+<view wx:else class="review-state"><view>{{stateTitle}}</view><text>{{stateText}}</text><view class="review-state-actions"><button wx:if="{{loadFailed}}" bindtap="retryLoad">重新加载</button><button class="secondary" bindtap="back">返回</button></view></view>

@@ -1,8 +1,12 @@
 <view class="page search-page">
   <view class="search-nav" style="{{systemLayout.navStyle}}">
-    <button class="back" bindtap="back">‹</button>
+    <button class="back" bindtap="back"><image src="/assets/icons/back.svg" mode="aspectFit" /></button>
+    <view class="search-title">搜索账单</view>
+  </view>
+
+  <view class="search-toolbar">
     <view class="search-input-wrap">
-      <text class="search-icon">⌕</text>
+      <image class="search-icon" src="/assets/icons/search.svg" mode="aspectFit" />
       <input
         class="search-input"
         value="{{query}}"
@@ -11,11 +15,14 @@
         bindinput="onInput"
         bindconfirm="confirmSearch"
       />
+      <button wx:if="{{query}}" class="search-clear" bindtap="clearQuery"><image class="search-clear-icon" src="/assets/icons/clear.svg" mode="aspectFit" /></button>
     </view>
     <button class="confirm" bindtap="confirmSearch">确认</button>
   </view>
 
-  <view wx:if="{{hasSearched && results.length > 0}}" class="result-list">
+  <view wx:if="{{loading}}" class="search-loading"><view class="loading-dot"></view><text>正在搜索</text></view>
+
+  <view wx:elif="{{hasResults}}" class="result-list">
     <view class="list-title">搜索结果</view>
     <bill-card
       wx:for="{{results}}"
@@ -35,7 +42,7 @@
     <view class="list-title">最近搜索</view>
     <view class="history-card">
       <button wx:for="{{history}}" wx:key="*this" class="history-item" data-keyword="{{item}}" bindtap="useHistory">
-        <text class="history-icon">↺</text>
+        <image class="history-icon" src="/assets/icons/history.svg" mode="aspectFit" />
         <text>{{item}}</text>
       </button>
     </view>

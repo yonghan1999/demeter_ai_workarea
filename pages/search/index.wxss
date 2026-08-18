@@ -2,20 +2,48 @@
   position: sticky;
   top: 0;
   z-index: 20;
-  display: flex;
+  display: grid;
+  grid-template-columns: 64rpx minmax(0, 1fr);
   align-items: center;
-  gap: 20rpx;
-  padding: 36rpx 32rpx 12rpx;
+  height: 112rpx;
+  padding: 36rpx 32rpx 0;
   border-bottom: 1rpx solid #eaecf2;
   background: rgba(248, 249, 251, 0.96);
 }
 
 .back {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  flex: none;
   width: 56rpx;
+  min-width: 56rpx;
+  max-width: 56rpx;
   height: 56rpx;
   color: #002046;
-  font-size: 52rpx;
-  line-height: 48rpx;
+}
+.back image { width: 48rpx; height: 48rpx; }
+
+.search-title {
+  position: absolute;
+  bottom: 18rpx;
+  left: 50%;
+  max-width: 360rpx;
+  overflow: hidden;
+  color: #17213a;
+  font-size: 32rpx;
+  font-weight: 700;
+  text-align: center;
+  text-overflow: ellipsis;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+.search-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 18rpx;
+  padding: 24rpx 32rpx 0;
 }
 
 .search-input-wrap {
@@ -23,15 +51,16 @@
   align-items: center;
   flex: 1;
   height: 80rpx;
-  border-radius: 16rpx;
-  background: #e0e3e5;
+  border-radius: 28rpx;
+  background: #ffffff;
   padding: 0 24rpx;
 }
 
 .search-icon {
+  flex: none;
+  width: 32rpx;
+  height: 32rpx;
   margin-right: 16rpx;
-  color: #44474e;
-  font-size: 32rpx;
 }
 
 .search-input {
@@ -42,10 +71,47 @@
 }
 
 .confirm {
-  width: 72rpx;
-  color: #002046;
-  font-size: 28rpx;
+  flex: none;
+  width: 92rpx;
+  min-width: 92rpx;
+  max-width: 92rpx;
+  height: 64rpx;
+  border-radius: 24rpx;
+  background: #1d50bf;
+  color: #ffffff;
+  font-size: 25rpx;
   font-weight: 700;
+}
+
+.search-clear {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 52rpx;
+  min-width: 52rpx;
+  max-width: 52rpx;
+  height: 52rpx;
+}
+.search-clear-icon { width: 32rpx; height: 32rpx; }
+
+.search-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14rpx;
+  padding: 72rpx 0;
+  color: #8c9bae;
+  font-size: 24rpx;
+}
+
+.loading-dot {
+  width: 16rpx;
+  height: 16rpx;
+  border-radius: 50%;
+  background: #1143b4;
+  box-shadow: 28rpx 0 0 #7b96d4, 56rpx 0 0 #c6d2e4;
+  margin-right: 56rpx;
 }
 
 .history-section,
@@ -82,8 +148,9 @@
 }
 
 .history-icon {
-  color: #74777f;
-  font-size: 30rpx;
+  flex: none;
+  width: 34rpx;
+  height: 34rpx;
 }
 
 .clear-button {

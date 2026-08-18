@@ -24,7 +24,7 @@
 
     <view class="summary-row">
       <view class="route">
-        <view class="route-pin"><view class="route-pin-dot"></view></view>
+        <image class="route-pin" src="/assets/icons/pin.svg" mode="aspectFit" />
         <text>{{bill.from}}</text>
         <text class="arrow">→</text>
         <text>{{bill.to}}</text>

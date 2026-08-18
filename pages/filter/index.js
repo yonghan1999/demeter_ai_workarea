@@ -1,4 +1,4 @@
-const { withSystemLayout } = require('../../utils/system');
+const { withSystemLayout, safeBack } = require('../../utils/system');
 
 Page(withSystemLayout({
   data: {
@@ -65,11 +65,17 @@ Page(withSystemLayout({
   },
 
   submit() {
-    const form = encodeURIComponent(JSON.stringify(this.data.form));
-    wx.navigateTo({ url: `/pages/search/index?keyword=${encodeURIComponent(this.data.form.shipper || this.data.form.code || this.data.form.tag || '')}&filters=${form}` });
+    const filters = {
+      ...this.data.form,
+      code: this.data.form.code.trim(),
+      shipper: this.data.form.shipper.trim()
+    };
+    const form = encodeURIComponent(JSON.stringify(filters));
+    const keyword = filters.shipper || filters.code || filters.tag || '';
+    wx.navigateTo({ url: `/pages/search/index?auto=1&keyword=${encodeURIComponent(keyword)}&filters=${form}` });
   },
 
   back() {
-    wx.navigateBack();
+    safeBack();
   }
 }));

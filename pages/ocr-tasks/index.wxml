@@ -1,15 +1,21 @@
 <view class="page tasks-page">
-  <view class="tasks-nav" style="{{systemLayout.navStyle}}"><button class="tasks-back" bindtap="back">←</button><view class="tasks-title">识别任务</view><button class="tasks-new" style="{{systemLayout.navActionStyle}}" bindtap="newCapture">▣ 新建</button></view>
+  <view class="tasks-nav" style="{{systemLayout.navStyle}}"><button class="tasks-back" bindtap="back"><image src="/assets/icons/back.svg" mode="aspectFit" /></button><view class="tasks-title">识别任务</view></view>
   <view class="tasks-list">
+    <view wx:if="{{loading}}" class="tasks-skeleton"><view class="task-card skeleton-card"><view class="skeleton-thumb"></view><view class="skeleton-copy"><view></view><view></view><view></view></view></view></view>
+    <view wx:elif="{{loadFailed}}" class="tasks-empty"><view>任务加载失败</view><text>请检查网络后重试</text><button bindtap="retryLoad">重新加载</button></view>
+    <block wx:else>
     <view wx:for="{{tasks}}" wx:key="id" class="task-card" data-id="{{item.id}}" bindtap="review">
-      <view class="task-head"><view class="task-image">▧</view><view class="task-head-copy"><view class="task-status {{item.status}} {{item.mergedClass}}">⊙ {{item.statusText}}</view><view class="task-time">{{item.timeText}}</view></view></view>
+      <view class="task-head"><view class="task-image"><image src="/assets/icons/image.svg" mode="aspectFit" /></view><view class="task-head-copy"><view class="task-status {{item.status}} {{item.mergedClass}}">{{item.statusText}}</view><view class="task-time">{{item.timeText}}</view></view></view>
       <view wx:if="{{item.isProcessing}}" class="processing"><view class="progress"><view class="progress-inner"></view></view><text>正在识别账单字段</text></view>
       <view wx:elif="{{item.isCompleted}}" class="task-result">
         <view class="result-summary"><view><view>识别到 <text class="result-count">{{item.bills.length}}</text> 笔账单</view><text class="result-total">合计 {{item.previewTotal}}</text></view><button wx:if="{{!item.merged}}" class="view-button">查看结果  ›</button></view>
-        <view wx:for="{{item.previewBills}}" wx:key="id" class="preview-row"><text>{{item.shipper}}</text><view><text class="confidence {{item.confidenceClass}}">✣ 可信度{{item.confidenceLevel}} {{item.confidencePercent}}%</text><text class="preview-amount mono">{{item.amountText}}</text></view></view>
+        <view wx:for="{{item.previewBills}}" wx:key="id" class="preview-row"><text>{{item.shipper}}</text><view><view class="confidence {{item.confidenceClass}}"><image src="/assets/icons/sparkles.svg" mode="aspectFit" />可信度{{item.confidenceLevel}} {{item.confidencePercent}}%</view><text class="preview-amount mono">{{item.amountText}}</text></view></view>
         <view wx:if="{{item.moreCount > 0}}" class="more-count">+ {{item.moreCount}} 笔更多</view>
       </view>
+      <view wx:elif="{{item.isFailed}}" class="task-failed"><text>照片识别未完成</text><button data-id="{{item.id}}" catchtap="retryTask">重新识别</button></view>
     </view>
+    <view wx:if="{{!loading && tasks.length === 0}}" class="tasks-empty"><view>还没有识别任务</view><text>拍摄手写账本即可开始识别</text><button bindtap="newCapture">拍照识别</button></view>
+    </block>
   </view>
-  <view class="tasks-bottom" style="{{systemLayout.bottomSafeStyle}}"><button class="primary-button" bindtap="newCapture">▣  拍照新建识别任务</button></view>
+  <view class="tasks-bottom"><button class="primary-button" bindtap="newCapture"><image src="/assets/icons/camera.svg" mode="aspectFit" />拍照新建识别任务</button></view>
 </view>

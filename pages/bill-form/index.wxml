@@ -1,18 +1,17 @@
 <view class="page form-page">
   <view class="form-nav" style="{{systemLayout.navStyle}}">
-    <button class="back-button" bindtap="back">←</button>
+    <button class="back-button" bindtap="back"><image src="/assets/icons/back.svg" mode="aspectFit" /></button>
     <view class="form-nav-title">{{title}}</view>
-    <button class="save-link" style="{{systemLayout.navActionStyle}}" bindtap="save">保存</button>
   </view>
 
-  <view class="form-content">
+  <view wx:if="{{ready}}" class="form-content">
     <view class="bill-code mono"># {{billCode}}</view>
 
     <view class="form-card amount-card">
       <view class="form-label">欠款金额</view>
       <view class="amount-input-row">
         <text>¥</text>
-        <input class="amount-input mono" type="digit" data-field="amount" value="{{form.amount}}" placeholder="0.00" bindinput="setField" />
+        <input class="amount-input mono" type="digit" data-field="amount" value="{{form.amount}}" placeholder="0.00" maxlength="12" bindinput="setField" />
       </view>
     </view>
 
@@ -28,18 +27,18 @@
       <view class="form-label section-label">托运信息</view>
       <view class="form-field shipper-field">
         <view class="field-label">托运人</view>
-        <view class="input-shell"><text class="field-icon">♙</text><input class="field-input" data-field="shipper" value="{{form.shipper}}" placeholder="托运单位或个人姓名" bindinput="setField" /></view>
+        <view class="input-shell"><image class="field-icon" src="/assets/icons/person.svg" mode="aspectFit" /><input class="field-input" data-field="shipper" value="{{form.shipper}}" placeholder="托运单位或个人姓名" maxlength="60" bindinput="setField" /></view>
         <view wx:if="{{suggestions.length > 0}}" class="suggestions">
           <button wx:for="{{suggestions}}" wx:key="*this" class="suggestion-button" data-value="{{item}}" bindtap="chooseSuggestion">{{item}}</button>
         </view>
       </view>
       <view class="form-field">
         <view class="field-label">车型</view>
-        <view class="input-shell"><text class="field-icon">♧</text><input class="field-input" data-field="vehicleCargo" value="{{form.vehicleCargo}}" placeholder="例如：9.6米高栏" bindinput="setField" /></view>
+        <view class="input-shell"><image class="field-icon" src="/assets/icons/truck.svg" mode="aspectFit" /><input class="field-input" data-field="vehicleCargo" value="{{form.vehicleCargo}}" placeholder="例如：9.6米高栏" maxlength="40" bindinput="setField" /></view>
       </view>
       <view class="form-field">
         <view class="field-label">日期</view>
-        <picker mode="date" value="{{form.date}}" bindchange="setDate"><view class="input-shell date-field"><text class="field-icon">▦</text><text class="mono">{{form.date}}</text></view></picker>
+        <picker mode="date" value="{{form.date}}" bindchange="setDate"><view class="input-shell date-field"><image class="field-icon" src="/assets/icons/calendar.svg" mode="aspectFit" /><text class="mono">{{form.date}}</text></view></picker>
       </view>
     </view>
 
@@ -47,15 +46,18 @@
       <view class="form-label section-label">运输路线</view>
       <view class="form-field">
         <view class="field-label">始发地</view>
-        <view class="input-shell"><text class="field-icon">⌾</text><input class="field-input" data-field="from" value="{{form.from}}" placeholder="始发城市" bindinput="setField" /></view>
+        <view class="input-shell"><image class="field-icon" src="/assets/icons/location.svg" mode="aspectFit" /><input class="field-input" data-field="from" value="{{form.from}}" placeholder="始发城市" maxlength="30" bindinput="setField" /></view>
       </view>
       <view class="route-divider"><view class="route-line"></view><text class="route-copy">↓ 发往</text><view class="route-line"></view></view>
       <view class="form-field">
         <view class="field-label">目的地</view>
-        <view class="input-shell"><text class="field-icon">⌾</text><input class="field-input" data-field="to" value="{{form.to}}" placeholder="目的城市" bindinput="setField" /></view>
+        <view class="input-shell"><image class="field-icon" src="/assets/icons/location.svg" mode="aspectFit" /><input class="field-input" data-field="to" value="{{form.to}}" placeholder="目的城市" maxlength="30" bindinput="setField" /></view>
       </view>
     </view>
   </view>
 
-  <view class="form-bottom" style="{{systemLayout.bottomSafeStyle}}"><button class="primary-button" bindtap="save">{{saveText}}</button></view>
+  <view wx:if="{{loading}}" class="form-state"><view class="state-spinner"></view><text>正在加载账单</text></view>
+  <view wx:if="{{loadFailed}}" class="form-state"><view class="form-state-title">账单加载失败</view><text>请检查后重试</text><view class="form-state-actions"><button bindtap="retryLoad">重试</button><button class="secondary" bindtap="back">返回</button></view></view>
+
+  <view wx:if="{{ready}}" class="form-bottom"><button class="primary-button {{saveDisabledClass}}" disabled="{{submitting}}" bindtap="save">{{saveText}}</button></view>
 </view>
