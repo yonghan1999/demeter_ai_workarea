@@ -1,13 +1,20 @@
 const billService = require('../../services/bill-service');
 const { withSystemLayout, safeBack } = require('../../utils/system');
 
-function today() {
-  const date = new Date();
-  const yyyy = date.getFullYear();
-  const mm = String(date.getMonth() + 1).padStart(2, '0');
-  const dd = String(date.getDate()).padStart(2, '0');
-  return `${yyyy}-${mm}-${dd}`;
-}
+const CITY_SUGGESTIONS = [
+  { id: 'shanghai-jingan', value: '上海', label: '上海市', meta: '闵行区申长路 688 号' },
+  { id: 'shanghai-pudong', value: '上海', label: '上海市', meta: '浦东新区川沙路 5258 号' },
+  { id: 'shanghai-jiading', value: '上海', label: '上海市', meta: '嘉定区宝安公路 2682 号' },
+  { id: 'beijing', value: '北京', label: '北京市', meta: '北京市' },
+  { id: 'wuhan', value: '武汉', label: '武汉市', meta: '湖北省武汉市' },
+  { id: 'guangzhou', value: '广州', label: '广州市', meta: '广东省广州市' },
+  { id: 'shenzhen', value: '深圳', label: '深圳市', meta: '广东省深圳市' },
+  { id: 'hangzhou', value: '杭州', label: '杭州市', meta: '浙江省杭州市' },
+  { id: 'chengdu', value: '成都', label: '成都市', meta: '四川省成都市' },
+  { id: 'chongqing', value: '重庆', label: '重庆市', meta: '重庆市' },
+  { id: 'tianjin', value: '天津', label: '天津市', meta: '天津市' },
+  { id: 'nanjing', value: '南京', label: '南京市', meta: '江苏省南京市' }
+];
 
 Page(withSystemLayout({
   data: {
@@ -15,20 +22,29 @@ Page(withSystemLayout({
     id: '',
     title: '新增账单',
     billCode: 'NEW BILL',
+    billCodeDisplay: '单号将在保存后自动生成',
     saveText: '保存账单',
     ready: true,
     loading: false,
     loadFailed: false,
     submitting: false,
-    saveDisabledClass: '',
-    suggestions: [],
+    saveDisabledClass: 'incomplete',
+    suggestionOpen: false,
+    suggestionMode: '',
+    suggestionTitle: '',
+    suggestionPlaceholder: '',
+    suggestionCaption: '',
+    suggestionQuery: '',
+    suggestionItems: [],
+    errorSummary: '',
+    errors: {},
     unpaidClass: 'active unpaid',
     paidClass: '',
     form: {
       amount: '',
       shipper: '',
       vehicleCargo: '',
-      date: today(),
+      date: '',
       from: '',
       to: '',
       status: 'unpaid'
@@ -41,7 +57,9 @@ Page(withSystemLayout({
       mode,
       id: options.id || '',
       title: mode === 'edit' ? '编辑账单' : '新增账单',
-      saveText: mode === 'edit' ? '保存更改' : '保存账单'
+      saveText: mode === 'edit' ? '保存更改' : '保存账单',
+      saveDisabledClass: mode === 'edit' ? '' : 'incomplete',
+      billCodeDisplay: mode === 'edit' ? '' : '单号将在保存后自动生成'
     });
     if (mode === 'edit' && options.id) {
       this.setData({ ready: false, loading: true, loadFailed: false });
@@ -58,6 +76,7 @@ Page(withSystemLayout({
           loading: false,
           loadFailed: false,
           billCode: bill.code,
+          billCodeDisplay: `# ${bill.code}`,
           form: {
             amount: Number(bill.amount || 0).toFixed(2),
             shipper: bill.shipper,
@@ -89,6 +108,7 @@ Page(withSystemLayout({
         ready: true,
         loading: false,
         billCode: bill.code,
+        billCodeDisplay: `# ${bill.code}`,
         form: {
           amount: Number(bill.amount || 0).toFixed(2),
           shipper: bill.shipper,
@@ -110,27 +130,103 @@ Page(withSystemLayout({
   setField(event) {
     const field = event.currentTarget.dataset.field;
     const value = event.detail.value;
-    this.setData({ [`form.${field}`]: value });
-    if (field === 'shipper') this.loadSuggestions(value);
+    this.setData({
+      [`form.${field}`]: value,
+      [`errors.${field}`]: '',
+      errorSummary: ''
+    }, () => this.refreshSaveAppearance());
   },
 
-  async loadSuggestions(value) {
-    const requestId = Date.now();
-    this.suggestionRequestId = requestId;
+  openSuggestionSheet(event) {
+    const mode = event.currentTarget.dataset.mode;
+    const isShipper = mode === 'shipper';
+    const suggestionQuery = this.data.form[mode] || '';
+    this.setData({
+      suggestionOpen: true,
+      suggestionMode: mode,
+      suggestionTitle: isShipper ? '选择托运人' : mode === 'from' ? '选择出发地' : '选择目的地',
+      suggestionPlaceholder: isShipper ? '搜索托运人' : '搜索城市',
+      suggestionCaption: isShipper ? '最近使用' : '地点建议 · 保存城市',
+      suggestionQuery
+    }, () => this.refreshSuggestionItems());
+  },
+
+  closeSuggestionSheet() {
+    this.suggestionRequestId = (this.suggestionRequestId || 0) + 1;
+    this.setData({ suggestionOpen: false, suggestionItems: [] });
+  },
+
+  stopPropagation() {},
+
+  setSuggestionQuery(event) {
+    this.setData({ suggestionQuery: event.detail.value }, () => this.refreshSuggestionItems());
+  },
+
+  async refreshSuggestionItems() {
+    const mode = this.data.suggestionMode;
+    const value = this.data.suggestionQuery.trim();
+    if (mode === 'shipper') {
+      const requestId = (this.suggestionRequestId || 0) + 1;
+      this.suggestionRequestId = requestId;
+      try {
+        const suggestions = await billService.suggestShippers(value);
+        if (requestId !== this.suggestionRequestId) return;
+        this.setData({ suggestionItems: suggestions });
+      } catch (error) {
+        if (requestId === this.suggestionRequestId) this.setData({ suggestionItems: [] });
+      }
+      return;
+    }
+    const query = value.replace(/市$/, '');
+    this.setData({
+      suggestionItems: CITY_SUGGESTIONS.filter((item) => (
+        !query || `${item.value}${item.label}${item.meta}`.includes(query)
+      )).slice(0, 6)
+    }, () => this.refreshSaveAppearance());
+  },
+
+  chooseFormSuggestion(event) {
+    const field = this.data.suggestionMode;
+    this.setData({
+      [`form.${field}`]: event.currentTarget.dataset.value,
+      [`errors.${field}`]: '',
+      errorSummary: '',
+      suggestionOpen: false,
+      suggestionItems: []
+    });
+  },
+
+  async useCustomShipper() {
+    const input = this.data.suggestionQuery.trim();
+    if (!input) return;
     try {
-      const suggestions = await billService.suggestShippers(value);
-      if (this.suggestionRequestId !== requestId) return;
-      this.setData({ suggestions });
+      const result = await billService.resolveShipperName(input);
+      this.setData({
+        'form.shipper': result.value,
+        'errors.shipper': '',
+        errorSummary: '',
+        suggestionOpen: false,
+        suggestionItems: []
+      }, () => this.refreshSaveAppearance());
+      if (result.exists && result.value !== input) {
+        wx.showToast({ title: '已选择现有托运人', icon: 'none' });
+      }
     } catch (error) {
-      if (this.suggestionRequestId === requestId) this.setData({ suggestions: [] });
+      wx.showToast({ title: '托运人校验失败', icon: 'none' });
     }
   },
 
-  chooseSuggestion(event) {
+  useCustomLocation() {
+    const field = this.data.suggestionMode;
+    const value = this.data.suggestionQuery.trim().replace(/市$/, '');
+    if (!value || (field !== 'from' && field !== 'to')) return;
     this.setData({
-      'form.shipper': event.currentTarget.dataset.value,
-      suggestions: []
-    });
+      [`form.${field}`]: value,
+      [`errors.${field}`]: '',
+      errorSummary: '',
+      suggestionOpen: false,
+      suggestionItems: []
+    }, () => this.refreshSaveAppearance());
   },
 
   setStatus(event) {
@@ -143,7 +239,36 @@ Page(withSystemLayout({
   },
 
   setDate(event) {
-    this.setData({ 'form.date': event.detail.value });
+    this.setData({ 'form.date': event.detail.value, 'errors.date': '', errorSummary: '' }, () => this.refreshSaveAppearance());
+  },
+
+  refreshSaveAppearance() {
+    if (this.data.submitting) return;
+    const form = this.data.form;
+    const complete = Boolean(
+      Number(form.amount) > 0
+      && form.shipper.trim()
+      && /^\d{4}-\d{2}-\d{2}$/.test(form.date)
+      && form.from.trim()
+      && form.to.trim()
+    );
+    this.setData({ saveDisabledClass: complete ? '' : 'incomplete' });
+  },
+
+  validateForm(form) {
+    const errors = {};
+    const amount = Number(form.amount);
+    if (!Number.isFinite(amount) || amount <= 0) errors.amount = '请输入有效账单金额';
+    else if (amount > 99999999.99) errors.amount = '金额超出支持范围';
+    if (!form.shipper) errors.shipper = '托运人不能为空';
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(form.date)) errors.date = '请选择有效运输日期';
+    if (!form.from) errors.from = '请选择始发地';
+    if (!form.to) errors.to = '请选择目的地';
+    if (form.from && form.to && form.from === form.to) {
+      errors.from = '始发地与目的地不能相同';
+      errors.to = '始发地与目的地不能相同';
+    }
+    return errors;
   },
 
   async save() {
@@ -155,35 +280,12 @@ Page(withSystemLayout({
       from: this.data.form.from.trim(),
       to: this.data.form.to.trim()
     };
+    const errors = this.validateForm(form);
+    if (Object.keys(errors).length > 0) {
+      this.setData({ errors, errorSummary: '请填写账单金额、托运人和运输路线' });
+      return;
+    }
     const amount = Number(form.amount);
-    if (!form.shipper) {
-      wx.showToast({ title: '请输入托运人', icon: 'none' });
-      return;
-    }
-    if (!Number.isFinite(amount) || amount <= 0) {
-      wx.showToast({ title: '请输入有效金额', icon: 'none' });
-      return;
-    }
-    if (amount > 99999999.99) {
-      wx.showToast({ title: '金额超出支持范围', icon: 'none' });
-      return;
-    }
-    if (!form.vehicleCargo) {
-      wx.showToast({ title: '请输入车型或货物', icon: 'none' });
-      return;
-    }
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(form.date)) {
-      wx.showToast({ title: '请选择有效日期', icon: 'none' });
-      return;
-    }
-    if (!form.from || !form.to) {
-      wx.showToast({ title: '请补全运输路线', icon: 'none' });
-      return;
-    }
-    if (form.from === form.to) {
-      wx.showToast({ title: '始发地与目的地不能相同', icon: 'none' });
-      return;
-    }
     this.setData({ submitting: true, saveText: '正在保存…', saveDisabledClass: 'disabled' });
     try {
       const saved = this.data.mode === 'edit'
@@ -196,6 +298,7 @@ Page(withSystemLayout({
     } catch (error) {
       this.setData({
         submitting: false,
+        errorSummary: '保存失败，请检查网络后重试',
         saveText: this.data.mode === 'edit' ? '保存更改' : '保存账单',
         saveDisabledClass: ''
       });

@@ -1,5 +1,6 @@
 {
   "usingComponents": {
+    "app-nav": "/components/app-nav/index",
     "bill-card": "/components/bill-card/index"
   }
 }

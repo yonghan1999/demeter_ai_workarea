@@ -1,37 +1,428 @@
-.form-page { padding-bottom: 150rpx; background: #edf0f6; }
-.form-nav { position: sticky; top: 0; z-index: 30; display: grid; grid-template-columns: 72rpx minmax(0,1fr); align-items: center; height: 112rpx; padding: 36rpx 28rpx 0; border-bottom: 1rpx solid #eaecf2; background: #fff; }
-.back-button { display:flex; align-items:center; justify-content:flex-start; flex:none; width:64rpx; min-width:64rpx; max-width:64rpx; height:64rpx; }
-.back-button image { width:48rpx; height:48rpx; }
-.form-nav-title { position:absolute;bottom:18rpx;left:50%;max-width:360rpx;overflow:hidden;color:#17213a;font-size:32rpx;font-weight:700;text-align:center;text-overflow:ellipsis;transform:translateX(-50%);white-space:nowrap; }
-.form-content { display: flex; flex-direction: column; gap: 24rpx; padding: 28rpx 28rpx 40rpx; }
-.bill-code { color: #b6c3d5; font-size: 18rpx; letter-spacing: 2rpx; }
-.form-card { border-radius: 28rpx; background: #fff; padding: 28rpx; box-shadow: 0 2rpx 8rpx rgba(17,32,80,.04); }
-.form-label,.field-label { color: #8c9bae; font-size: 21rpx; font-weight: 600; }
-.amount-input-row { display: flex; align-items: center; gap: 12rpx; margin-top: 18rpx; padding-bottom: 20rpx; border-bottom: 1rpx solid #eef0f6; color: #1143b4; font-size: 34rpx; font-weight: 800; }
-.amount-input { flex: 1; height: 68rpx; color: #17213a; font-size: 48rpx; font-weight: 800; }
-.status-toggle { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 14rpx; margin-top: 18rpx; }
-.status-button { height: 70rpx; border-radius: 30rpx; background: #f2f4f9; color: #4a5568; font-size: 27rpx; font-weight: 700; }
-.status-toggle .active.unpaid { background: #ef7900; color: #fff; }
-.status-toggle .active.paid { background: #1d8a4e; color: #fff; }
-.form-section { display: flex; flex-direction: column; gap: 22rpx; }
-.section-label { margin-bottom: 2rpx; }
-.form-field { position: relative; }
-.field-label { margin-bottom: 9rpx; }
-.input-shell { display: flex; align-items: center; gap: 15rpx; height: 84rpx; border-radius: 28rpx; background: #f3f5f9; padding: 0 25rpx; }
-.field-icon { flex: none; width: 34rpx; height: 34rpx; }
-.field-input { flex: 1; height: 84rpx; color: #17213a; font-size: 27rpx; }
-.date-field { color: #17213a; font-size: 27rpx; }
-.suggestions { position: absolute; top: 126rpx; right: 0; left: 0; z-index: 20; overflow: hidden; border-radius: 20rpx; background: #fff; box-shadow: 0 10rpx 40rpx rgba(17,32,80,.14); }
-.suggestion-button { display: block; width: 100%; height: 80rpx; padding: 0 28rpx; border-bottom: 1rpx solid #eef0f6; color: #17213a; font-size: 26rpx; text-align: left; }
-.route-divider { display: flex; align-items: center; gap: 18rpx; padding: 0 42rpx; color: #a6b6ca; font-size: 20rpx; }
-.route-line { flex: 1; height: 1rpx; background: #e5eaf2; }
-.route-copy { border-radius: 999rpx; background: #f3f6fb; padding: 7rpx 16rpx; }
-.form-bottom { position: fixed; right: 0; bottom: 0; left: 0; z-index: 30; padding: 18rpx 28rpx calc(18rpx + env(safe-area-inset-bottom)); background: rgba(255,255,255,.96); }
-.form-bottom .primary-button { width: 100%; }
-.form-state { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:520rpx; padding:40rpx; color:#8c9bae; font-size:24rpx; text-align:center; }
-.state-spinner { width:44rpx; height:44rpx; margin-bottom:20rpx; border:5rpx solid #dce3ee; border-top-color:#1143b4; border-radius:50%; animation:form-spin .8s linear infinite; }
-.form-state-title { margin-bottom:10rpx; color:#17213a; font-size:31rpx; font-weight:800; }
-.form-state-actions { display:flex; gap:16rpx; margin-top:28rpx; }
-.form-state-actions button { height:68rpx; border-radius:26rpx; background:#1143b4; padding:0 34rpx; color:#fff; font-size:24rpx; font-weight:700; }
-.form-state-actions .secondary { background:#fff; color:#3d5275; }
-@keyframes form-spin { to { transform:rotate(360deg); } }
+.form-page {
+  min-height: 100vh;
+  padding-bottom: 176rpx;
+  background: #edf0f6;
+}
+
+.form-nav {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: grid;
+  grid-template-columns: 88rpx minmax(0, 1fr);
+  align-items: end;
+  border-bottom: 1rpx solid #e9edf4;
+  background: #ffffff;
+}
+
+.back-button {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  width: 64rpx;
+  height: 88rpx;
+}
+
+.back-button image {
+  width: 44rpx;
+  height: 44rpx;
+}
+
+.form-nav-title {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 460rpx;
+  height: 88rpx;
+  color: #17213a;
+  font-size: 34rpx;
+  font-weight: 700;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+.form-content {
+  display: flex;
+  flex-direction: column;
+  gap: 24rpx;
+  padding: 28rpx 32rpx 40rpx;
+}
+
+.form-error-summary {
+  min-height: 48rpx;
+  border: 2rpx solid #e6656c;
+  border-radius: 14rpx;
+  background: #fff2f3;
+  padding: 12rpx 20rpx;
+  color: #cc1d25;
+  font-size: 20rpx;
+  font-weight: 700;
+  line-height: 28rpx;
+}
+
+.field-error-card {
+  border: 2rpx solid #cc1d25;
+}
+
+.field-error-shell {
+  border: 2rpx solid #cc1d25;
+  background: #ffffff;
+}
+
+.bill-code {
+  height: 36rpx;
+  color: #9aabc2;
+  font-size: 20rpx;
+  line-height: 36rpx;
+}
+
+.form-card {
+  border-radius: 24rpx;
+  background: #ffffff;
+  padding: 24rpx 32rpx;
+}
+
+.amount-card {
+  height: 172rpx;
+}
+
+.status-card {
+  height: 150rpx;
+}
+
+.form-label,
+.field-label {
+  color: #3d5275;
+  font-size: 22rpx;
+  font-weight: 500;
+}
+
+.amount-input-row {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  height: 96rpx;
+  color: #174fc4;
+  font-size: 36rpx;
+  font-weight: 700;
+}
+
+.amount-input {
+  flex: 1;
+  height: 96rpx;
+  color: #17213a;
+  font-size: 56rpx;
+  font-weight: 700;
+}
+
+.status-toggle {
+  display: flex;
+  gap: 32rpx;
+  margin-top: 20rpx;
+}
+
+.status-button {
+  flex: 1;
+  width: 0;
+  min-width: 0;
+  height: 64rpx;
+  border-radius: 20rpx;
+  background: #f7f9fc;
+  color: #3d5275;
+  font-size: 24rpx;
+  font-weight: 700;
+}
+
+.status-toggle .active.unpaid {
+  background: #c45a00;
+  color: #ffffff;
+}
+
+.status-toggle .active.paid {
+  background: #17833e;
+  color: #ffffff;
+}
+
+.form-section {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+  padding: 24rpx 40rpx 32rpx;
+}
+
+.section-label {
+  margin-left: -8rpx;
+}
+
+.form-field {
+  position: relative;
+}
+
+.field-label {
+  height: 32rpx;
+  line-height: 32rpx;
+}
+
+.input-shell {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  height: 96rpx;
+  border-radius: 24rpx;
+  background: #f7f9fc;
+  padding: 0 28rpx;
+}
+
+.field-icon {
+  flex: none;
+  width: 28rpx;
+  height: 28rpx;
+  opacity: 0.75;
+}
+
+.field-input {
+  flex: 1;
+  height: 96rpx;
+  color: #17213a;
+  font-size: 28rpx;
+}
+
+.field-value {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: #17213a;
+  font-size: 28rpx;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.field-placeholder {
+  color: #a7b4c8;
+}
+
+.date-field {
+  color: #17213a;
+  font-size: 28rpx;
+}
+
+.form-sheet-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: flex-end;
+  background: rgba(23, 33, 58, 0.38);
+}
+
+.form-sheet {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 860rpx;
+  max-height: calc(100vh - 220rpx);
+  border-radius: 28rpx 28rpx 0 0;
+  background: #ffffff;
+  padding: 0 32rpx 24rpx;
+}
+
+.form-sheet-handle {
+  align-self: center;
+  width: 54rpx;
+  height: 6rpx;
+  margin: 14rpx 0 4rpx;
+  border-radius: 3rpx;
+  background: #d5dce7;
+}
+
+.form-sheet-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 78rpx;
+}
+
+.form-sheet-title {
+  color: #17213a;
+  font-size: 30rpx;
+  font-weight: 700;
+}
+
+.form-sheet-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 88rpx;
+  height: 88rpx;
+}
+
+.form-sheet-close image {
+  width: 32rpx;
+  height: 32rpx;
+}
+
+.form-sheet-search {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  height: 76rpx;
+  border-radius: 18rpx;
+  background: #f1f4f9;
+  padding: 0 24rpx;
+}
+
+.form-sheet-search image {
+  width: 28rpx;
+  height: 28rpx;
+}
+
+.form-sheet-search input {
+  flex: 1;
+  height: 76rpx;
+  color: #17213a;
+  font-size: 25rpx;
+}
+
+.form-sheet-caption {
+  height: 62rpx;
+  color: #8da0ba;
+  font-size: 20rpx;
+  line-height: 62rpx;
+}
+
+.form-sheet-list {
+  max-height: 360rpx;
+}
+
+.form-sheet-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  width: 100%;
+  min-height: 82rpx;
+  border-bottom: 1rpx solid #e9edf4;
+  padding: 12rpx 0;
+  color: #17213a;
+  font-size: 24rpx;
+  text-align: left;
+}
+
+.form-sheet-item > view,
+.form-sheet-item > text {
+  width: 100%;
+  text-align: left;
+}
+
+.form-sheet-item text {
+  display: block;
+  margin-top: 4rpx;
+  color: #9aabc2;
+  font-size: 19rpx;
+}
+
+.form-sheet-empty {
+  height: 120rpx;
+  color: #9aabc2;
+  font-size: 22rpx;
+  line-height: 120rpx;
+  text-align: center;
+}
+
+.form-sheet-custom {
+  flex: none;
+  width: 100%;
+  height: 76rpx;
+  margin-top: 20rpx;
+  border: 2rpx solid #174fc4;
+  border-radius: 18rpx;
+  color: #174fc4;
+  font-size: 23rpx;
+  font-weight: 700;
+}
+
+.route-divider {
+  display: none;
+}
+
+.form-bottom {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 30;
+  padding: 24rpx 32rpx calc(24rpx + env(safe-area-inset-bottom));
+  border-top: 1rpx solid #e9edf4;
+  background: #ffffff;
+}
+
+.form-bottom .primary-button {
+  width: 100%;
+  height: 104rpx;
+  border-radius: 24rpx;
+  background: #174fc4;
+  box-shadow: none;
+  font-size: 28rpx;
+}
+
+.form-bottom .primary-button.incomplete {
+  background: #7899dc;
+  opacity: 1;
+}
+
+.form-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 520rpx;
+  padding: 40rpx;
+  color: #9aabc2;
+  font-size: 24rpx;
+  text-align: center;
+}
+
+.state-spinner {
+  width: 44rpx;
+  height: 44rpx;
+  margin-bottom: 20rpx;
+  border: 5rpx solid #dce3ee;
+  border-top-color: #174fc4;
+  border-radius: 50%;
+  animation: form-spin 0.8s linear infinite;
+}
+
+.form-state-title {
+  margin-bottom: 10rpx;
+  color: #17213a;
+  font-size: 31rpx;
+  font-weight: 700;
+}
+
+.form-state-actions {
+  display: flex;
+  gap: 16rpx;
+  margin-top: 28rpx;
+}
+
+.form-state-actions button {
+  height: 68rpx;
+  border-radius: 24rpx;
+  background: #174fc4;
+  padding: 0 34rpx;
+  color: #ffffff;
+  font-size: 24rpx;
+  font-weight: 700;
+}
+
+.form-state-actions .secondary {
+  background: #ffffff;
+  color: #3d5275;
+}
+
+@keyframes form-spin {
+  to { transform: rotate(360deg); }
+}

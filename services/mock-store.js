@@ -1,6 +1,20 @@
 const { nowCode } = require('../utils/format');
 
 const STORAGE_KEY = 'demeter:mock-store:v1';
+const STORE_VERSION = 5;
+
+const initialSearchHistory = [
+  '张三物流',
+  'TR-20240518-002',
+  '上海 → 北京'
+];
+
+const legacySearchHistory = [
+  '张三物流',
+  'TR-20240520',
+  '上海到北京',
+  '冷链运输服务'
+];
 
 const initialBills = [
   {
@@ -67,6 +81,7 @@ const initialOcrTasks = [
     bills: [
       {
         id: 'ocr-d1',
+        code: 'TR-20240519-003',
         shipper: '王五货运队',
         vehicleCargo: '9.6米高栏 / 建材',
         date: '2024-05-17',
@@ -78,6 +93,7 @@ const initialOcrTasks = [
       },
       {
         id: 'ocr-d2',
+        code: 'TR-20240519-004',
         shipper: '赵六物流',
         vehicleCargo: '13米挂车 / 设备',
         date: '2024-05-16',
@@ -86,25 +102,24 @@ const initialOcrTasks = [
         amount: 7500,
         status: 'unpaid',
         confidence: 0.81
-      },
-      {
-        id: 'ocr-d3',
-        shipper: '孙七运输个体',
-        vehicleCargo: '4.2米厢式 / 零担',
-        date: '2024-05-15',
-        from: '成都',
-        to: '西安',
-        amount: 1800,
-        status: 'paid',
-        confidence: 0.62
       }
     ]
+  },
+  {
+    id: 'ocr-task-processing-demo',
+    createdAt: '2024-05-20T09:08:00',
+    status: 'processing',
+    demo: true,
+    imagePath: '',
+    merged: false,
+    bills: []
   }
 ];
 
 const mockOcrBills = [
   {
     id: 'ocr-n1',
+    code: 'TR-20240521-001',
     shipper: '陈八物流公司',
     vehicleCargo: '9.6米高栏 / 冷链',
     date: '2024-05-21',
@@ -116,6 +131,7 @@ const mockOcrBills = [
   },
   {
     id: 'ocr-n2',
+    code: 'TR-20240520-003',
     shipper: '周九运输',
     vehicleCargo: '6.8米中卡 / 食品',
     date: '2024-05-20',
@@ -129,6 +145,8 @@ const mockOcrBills = [
 
 const shipperSuggestions = [
   '张三物流有限公司',
+  '张三物流运输部',
+  '张三货运个体户',
   '张氏兄弟运输',
   '顺丰特快钢材运输',
   '顺达物流',
@@ -146,10 +164,12 @@ let memory = null;
 
 function createInitialState() {
   return {
+    version: STORE_VERSION,
     billCounter: 100,
     bills: clone(initialBills),
+    recycleBin: [],
     ocrTasks: clone(initialOcrTasks),
-    searchHistory: ['张三物流', 'TR-20240520', '上海到北京', '冷链运输服务']
+    searchHistory: clone(initialSearchHistory)
   };
 }
 
@@ -173,11 +193,39 @@ function getStore() {
   if (memory) return memory;
   try {
     const cached = wx.getStorageSync(STORAGE_KEY);
-    memory = isValidStore(cached) ? cached : createInitialState();
+    if (isValidStore(cached)) {
+      memory = migrateStore(cached);
+      if (cached.version !== STORE_VERSION) saveStore(memory);
+    } else {
+      memory = createInitialState();
+    }
   } catch (error) {
     memory = createInitialState();
   }
   return memory;
+}
+
+function migrateStore(store) {
+  const migrated = clone(store);
+  const sourceVersion = Number.isFinite(migrated.version) ? migrated.version : 1;
+  if (sourceVersion < 2) {
+    const processingDemo = initialOcrTasks.find((task) => task.id === 'ocr-task-processing-demo');
+    const hasProcessingTask = migrated.ocrTasks.some((task) => task.status === 'processing');
+    if (!hasProcessingTask) migrated.ocrTasks.push(clone(processingDemo));
+  }
+  if (sourceVersion < 4 && JSON.stringify(migrated.searchHistory) === JSON.stringify(legacySearchHistory)) {
+    migrated.searchHistory = clone(initialSearchHistory);
+  }
+  if (!Array.isArray(migrated.recycleBin)) migrated.recycleBin = [];
+  if (sourceVersion < 5) {
+    migrated.ocrTasks = migrated.ocrTasks.map((task) => (
+      task.id === 'ocr-task-demo'
+        ? { ...task, bills: clone(initialOcrTasks[0].bills) }
+        : task
+    ));
+  }
+  migrated.version = STORE_VERSION;
+  return migrated;
 }
 
 function saveStore(store) {

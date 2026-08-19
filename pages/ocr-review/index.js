@@ -15,7 +15,10 @@ Page(withSystemLayout({
     stateText: '识别任务可能已合并或不存在',
     merging: false,
     mergeDisabled: true,
-    mergeText: '合并账单到列表'
+    mergeText: '合并账单到列表',
+    allText: '全选',
+    duplicateCount: 0,
+    hasExpanded: false
   },
 
   async onLoad(options) {
@@ -66,15 +69,16 @@ Page(withSystemLayout({
     }
     const reviewBills = task.bills.map((bill) => ({
       ...bill,
-      selected: true,
-      selectedClass: 'checked',
+      selected: bill.confidence >= 0.85,
+      selectedClass: bill.confidence >= 0.85 ? 'checked' : '',
       mutedClass: '',
       unpaidClass: bill.status !== 'paid' ? 'active unpaid' : '',
       paidClass: bill.status === 'paid' ? 'active paid' : '',
       confidencePercent: Math.round(bill.confidence * 100),
       confidenceLevel: bill.confidence >= 0.85 ? '高' : bill.confidence >= 0.65 ? '中' : '低',
       confidenceClass: bill.confidence >= 0.85 ? 'high' : bill.confidence >= 0.65 ? 'mid' : 'low',
-      borderClass: bill.status === 'paid' ? 'paid-border' : 'unpaid-border'
+      borderClass: bill.status === 'paid' ? 'paid-border' : 'unpaid-border',
+      expanded: false
     }));
     this.setData({
       task: {
@@ -83,10 +87,11 @@ Page(withSystemLayout({
       },
       loading: false,
       reviewBills,
-      selectedIds: reviewBills.map((bill) => bill.id),
-      allText: '取消全选',
-      mergeDisabled: false,
-      mergeDisabledClass: ''
+      duplicateCount: reviewBills.filter((bill) => bill.duplicate).length,
+      selectedIds: reviewBills.filter((bill) => bill.selected).map((bill) => bill.id),
+      allText: reviewBills.every((bill) => bill.selected) ? '取消全选' : '全选',
+      mergeDisabled: reviewBills.every((bill) => !bill.selected),
+      mergeDisabledClass: reviewBills.every((bill) => !bill.selected) ? 'disabled' : ''
     }, () => {
       this.computeTotal();
       this.initialReview = JSON.stringify(this.data.reviewBills);
@@ -106,7 +111,7 @@ Page(withSystemLayout({
         ...bill,
         selected,
         selectedClass: selected ? 'checked' : '',
-        mutedClass: selected ? '' : 'muted'
+        mutedClass: ''
       };
     });
     this.applyReviewBills(reviewBills);
@@ -118,7 +123,7 @@ Page(withSystemLayout({
       ...bill,
       selected: shouldSelect,
       selectedClass: shouldSelect ? 'checked' : '',
-      mutedClass: shouldSelect ? '' : 'muted'
+      mutedClass: ''
     }));
     this.applyReviewBills(reviewBills);
   },
@@ -157,6 +162,19 @@ Page(withSystemLayout({
     this.applyReviewBills(reviewBills);
   },
 
+  toggleExpanded(event) {
+    const id = event.currentTarget.dataset.id;
+    const reviewBills = this.data.reviewBills.map((bill) => (
+      bill.id === id ? { ...bill, expanded: !bill.expanded } : { ...bill, expanded: false }
+    ));
+    this.setData({
+      reviewBills,
+      hasExpanded: reviewBills.some((bill) => bill.expanded)
+    });
+  },
+
+  stopCardTap() {},
+
   applyReviewBills(reviewBills) {
     const selectedIds = reviewBills.filter((bill) => bill.selected).map((bill) => bill.id);
     this.setData({
@@ -179,7 +197,8 @@ Page(withSystemLayout({
     if (this.data.selectedIds.length === 0 || this.data.merging) return;
     const invalid = this.data.reviewBills.find((bill) => (
       bill.selected && (
-        !String(bill.shipper || '').trim()
+        !String(bill.code || '').trim()
+        || !String(bill.shipper || '').trim()
         || !String(bill.from || '').trim()
         || !String(bill.to || '').trim()
         || !String(bill.vehicleCargo || '').trim()

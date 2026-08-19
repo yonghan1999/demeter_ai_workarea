@@ -42,32 +42,36 @@ input {
   position: sticky;
   top: 0;
   z-index: 20;
-  display: flex;
-  align-items: center;
-  gap: 24rpx;
-  justify-content: flex-start;
-  height: 112rpx;
-  padding: 36rpx 40rpx 0;
+  display: block;
   border-bottom: 1rpx solid #eaecf2;
-  background: rgba(248, 249, 251, 0.92);
+  background: #ffffff;
 }
 
 .nav-title {
-  flex: 1;
-  min-width: 0;
+  position: absolute;
+  right: 26%;
+  bottom: 0;
+  left: 26%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 88rpx;
   overflow: hidden;
-  font-size: 32rpx;
+  font-size: 34rpx;
   font-weight: 700;
   color: #17213a;
-  text-align: left;
+  text-align: center;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .nav-action {
-  flex: none;
-  min-width: 56rpx;
-  max-width: 132rpx;
+  position: absolute;
+  bottom: 0;
+  left: 32rpx;
+  z-index: 2;
+  width: 88rpx;
+  height: 88rpx;
   overflow: hidden;
   color: #1b365d;
   font-size: 28rpx;

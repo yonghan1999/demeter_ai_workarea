@@ -10,7 +10,9 @@ Page(withSystemLayout({
     hasSearched: false,
     hasResults: false,
     loading: false,
-    searchSeq: 0
+    loadFailed: false,
+    searchSeq: 0,
+    suggestions: []
   },
 
   onLoad(options) {
@@ -30,7 +32,7 @@ Page(withSystemLayout({
   async loadHistory() {
     try {
       const history = await billService.getSearchHistory();
-      this.setData({ history });
+      this.setData({ history: history.slice(0, 3) });
     } catch (error) {
       this.setData({ history: [] });
     }
@@ -40,15 +42,40 @@ Page(withSystemLayout({
     const query = event.detail.value;
     this.setData({ query }, () => {
       clearTimeout(this.searchTimer);
-      if (query.trim()) this.searchTimer = setTimeout(() => this.search(), 220);
-      else if (!this.data.filters) this.setData({ results: [], hasResults: false, hasSearched: false });
-      else this.searchTimer = setTimeout(() => this.search(), 220);
+      if (query.trim()) this.searchTimer = setTimeout(() => this.loadSuggestions(query), 120);
+      else this.setData({
+        results: [],
+        suggestions: [],
+        hasResults: false,
+        hasSearched: false,
+        loadFailed: false
+      });
     });
+  },
+
+  async loadSuggestions(query) {
+    const value = String(query || '').trim();
+    if (!value) return;
+    const suggestionSeq = (this.suggestionSeq || 0) + 1;
+    this.suggestionSeq = suggestionSeq;
+    try {
+      const suggestions = await billService.suggestBillKeywords(value);
+      if (suggestionSeq !== this.suggestionSeq || this.data.query.trim() !== value) return;
+      this.setData({
+        suggestions,
+        results: [],
+        hasResults: false,
+        hasSearched: false,
+        loadFailed: false
+      });
+    } catch (error) {
+      if (suggestionSeq === this.suggestionSeq) this.setData({ suggestions: [] });
+    }
   },
 
   async search() {
     const searchSeq = this.data.searchSeq + 1;
-    this.setData({ loading: true, searchSeq });
+    this.setData({ loading: true, loadFailed: false, suggestions: [], searchSeq });
     const query = this.data.query.trim();
     try {
       const results = await billService.listBills({
@@ -59,8 +86,7 @@ Page(withSystemLayout({
       this.setData({ results, hasResults: results.length > 0, hasSearched: true, loading: false });
     } catch (error) {
       if (this.data.searchSeq !== searchSeq) return;
-      this.setData({ loading: false });
-      wx.showToast({ title: '搜索失败，请重试', icon: 'none' });
+      this.setData({ loading: false, loadFailed: true, hasSearched: false, hasResults: false });
     }
   },
 
@@ -80,11 +106,18 @@ Page(withSystemLayout({
 
   clearQuery() {
     clearTimeout(this.searchTimer);
-    this.setData({ query: '', results: [], hasResults: false, hasSearched: false, loading: false });
+    this.suggestionSeq = (this.suggestionSeq || 0) + 1;
+    this.setData({ query: '', results: [], suggestions: [], hasResults: false, hasSearched: false, loading: false, loadFailed: false });
   },
 
   useHistory(event) {
     this.setData({ query: event.currentTarget.dataset.keyword }, () => {
+      this.confirmSearch();
+    });
+  },
+
+  useSuggestion(event) {
+    this.setData({ query: event.currentTarget.dataset.value, suggestions: [] }, () => {
       this.confirmSearch();
     });
   },

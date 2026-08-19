@@ -1,0 +1,53 @@
+.app-nav {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  box-sizing: border-box;
+  width: 100%;
+  border-bottom: 1rpx solid #f2f2f2;
+  background: #ffffff;
+}
+
+.app-nav-title {
+  position: absolute;
+  right: 26%;
+  bottom: 0;
+  left: 26%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 88rpx;
+  overflow: hidden;
+  color: #26292c;
+  font-size: 34rpx;
+  font-weight: 700;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-nav-back {
+  position: absolute;
+  bottom: 0;
+  left: 16rpx;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  box-sizing: border-box;
+  width: 88rpx;
+  height: 88rpx;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.app-nav-back::after {
+  display: none;
+}
+
+.app-nav-back image {
+  width: 44rpx;
+  height: 44rpx;
+}

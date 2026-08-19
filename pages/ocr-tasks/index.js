@@ -45,6 +45,7 @@ Page(withSystemLayout({
             ...task,
             timeText: formatTaskTime(task.createdAt),
             statusText: task.status === 'processing' ? '识别中' : task.status === 'failed' ? '识别失败' : task.merged ? '已合并' : '已完成',
+            statusPrefix: task.status === 'completed' && !task.merged ? '✓ ' : '',
             mergedClass: task.merged ? 'merged' : '',
             isProcessing: task.status === 'processing',
             isCompleted: task.status === 'completed',
@@ -56,7 +57,7 @@ Page(withSystemLayout({
         })
       });
       clearTimeout(this.timer);
-      if (this.active && tasks.some((task) => task.status === 'processing')) {
+      if (this.active && tasks.some((task) => task.status === 'processing' && !task.demo)) {
         this.timer = setTimeout(() => this.loadTasks(), 1200);
       }
     } catch (error) {
@@ -90,7 +91,11 @@ Page(withSystemLayout({
 
   review(event) {
     const task = this.data.tasks.find((item) => item.id === event.currentTarget.dataset.id);
-    if (!task || task.status !== 'completed' || task.merged) return;
+    if (!task || task.status !== 'completed') return;
+    if (task.merged) {
+      wx.reLaunch({ url: '/pages/home/index' });
+      return;
+    }
     wx.navigateTo({ url: `/pages/ocr-review/index?id=${task.id}` });
   },
 

@@ -1,0 +1,6 @@
+<view class="app-nav" style="{{navStyle}}">
+  <button wx:if="{{showBack}}" class="app-nav-back" bindtap="onBack">
+    <image src="{{backIcon}}" mode="aspectFit" />
+  </button>
+  <view class="app-nav-title">{{title}}</view>
+</view>

@@ -16,7 +16,7 @@
 .bill-card.overdue { border-left-color: #e87a0a; }
 
 .bill-card.selected {
-  border-color: #1a51c7;
+  border: 3rpx solid #174fc4;
   border-left-width: 5rpx;
   background: #f7f9ff;
 }
@@ -32,14 +32,14 @@
 .check {
   position: absolute;
   top: 50%;
-  left: 28rpx;
+  left: 21rpx;
   display: flex;
   align-items: center;
   justify-content: center;
   flex: none;
-  width: 40rpx;
-  height: 40rpx;
-  margin: -20rpx 0 0;
+  width: 44rpx;
+  height: 44rpx;
+  margin: -22rpx 0 0;
   border: 3rpx solid #c5cfe0;
   border-radius: 50%;
   color: #ffffff;
@@ -52,7 +52,7 @@
   background: #174fc4;
 }
 
-.selectable .body { padding-left: 106rpx; }
+.selectable .body { padding-left: 91rpx; }
 
 .top-row {
   display: flex;
@@ -195,7 +195,7 @@
   color: #b6c3d5;
   font-size: 18rpx;
   font-weight: 700;
-  letter-spacing: 2rpx;
+  letter-spacing: 0;
   line-height: 24rpx;
 }
 

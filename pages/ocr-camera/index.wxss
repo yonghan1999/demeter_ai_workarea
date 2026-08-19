@@ -1,1 +1,198 @@
-.camera-page { min-height:100vh; padding:0; background:#edf0f6; }.camera-panel{min-height:650rpx;background:#0d1629;color:#fff;padding-bottom:58rpx}.camera-nav{position:relative;display:flex;align-items:center;height:112rpx;padding:36rpx 32rpx 0;font-size:31rpx;font-weight:700}.camera-close{display:flex;align-items:center;justify-content:center;flex:none;width:72rpx;min-width:72rpx;max-width:72rpx;height:72rpx;min-height:72rpx;max-height:72rpx;border-radius:50%;padding:0;background:#202b41}.camera-close image{width:42rpx;height:42rpx}.camera-nav-title{position:absolute;right:120rpx;left:120rpx;color:#fff;text-align:center;white-space:nowrap}.camera-content{padding:24rpx 32rpx 0}.capture-card{height:640rpx;overflow:hidden;border-radius:30rpx;background:#1c2946}.camera-image{width:100%;height:100%;background:#111b30}.camera-placeholder{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:#9dabc1;font-size:26rpx;line-height:42rpx}.camera-icon{display:flex;align-items:center;justify-content:center;width:160rpx;height:160rpx;margin-bottom:32rpx;border-radius:48rpx;background:#2c3957}.camera-icon image{width:72rpx;height:72rpx;opacity:.7}.camera-title{margin-bottom:10rpx;color:#fff;font-size:34rpx;font-weight:700}.capture-tips{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));height:124rpx;margin-top:24rpx;border-radius:30rpx;background:#19243a;color:#9dabc1}.capture-tip{display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:23rpx}.tip-number{margin-bottom:7rpx;color:#75849c;font-size:19rpx}.capture-primary,.capture-skip{width:100%;height:104rpx;border-radius:30rpx;font-size:29rpx;font-weight:700}.capture-primary{display:flex;align-items:center;justify-content:center;gap:14rpx;margin-top:30rpx;background:#1d50bf;color:#fff;box-shadow:0 10rpx 24rpx rgba(17,67,180,.3)}.capture-primary image{width:34rpx;height:34rpx}.capture-skip{margin-top:20rpx;background:#1d283d;color:#aeb9ca;font-weight:500}
+.camera-page {
+  min-height: 100vh;
+  padding: 0;
+  background: #0d1629;
+}
+
+.camera-panel {
+  min-height: 100vh;
+  background: #0d1629;
+  color: #ffffff;
+}
+
+.camera-nav {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  background: #0d1629;
+}
+
+.camera-close {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 88rpx;
+  min-width: 88rpx;
+  max-width: 88rpx;
+  height: 88rpx;
+  min-height: 88rpx;
+  max-height: 88rpx;
+  border-radius: 24rpx;
+  background: #1c2946;
+}
+
+.camera-close image {
+  width: 44rpx;
+  height: 44rpx;
+}
+
+.camera-nav-title {
+  position: absolute;
+  right: 176rpx;
+  bottom: 0;
+  left: 128rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  height: 88rpx;
+  color: #ffffff;
+  font-size: 34rpx;
+  font-weight: 700;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.camera-content {
+  padding: 32rpx 32rpx calc(32rpx + env(safe-area-inset-bottom));
+}
+
+.capture-card {
+  height: 840rpx;
+  overflow: hidden;
+  border-radius: 32rpx;
+  background: #1c2946;
+}
+
+.camera-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  height: 100%;
+  padding-top: 192rpx;
+  color: #9aabc2;
+  font-size: 26rpx;
+  line-height: 34rpx;
+  text-align: center;
+}
+
+.camera-placeholder.ready {
+  padding-top: 192rpx;
+}
+
+.camera-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 286rpx;
+  height: 286rpx;
+  margin-bottom: 38rpx;
+  border-radius: 32rpx;
+  background: rgba(238, 243, 255, 0.14);
+}
+
+.camera-icon image {
+  width: 56rpx;
+  height: 56rpx;
+  opacity: 0.9;
+}
+
+.camera-icon .camera-preview-image {
+  width: 100%;
+  height: 100%;
+  opacity: 1;
+}
+
+.camera-permission {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #9aabc2;
+  font-size: 24rpx;
+  line-height: 34rpx;
+  text-align: center;
+}
+
+.camera-permission button {
+  width: 320rpx;
+  height: 88rpx;
+  margin-top: 72rpx;
+  border-radius: 24rpx;
+  background: #225acd;
+  color: #ffffff;
+  font-size: 24rpx;
+  font-weight: 700;
+}
+
+.camera-title {
+  margin-bottom: 24rpx;
+  color: #ffffff;
+  font-size: 34rpx;
+  font-weight: 700;
+}
+
+.capture-tips {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  height: 156rpx;
+  margin-top: 32rpx;
+  border-radius: 24rpx;
+  background: #1c2946;
+  color: #ffffff;
+}
+
+.capture-tip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 23rpx;
+  font-weight: 500;
+}
+
+.tip-number {
+  margin-bottom: 14rpx;
+  color: #9aabc2;
+  font-size: 20rpx;
+  font-weight: 500;
+}
+
+.capture-primary,
+.capture-skip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  border-radius: 24rpx;
+}
+
+.capture-primary {
+  gap: 14rpx;
+  height: 104rpx;
+  margin-top: 32rpx;
+  background: #225acd;
+  color: #ffffff;
+  font-size: 28rpx;
+  font-weight: 700;
+  box-shadow: none;
+}
+
+.capture-primary image {
+  width: 32rpx;
+  height: 32rpx;
+}
+
+.capture-skip {
+  height: 96rpx;
+  margin-top: 24rpx;
+  background: #1c2946;
+  color: #9aabc2;
+  font-size: 24rpx;
+  font-weight: 500;
+}

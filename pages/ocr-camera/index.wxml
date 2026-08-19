@@ -1,11 +1,24 @@
 <view class="page camera-page">
   <view class="camera-panel">
-    <view class="camera-nav" style="{{systemLayout.navStyle}}"><button class="camera-close" bindtap="back"><image src="/assets/icons/close.svg" mode="aspectFit" /></button><view class="camera-nav-title">拍照识别账本</view></view>
+    <app-nav title="拍照识别账本" nav-style="{{systemLayout.navStyle || ''}}" close="{{true}}" bind:back="back" />
     <view class="camera-content">
-      <view class="capture-card" bindtap="chooseImage"><image wx:if="{{imagePath}}" class="camera-image" src="{{imagePath}}" mode="aspectFit"></image><view wx:else class="camera-placeholder"><view class="camera-icon"><image src="/assets/icons/camera.svg" mode="aspectFit" /></view><view class="camera-title">拍摄手写账本</view><text>对准账本页面，确保字迹清晰</text><text>可一次拍摄多行账单</text></view></view>
+      <view class="capture-card" bindtap="takePhoto">
+        <view wx:if="{{cameraDenied}}" class="camera-permission">
+          <view class="camera-title">需要相机权限</view>
+          <text>请在系统设置中允许使用相机</text>
+          <text>也可以从相册选择账本照片</text>
+          <button catchtap="openSettings">前往系统设置</button>
+        </view>
+        <view wx:elif="{{imagePath}}" class="camera-placeholder ready">
+          <view class="camera-icon"><image class="camera-preview-image" src="{{imagePath}}" mode="aspectFill" /></view>
+          <view class="camera-title">账本照片已准备</view>
+          <text>检查页面是否完整清晰</text>
+        </view>
+        <view wx:else class="camera-placeholder"><view class="camera-icon"><image src="/assets/icons/camera.svg" mode="aspectFit" /></view><view class="camera-title">拍摄手写账本</view><text>对准账本页面，确保字迹清晰</text><text>可一次拍摄多行账单</text></view>
+      </view>
       <view class="capture-tips"><view class="capture-tip"><text class="tip-number">01</text><text>光线充足</text></view><view class="capture-tip"><text class="tip-number">02</text><text>页面摆正</text></view><view class="capture-tip"><text class="tip-number">03</text><text>字迹清晰</text></view></view>
-      <button class="capture-primary {{primaryDisabledClass}}" disabled="{{submitting}}" bindtap="primaryAction"><image src="/assets/icons/camera.svg" mode="aspectFit" />{{primaryText}}</button>
-      <button class="capture-skip" disabled="{{submitting}}" bindtap="useDemo">跳过（使用演示数据）</button>
+      <view class="capture-primary {{primaryDisabledClass}}" role="button" bindtap="primaryAction"><image src="/assets/icons/camera.svg" mode="aspectFit" />{{primaryText}}</view>
+      <view class="capture-skip {{submitting ? 'disabled' : ''}}" role="button" bindtap="secondaryAction">{{imagePath ? '重新拍摄' : '从相册选择'}}</view>
     </view>
   </view>
 </view>

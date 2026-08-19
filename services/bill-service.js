@@ -21,10 +21,10 @@ function normalizeStatus(status) {
 
 function statusText(status) {
   const map = {
-    unpaid: '未支付',
-    paid: '已支付'
+    unpaid: '未收款',
+    paid: '已收款'
   };
-  return map[status] || '未支付';
+  return map[status] || '未收款';
 }
 
 function billViewModel(bill) {
@@ -33,7 +33,7 @@ function billViewModel(bill) {
     ...bill,
     status,
     statusText: statusText(status),
-    amountLabel: '欠款金额'
+    amountLabel: '账单金额'
   };
 }
 
@@ -46,7 +46,7 @@ function matchKeyword(bill, keyword) {
     bill.from,
     bill.to,
     `${bill.from}到${bill.to}`,
-    bill.tags.join(',')
+    (bill.tags || []).join(',')
   ].join(' ');
   return text.toLowerCase().includes(keyword.toLowerCase());
 }
@@ -115,19 +115,39 @@ function updateBill(id, payload) {
 
 function deleteBill(id) {
   const store = getStore();
-  const before = store.bills.length;
+  const removed = store.bills.filter((bill) => bill.id === id);
   store.bills = store.bills.filter((bill) => bill.id !== id);
+  store.recycleBin = [
+    ...removed.map((bill) => ({ ...bill, deletedAt: Date.now() })),
+    ...(store.recycleBin || [])
+  ];
   saveStore(store);
-  return wait({ ok: store.bills.length < before });
+  return wait({ ok: removed.length > 0, count: removed.length, ids: removed.map((bill) => bill.id) });
 }
 
 function deleteBills(ids) {
   const set = new Set(ids);
   const store = getStore();
-  const before = store.bills.length;
+  const removed = store.bills.filter((bill) => set.has(bill.id));
   store.bills = store.bills.filter((bill) => !set.has(bill.id));
+  store.recycleBin = [
+    ...removed.map((bill) => ({ ...bill, deletedAt: Date.now() })),
+    ...(store.recycleBin || [])
+  ];
   saveStore(store);
-  return wait({ ok: true, count: before - store.bills.length });
+  return wait({ ok: true, count: removed.length, ids: removed.map((bill) => bill.id) });
+}
+
+function restoreBills(ids) {
+  const set = new Set(ids);
+  const store = getStore();
+  const restored = (store.recycleBin || [])
+    .filter((bill) => set.has(bill.id))
+    .map(({ deletedAt, ...bill }) => bill);
+  store.recycleBin = (store.recycleBin || []).filter((bill) => !set.has(bill.id));
+  store.bills = [...restored, ...store.bills];
+  saveStore(store);
+  return wait({ ok: restored.length === set.size, count: restored.length });
 }
 
 function markPaid(id) {
@@ -163,13 +183,66 @@ function clearSearchHistory() {
 
 function suggestShippers(keyword) {
   const value = String(keyword || '').trim();
+  const store = getStore();
+  const source = value
+    ? shipperSuggestions.filter((item) => item.includes(value) && item !== value)
+    : shipperSuggestions;
+  return wait(source.slice(0, 3).map((name, index) => {
+    const count = store.bills.filter((bill) => bill.shipper === name).length;
+    const meta = count > 0
+      ? `最近使用 · ${count}笔账单`
+      : name === '张三货运个体户' ? '上海 · 最近使用' : '最近使用';
+    return { id: `shipper-${index}-${name}`, value: name, label: name, meta };
+  }), 60);
+}
+
+function normalizeShipperName(value) {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[\s·•,，.。()（）-]/g, '')
+    .replace(/有限责任公司$|股份有限公司$|有限公司$|公司$/g, '');
+}
+
+function resolveShipperName(value) {
+  const input = String(value || '').trim();
+  if (!input) return wait({ value: '', exists: false });
+  const store = getStore();
+  const names = [...shipperSuggestions, ...store.bills.map((bill) => bill.shipper)];
+  const normalized = normalizeShipperName(input);
+  const existing = names.find((name) => normalizeShipperName(name) === normalized);
+  return wait({ value: existing || input, exists: Boolean(existing) }, 60);
+}
+
+function suggestBillKeywords(keyword) {
+  const value = String(keyword || '').trim().toLowerCase();
   if (!value) return wait([]);
-  return wait(shipperSuggestions.filter((item) => item.includes(value) && item !== value).slice(0, 6), 60);
+  const store = getStore();
+  const shippers = [];
+  const routes = [];
+  shipperSuggestions.forEach((shipper) => {
+    if (shipper.toLowerCase().includes(value) && !shippers.includes(shipper)) shippers.push(shipper);
+  });
+  store.bills.forEach((bill) => {
+    if (bill.shipper.toLowerCase().includes(value) && !shippers.includes(bill.shipper)) {
+      shippers.push(bill.shipper);
+    }
+    const route = `${bill.from} → ${bill.to}`;
+    const routeMatches = `${bill.from} ${bill.to} ${route}`.toLowerCase().includes(value);
+    const shipperMatches = bill.shipper.toLowerCase().includes(value);
+    if ((routeMatches || shipperMatches) && !routes.includes(route)) {
+      routes.push(route);
+    }
+  });
+  return wait([
+    ...shippers.slice(0, 3).map((text) => ({ type: '托运人', text })),
+    ...routes.slice(0, 3).map((text) => ({ type: '路线', text }))
+  ], 60);
 }
 
 function listOcrTasks() {
   const store = getStore();
-  return wait(store.ocrTasks);
+  return wait([...store.ocrTasks].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
 }
 
 function createOcrTask(imagePath) {
@@ -200,7 +273,22 @@ function createOcrTask(imagePath) {
 
 function getOcrTask(id) {
   const store = getStore();
-  return wait(store.ocrTasks.find((task) => task.id === id) || null);
+  const task = store.ocrTasks.find((item) => item.id === id);
+  if (!task) return wait(null);
+  const bills = (task.bills || []).map((bill) => ({
+    ...bill,
+    duplicate: store.bills.some((existing) => (
+      (bill.code && existing.code === bill.code)
+      || (
+        existing.shipper === bill.shipper
+        && existing.date === bill.date
+        && existing.from === bill.from
+        && existing.to === bill.to
+        && Number(existing.amount) === Number(bill.amount)
+      )
+    ))
+  }));
+  return wait({ ...task, bills });
 }
 
 function retryOcrTask(id) {
@@ -238,7 +326,7 @@ function mergeOcrTask(taskId, selectedIds, edits) {
       const edit = edits[bill.id] || {};
       return {
         id: `bill-${Date.now()}-${bill.id}`,
-        code: nextBillCode(store),
+        code: edit.code || bill.code || nextBillCode(store),
         shipper: edit.shipper || bill.shipper,
         vehicleCargo: edit.vehicleCargo || bill.vehicleCargo,
         date: edit.date || bill.date,
@@ -268,11 +356,14 @@ module.exports = {
   updateBill,
   deleteBill,
   deleteBills,
+  restoreBills,
   markPaid,
   getSearchHistory,
   saveSearchKeyword,
   clearSearchHistory,
   suggestShippers,
+  resolveShipperName,
+  suggestBillKeywords,
   listOcrTasks,
   createOcrTask,
   getOcrTask,

@@ -1,8 +1,5 @@
 <view class="page search-page">
-  <view class="search-nav" style="{{systemLayout.navStyle}}">
-    <button class="back" bindtap="back"><image src="/assets/icons/back.svg" mode="aspectFit" /></button>
-    <view class="search-title">搜索账单</view>
-  </view>
+  <app-nav title="搜索账单" nav-style="{{systemLayout.navStyle || ''}}" bind:back="back" />
 
   <view class="search-toolbar">
     <view class="search-input-wrap">
@@ -11,19 +8,25 @@
         class="search-input"
         value="{{query}}"
         focus
-        placeholder="搜索托运人、单号或线路"
+        placeholder="搜索托运人、单号或路线"
         bindinput="onInput"
         bindconfirm="confirmSearch"
       />
       <button wx:if="{{query}}" class="search-clear" bindtap="clearQuery"><image class="search-clear-icon" src="/assets/icons/clear.svg" mode="aspectFit" /></button>
     </view>
-    <button class="confirm" bindtap="confirmSearch">确认</button>
+    <button class="search-confirm-button" bindtap="confirmSearch">搜索</button>
   </view>
 
-  <view wx:if="{{loading}}" class="search-loading"><view class="loading-dot"></view><text>正在搜索</text></view>
+  <view wx:if="{{loading}}" class="search-state"><view class="loading-dot"></view><view class="search-state-title">正在搜索账单</view><text>正在匹配托运人、单号和路线</text></view>
+
+  <view wx:elif="{{loadFailed}}" class="search-state">
+    <view class="search-state-title">搜索失败</view>
+    <text>网络异常，请检查后重试</text>
+    <button class="search-retry" bindtap="confirmSearch">重新搜索</button>
+  </view>
 
   <view wx:elif="{{hasResults}}" class="result-list">
-    <view class="list-title">搜索结果</view>
+    <view class="list-title">搜索结果 · {{results.length}}</view>
     <bill-card
       wx:for="{{results}}"
       wx:key="id"
@@ -34,18 +37,29 @@
   </view>
 
   <view wx:elif="{{hasSearched}}" class="empty">
-    <view class="empty-title">没有找到相关账单</view>
-    <text>换个托运人、单号或线路试试</text>
+    <view class="empty-title">未找到相关账单</view>
+    <text>换个托运人、单号或路线试试</text>
+  </view>
+
+  <view wx:elif="{{suggestions.length > 0}}" class="suggestion-section">
+    <view class="list-title">匹配建议</view>
+    <view class="suggestion-card">
+      <view wx:for="{{suggestions}}" wx:key="text" class="suggestion-item" data-value="{{item.text}}" bindtap="useSuggestion">
+        <text class="suggestion-type">{{item.type}}</text>
+        <text class="suggestion-text">{{item.text}}</text>
+      </view>
+    </view>
   </view>
 
   <view wx:else class="history-section">
     <view class="list-title">最近搜索</view>
     <view class="history-card">
-      <button wx:for="{{history}}" wx:key="*this" class="history-item" data-keyword="{{item}}" bindtap="useHistory">
+      <view wx:for="{{history}}" wx:key="*this" class="history-item" data-keyword="{{item}}" bindtap="useHistory">
         <image class="history-icon" src="/assets/icons/history.svg" mode="aspectFit" />
         <text>{{item}}</text>
-      </button>
+      </view>
     </view>
     <button wx:if="{{history.length > 0}}" class="clear-button" bindtap="clearHistory">清除历史</button>
+
   </view>
 </view>

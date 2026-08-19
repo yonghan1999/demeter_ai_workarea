@@ -6,25 +6,31 @@ Page(withSystemLayout({
     imagePath: '',
     primaryText: '拍摄账本',
     submitting: false,
-    primaryDisabledClass: ''
+    primaryDisabledClass: '',
+    cameraDenied: false
   },
 
-  chooseImage() {
+  chooseImage(sourceType) {
     if (this.data.submitting) return;
     wx.chooseMedia({
       count: 1,
       mediaType: ['image'],
-      sourceType: ['camera', 'album'],
+      sourceType: [sourceType],
       success: (res) => {
         const file = res.tempFiles && res.tempFiles[0];
         if (!file || !file.tempFilePath) return;
         this.setData({
           imagePath: file.tempFilePath,
-          primaryText: '创建识别任务'
+          primaryText: '开始识别',
+          cameraDenied: false
         });
       },
       fail: (error) => {
         if (error.errMsg && error.errMsg.includes('cancel')) return;
+        if (sourceType === 'camera' && /auth|authorize|permission|deny/i.test(error.errMsg || '')) {
+          this.setData({ cameraDenied: true });
+          return;
+        }
         wx.showToast({ title: '无法获取照片，请重试', icon: 'none' });
       }
     });
@@ -46,7 +52,7 @@ Page(withSystemLayout({
     } catch (error) {
       this.setData({
         submitting: false,
-        primaryText: imagePath ? '创建识别任务' : '使用演示数据',
+        primaryText: imagePath ? '开始识别' : '拍摄账本',
         primaryDisabledClass: ''
       });
       wx.showToast({ title: '创建失败，请重试', icon: 'none' });
@@ -55,11 +61,30 @@ Page(withSystemLayout({
 
   primaryAction() {
     if (this.data.imagePath) this.createTask(this.data.imagePath);
-    else this.chooseImage();
+    else this.takePhoto();
   },
 
-  useDemo() {
-    this.createTask('');
+  takePhoto() {
+    this.chooseImage('camera');
+  },
+
+  chooseFromAlbum() {
+    this.chooseImage('album');
+  },
+
+  secondaryAction() {
+    if (this.data.imagePath) this.takePhoto();
+    else this.chooseFromAlbum();
+  },
+
+  openSettings() {
+    wx.openSetting({
+      success: (result) => {
+        if (result.authSetting && result.authSetting['scope.camera']) {
+          this.setData({ cameraDenied: false });
+        }
+      }
+    });
   },
 
   back() {

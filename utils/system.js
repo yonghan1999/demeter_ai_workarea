@@ -14,10 +14,15 @@ function getLayout() {
   const menuTop = menu ? menu.top : statusBarHeight + 6;
   const menuHeight = menu ? menu.height : 32;
   const navContentHeight = Math.max(menuHeight, 32);
-  const navHeight = menuTop + navContentHeight + 10;
+  const menuTopGap = Math.max(menuTop - statusBarHeight, 4);
+  const navHeight = menuTop + navContentHeight + menuTopGap;
   const sidePadding = 20;
   const menuRightGap = menu ? Math.max(windowWidth - menu.left + sidePadding, 88) : 88;
-  const bottomSafe = Math.max(info.screenHeight - info.safeArea.bottom, 0);
+  const screenHeight = info.screenHeight || info.windowHeight || 0;
+  const safeAreaBottom = info.safeArea && Number.isFinite(info.safeArea.bottom)
+    ? info.safeArea.bottom
+    : screenHeight;
+  const bottomSafe = Math.max(screenHeight - safeAreaBottom, 0);
 
   cachedLayout = {
     statusBarHeight,

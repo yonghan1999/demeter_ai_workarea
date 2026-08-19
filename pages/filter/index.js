@@ -21,8 +21,8 @@ Page(withSystemLayout({
   refreshOptions() {
     const statusSource = [
       { key: 'all', text: '全部' },
-      { key: 'paid', text: '已支付' },
-      { key: 'unpaid', text: '未支付' }
+      { key: 'paid', text: '已收款' },
+      { key: 'unpaid', text: '未收款' }
     ];
     const tagSource = ['本月活跃', '逾期严重', 'VIP大客户', '待核销'];
     this.setData({

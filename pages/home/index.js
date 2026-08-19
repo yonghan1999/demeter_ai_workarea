@@ -24,15 +24,23 @@ Page(withSystemLayout({
       shipper: '',
       status: 'all'
     },
-    filterStatusOptions: [],
+    filterStatusOptions: [
+      { key: 'all', text: '全部', className: 'active' },
+      { key: 'unpaid', text: '未收款', className: '' },
+      { key: 'paid', text: '已收款', className: '' }
+    ],
     filterOpen: false,
     filterCount: 0,
+    hasActiveFilter: false,
+    activeFilterSummary: '',
     batchMode: false,
     selectedIds: [],
     selectedAmount: '¥0.00',
     allSelected: false,
     deleting: false,
-    deleteText: '删除所选'
+    deleteText: '移入回收站',
+    movedNotice: null,
+    moveConfirmation: null
   },
 
   onShow() {
@@ -43,15 +51,27 @@ Page(withSystemLayout({
   refreshTabs() {
     const source = [
       { key: 'all', text: '全部' },
-      { key: 'unpaid', text: '未支付' },
-      { key: 'paid', text: '已支付' }
+      { key: 'unpaid', text: '未收款' },
+      { key: 'paid', text: '已收款' }
     ];
+    const activeFilterSummary = this.getActiveFilterSummary();
     this.setData({
       tabs: source.map((tab) => ({
         ...tab,
         className: this.data.activeStatus === tab.key ? 'active' : ''
-      }))
+      })),
+      hasActiveFilter: Boolean(activeFilterSummary),
+      activeFilterSummary
     });
+  },
+
+  getActiveFilterSummary() {
+    const labels = [];
+    if (this.data.activeStatus === 'unpaid') labels.push('未收款');
+    if (this.data.activeStatus === 'paid') labels.push('已收款');
+    if (this.data.appliedFilters.code) labels.push(`订单号 ${this.data.appliedFilters.code}`);
+    if (this.data.appliedFilters.shipper) labels.push(this.data.appliedFilters.shipper);
+    return labels.join(' · ');
   },
 
   async loadData() {
@@ -75,7 +95,7 @@ Page(withSystemLayout({
       this.setData({
         bills: bills.map((bill) => ({ ...bill, offset: 0, selected: false })),
         total: bills.length,
-        pendingOcr: tasks.filter((task) => task.status === 'processing').length,
+        pendingOcr: tasks.filter((task) => task.status === 'processing' && !task.demo).length,
         unmergedOcr: tasks.filter((task) => task.status === 'completed' && !task.merged).length,
         loading: false,
         initialLoading: false,
@@ -197,8 +217,8 @@ Page(withSystemLayout({
   refreshFilterOptions() {
     const source = [
       { key: 'all', text: '全部' },
-      { key: 'unpaid', text: '未支付' },
-      { key: 'paid', text: '已支付' }
+      { key: 'unpaid', text: '未收款' },
+      { key: 'paid', text: '已收款' }
     ];
     this.setData({
       filterStatusOptions: source.map((item) => ({
@@ -251,7 +271,10 @@ Page(withSystemLayout({
     this.setData({
       appliedFilters: { code: '', shipper: '' },
       filterCount: 0
-    }, () => this.loadData());
+    }, () => {
+      this.refreshTabs();
+      this.loadData();
+    });
   },
 
   goOcrTasks() {
@@ -313,31 +336,37 @@ Page(withSystemLayout({
   deleteSelected() {
     if (this.data.selectedIds.length === 0 || this.data.deleting) return;
     const ids = [...this.data.selectedIds];
-    wx.showModal({
-      title: '确认批量删除',
-      content: `仅删除当前列表中已选择的 ${ids.length} 笔账单，删除后不可恢复。`,
-      confirmText: '删除',
-      confirmColor: '#cc1d25',
-      success: async (res) => {
-        if (!res.confirm || this.data.deleting) return;
-        this.setData({ deleting: true, deleteText: '正在删除' });
-        try {
-          const result = await billService.deleteBills(ids);
-          if (!result.ok || result.count !== ids.length) throw new Error('delete incomplete');
-          this.setData({
-            selectedIds: [],
-            selectedAmount: '¥0.00',
-            allSelected: false
-          });
-          await this.loadData();
-          wx.showToast({ title: `已删除 ${ids.length} 笔`, icon: 'success' });
-        } catch (error) {
-          wx.showToast({ title: '删除失败，请重试', icon: 'none' });
-        } finally {
-          this.setData({ deleting: false, deleteText: '删除所选' });
-        }
-      }
+    this.setData({
+      moveConfirmation: { ids, count: ids.length }
     });
+  },
+
+  cancelMove() {
+    if (this.data.deleting) return;
+    this.setData({ moveConfirmation: null });
+  },
+
+  async confirmMove() {
+    const confirmation = this.data.moveConfirmation;
+    if (!confirmation || this.data.deleting) return;
+    const ids = [...confirmation.ids];
+    this.setData({ deleting: true, deleteText: '正在移入' });
+    try {
+      const result = await billService.deleteBills(ids);
+      if (!result.ok || result.count !== ids.length) throw new Error('delete incomplete');
+      this.setData({
+        moveConfirmation: null,
+        selectedIds: [],
+        selectedAmount: '¥0.00',
+        allSelected: false
+      });
+      await this.loadData();
+      this.showMovedNotice(ids);
+    } catch (error) {
+      wx.showToast({ title: '移入失败，请重试', icon: 'none' });
+    } finally {
+      this.setData({ deleting: false, deleteText: '移入回收站' });
+    }
   },
 
   async markPaid(event) {
@@ -358,26 +387,31 @@ Page(withSystemLayout({
 
   async deleteBill(event) {
     const id = event.currentTarget.dataset.id;
-    wx.showModal({
-      title: '删除账单',
-      content: '删除后当前模拟数据中将不再显示这笔账单。',
-      confirmText: '删除',
-      confirmColor: '#cc1d25',
-      success: async (res) => {
-        if (!res.confirm) return;
-        if (this.data.operatingId) return;
-        this.setData({ operatingId: id });
-        try {
-          const result = await billService.deleteBill(id);
-          if (!result.ok) throw new Error('delete failed');
-          wx.showToast({ title: '已删除', icon: 'success' });
-          await this.loadData();
-        } catch (error) {
-          wx.showToast({ title: '删除失败，请重试', icon: 'none' });
-        } finally {
-          this.setData({ operatingId: '' });
-        }
-      }
-    });
+    this.setData({ moveConfirmation: { ids: [id], count: 1 } });
+  },
+
+  showMovedNotice(ids) {
+    clearTimeout(this.undoTimer);
+    this.setData({ movedNotice: { ids, count: ids.length } });
+    this.undoTimer = setTimeout(() => this.setData({ movedNotice: null }), 5000);
+  },
+
+  async undoMove() {
+    const notice = this.data.movedNotice;
+    if (!notice) return;
+    clearTimeout(this.undoTimer);
+    this.setData({ movedNotice: null });
+    try {
+      const result = await billService.restoreBills(notice.ids);
+      if (!result.ok) throw new Error('restore incomplete');
+      await this.loadData();
+      wx.showToast({ title: '已恢复', icon: 'success' });
+    } catch (error) {
+      wx.showToast({ title: '恢复失败，请重试', icon: 'none' });
+    }
+  },
+
+  onUnload() {
+    clearTimeout(this.undoTimer);
   }
 }));

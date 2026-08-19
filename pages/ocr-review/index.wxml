@@ -1,13 +1,5 @@
 <view class="page review-page" wx:if="{{task}}">
-  <view class="nav" style="{{systemLayout.navStyle}}">
-    <button class="nav-action nav-muted review-back" bindtap="back"><image src="/assets/icons/back.svg" mode="aspectFit" /></button>
-    <view class="nav-title">识别结果</view>
-  </view>
-
-  <view class="review-toolbar">
-    <view><text class="toolbar-count">{{selectedIds.length}}</text><text> / {{reviewBills.length}} 笔已选</text></view>
-    <view class="review-select-all" bindtap="toggleAll">{{allText}}</view>
-  </view>
+  <app-nav title="识别结果" nav-style="{{systemLayout.navStyle || ''}}" bind:back="back" />
 
   <view class="summary-card card">
     <view class="summary-image">
@@ -16,23 +8,25 @@
     </view>
     <view>
       <view class="summary-title">共识别 {{reviewBills.length}} 笔账单</view>
-      <text class="summary-copy">{{task.timeText}} 拍摄</text>
-      <text class="summary-copy">点击账单卡片可直接编辑字段</text>
+      <text class="summary-copy">{{task.timeText}} 拍摄 · 点击字段可校对</text>
     </view>
+    <button class="review-select-all" bindtap="toggleAll">{{allText}}</button>
   </view>
 
+  <view wx:if="{{duplicateCount > 0}}" class="duplicate-notice">发现 {{duplicateCount}} 笔疑似重复账单，请核对后再合并</view>
+
   <view class="review-list">
-    <view wx:for="{{reviewBills}}" wx:key="id" class="review-card card {{item.borderClass}} {{item.mutedClass}}">
+    <view wx:for="{{reviewBills}}" wx:key="id" class="review-card card {{item.expanded ? 'expanded' : ''}} {{item.borderClass}} {{item.mutedClass}}" data-id="{{item.id}}" bindtap="toggleExpanded">
       <view class="review-card-head">
-        <button class="check {{item.selectedClass}}" data-id="{{item.id}}" bindtap="toggle">
+        <button class="review-check-button {{item.selectedClass}}" data-id="{{item.id}}" catchtap="toggle">
           <text wx:if="{{item.selected}}">✓</text>
         </button>
         <view class="confidence {{item.confidenceClass}}">
-          可信度 {{item.confidenceLevel}} {{item.confidencePercent}}%
+          可信度 {{item.confidencePercent}}%
         </view>
       </view>
 
-      <view class="edit-grid">
+      <view class="edit-grid" catchtap="stopCardTap">
         <view class="edit-field wide">
           <view class="label">托运人</view>
           <input class="review-input" data-id="{{item.id}}" data-field="shipper" value="{{item.shipper}}" maxlength="60" bindinput="setField" />
@@ -40,6 +34,34 @@
         <view class="edit-field amount">
           <view class="label">金额</view>
           <view class="review-amount-shell"><text>¥</text><input class="review-input amount-input" type="digit" data-id="{{item.id}}" data-field="amount" value="{{item.amount}}" bindinput="setField" /></view>
+        </view>
+        <view class="edit-field route-field">
+          <view class="label">路线</view>
+          <view class="route-inputs">
+            <input class="review-input route-input" data-id="{{item.id}}" data-field="from" value="{{item.from}}" maxlength="30" bindinput="setField" />
+            <text>→</text>
+            <input class="review-input route-input" data-id="{{item.id}}" data-field="to" value="{{item.to}}" maxlength="30" bindinput="setField" />
+          </view>
+        </view>
+      </view>
+
+      <view class="status-pair" catchtap="stopCardTap">
+        <button class="review-status-button {{item.unpaidClass}}" data-id="{{item.id}}" data-status="unpaid" bindtap="setStatus">未收款</button>
+        <button class="review-status-button {{item.paidClass}}" data-id="{{item.id}}" data-status="paid" bindtap="setStatus">已收款</button>
+      </view>
+
+      <view wx:if="{{item.expanded}}" class="full-review-grid" catchtap="stopCardTap">
+        <view class="edit-field wide">
+          <view class="label">单号</view>
+          <input class="review-input mono" data-id="{{item.id}}" data-field="code" value="{{item.code}}" maxlength="30" bindinput="setField" />
+        </view>
+        <view class="edit-field">
+          <view class="label">运输日期</view>
+          <picker mode="date" value="{{item.date}}" data-id="{{item.id}}" bindchange="setDate"><view class="review-input review-picker mono">{{item.date}}</view></picker>
+        </view>
+        <view class="edit-field">
+          <view class="label">车型</view>
+          <input class="review-input" data-id="{{item.id}}" data-field="vehicleCargo" value="{{item.vehicleCargo}}" maxlength="40" bindinput="setField" />
         </view>
         <view class="edit-field">
           <view class="label">始发地</view>
@@ -49,19 +71,6 @@
           <view class="label">目的地</view>
           <input class="review-input" data-id="{{item.id}}" data-field="to" value="{{item.to}}" maxlength="30" bindinput="setField" />
         </view>
-        <view class="edit-field">
-          <view class="label">车型/货物</view>
-          <input class="review-input" data-id="{{item.id}}" data-field="vehicleCargo" value="{{item.vehicleCargo}}" maxlength="40" bindinput="setField" />
-        </view>
-        <view class="edit-field">
-          <view class="label">日期</view>
-          <picker mode="date" value="{{item.date}}" data-id="{{item.id}}" bindchange="setDate"><view class="review-input date-value mono">{{item.date}}</view></picker>
-        </view>
-      </view>
-
-      <view class="status-pair">
-        <button class="review-status-button {{item.unpaidClass}}" data-id="{{item.id}}" data-status="unpaid" bindtap="setStatus">未支付</button>
-        <button class="review-status-button {{item.paidClass}}" data-id="{{item.id}}" data-status="paid" bindtap="setStatus">已支付</button>
       </view>
     </view>
   </view>
@@ -71,7 +80,7 @@
       <text>已选 {{selectedIds.length}} 笔</text>
       <text class="merge-total">合计 {{total}}</text>
     </view>
-    <button class="primary-button {{mergeDisabledClass}}" disabled="{{mergeDisabled}}" bindtap="merge"><image src="/assets/icons/branch.svg" mode="aspectFit" />{{mergeText}}（{{selectedIds.length}} 笔）</button>
+    <button class="primary-button {{mergeDisabledClass}}" disabled="{{mergeDisabled}}" bindtap="merge">{{merging ? '正在合并…' : (hasExpanded ? '保存校对并合并 ' + selectedIds.length + ' 笔' : '合并 ' + selectedIds.length + ' 笔账单到列表')}}</button>
   </view>
 </view>
 
