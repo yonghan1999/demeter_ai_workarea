@@ -117,10 +117,6 @@ function deleteBill(id) {
   const store = getStore();
   const removed = store.bills.filter((bill) => bill.id === id);
   store.bills = store.bills.filter((bill) => bill.id !== id);
-  store.recycleBin = [
-    ...removed.map((bill) => ({ ...bill, deletedAt: Date.now() })),
-    ...(store.recycleBin || [])
-  ];
   saveStore(store);
   return wait({ ok: removed.length > 0, count: removed.length, ids: removed.map((bill) => bill.id) });
 }
@@ -130,24 +126,8 @@ function deleteBills(ids) {
   const store = getStore();
   const removed = store.bills.filter((bill) => set.has(bill.id));
   store.bills = store.bills.filter((bill) => !set.has(bill.id));
-  store.recycleBin = [
-    ...removed.map((bill) => ({ ...bill, deletedAt: Date.now() })),
-    ...(store.recycleBin || [])
-  ];
   saveStore(store);
   return wait({ ok: true, count: removed.length, ids: removed.map((bill) => bill.id) });
-}
-
-function restoreBills(ids) {
-  const set = new Set(ids);
-  const store = getStore();
-  const restored = (store.recycleBin || [])
-    .filter((bill) => set.has(bill.id))
-    .map(({ deletedAt, ...bill }) => bill);
-  store.recycleBin = (store.recycleBin || []).filter((bill) => !set.has(bill.id));
-  store.bills = [...restored, ...store.bills];
-  saveStore(store);
-  return wait({ ok: restored.length === set.size, count: restored.length });
 }
 
 function markPaid(id) {
@@ -356,7 +336,6 @@ module.exports = {
   updateBill,
   deleteBill,
   deleteBills,
-  restoreBills,
   markPaid,
   getSearchHistory,
   saveSearchKeyword,

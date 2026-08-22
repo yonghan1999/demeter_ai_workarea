@@ -192,13 +192,35 @@
 }
 
 .view-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  gap: 8rpx;
   width: 192rpx;
+  min-width: 192rpx;
+  max-width: 192rpx;
   height: 80rpx;
+  min-height: 80rpx;
+  max-height: 80rpx;
   border-radius: 24rpx;
   background: #eef3ff;
+  padding: 0;
   color: #174fc4;
   font-size: 22rpx;
   font-weight: 700;
+  line-height: normal;
+  text-align: center;
+}
+
+.view-button > text {
+  display: block;
+  line-height: 30rpx;
+}
+
+.view-button-arrow {
+  margin-top: -1rpx;
+  font-size: 26rpx;
 }
 
 .preview-row {

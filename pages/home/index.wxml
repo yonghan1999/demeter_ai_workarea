@@ -33,7 +33,7 @@
     </block>
     <block wx:else>
       <view class="result-count"><text>{{total}} 条账单</text><button wx:if="{{filterCount > 0}}" class="filter-summary" bindtap="clearAdvancedFilters">已筛选 · 清除</button></view>
-      <text class="swipe-hint">← 左滑标记 / 回收</text>
+      <text class="swipe-hint">← 左滑标记 / 删除</text>
     </block>
   </view>
 
@@ -45,7 +45,7 @@
     <view wx:for="{{bills}}" wx:key="id" wx:for-index="index" class="swipe-wrap">
       <view wx:if="{{!batchMode}}" class="swipe-actions">
         <button class="action paid-action" data-id="{{item.id}}" bindtap="markPaid"><image class="action-icon" src="/assets/icons/check.svg" mode="aspectFit" /><text>已收款</text></button>
-        <button class="action delete-action" data-id="{{item.id}}" bindtap="deleteBill"><image class="action-icon" src="/assets/icons/trash.svg" mode="aspectFit" /><text>回收站</text></button>
+        <button class="action delete-action" data-id="{{item.id}}" bindtap="deleteBill"><image class="action-icon" src="/assets/icons/trash.svg" mode="aspectFit" /><text>删除</text></button>
       </view>
       <view
         class="card-front"
@@ -105,18 +105,13 @@
     </button>
   </view>
 
-  <view wx:if="{{movedNotice}}" class="undo-notice {{batchMode ? 'above-batch' : ''}}">
-    <text>已将 {{movedNotice.count}} 笔账单移入回收站</text>
-    <button bindtap="undoMove">撤销</button>
-  </view>
-
-  <view wx:if="{{moveConfirmation}}" class="move-confirm-mask" bindtap="cancelMove">
-    <view class="move-confirm-dialog" catchtap="stopPropagation">
-      <view class="move-confirm-title">将 {{moveConfirmation.count}} 笔账单移入回收站？</view>
-      <text>仅处理当前已选账单，可在回收站恢复。</text>
-      <view class="move-confirm-actions">
-        <button bindtap="cancelMove">取消</button>
-        <button class="danger" bindtap="confirmMove">{{deleting ? '正在移入' : '移入回收站'}}</button>
+  <view wx:if="{{deleteConfirmation}}" class="delete-confirm-mask" bindtap="cancelDelete">
+    <view class="delete-confirm-dialog" catchtap="stopPropagation">
+      <view class="delete-confirm-title">确认删除 {{deleteConfirmation.count}} 笔账单？</view>
+      <text>删除后无法恢复，请确认所选账单无误。</text>
+      <view class="delete-confirm-actions">
+        <button bindtap="cancelDelete"><text>取消</text></button>
+        <button class="danger" bindtap="confirmDelete"><text>{{deleting ? '正在删除' : '确认删除'}}</text></button>
       </view>
     </view>
   </view>
@@ -141,7 +136,20 @@
         </view>
         <view class="inline-filter-card">
           <view class="inline-filter-label">支付状态</view>
-          <view class="inline-segmented"><button wx:for="{{filterStatusOptions}}" wx:key="key" data-status="{{item.key}}" class="inline-status-option {{item.className}}" bindtap="setFilterStatus">{{item.text}}</button></view>
+          <view class="inline-segmented"><button wx:for="{{filterStatusOptions}}" wx:key="key" data-status="{{item.key}}" class="inline-status-option {{item.className}}" bindtap="setFilterStatus"><text>{{item.text}}</text></button></view>
+        </view>
+        <view class="inline-filter-card date-range-card">
+          <view class="inline-filter-label">运输日期</view>
+          <view class="date-range-row">
+            <picker class="date-range-picker" mode="date" value="{{filterDraft.startDate}}" data-field="startDate" end="{{filterDraft.endDate || '2100-12-31'}}" bindchange="setFilterDate">
+              <view class="date-range-value {{filterDraft.startDate ? '' : 'placeholder'}}"><text>{{filterDraft.startDate || '开始日期'}}</text></view>
+            </picker>
+            <text class="date-range-separator">至</text>
+            <picker class="date-range-picker" mode="date" value="{{filterDraft.endDate}}" data-field="endDate" start="{{filterDraft.startDate || '2000-01-01'}}" bindchange="setFilterDate">
+              <view class="date-range-value {{filterDraft.endDate ? '' : 'placeholder'}}"><text>{{filterDraft.endDate || '结束日期'}}</text></view>
+            </picker>
+          </view>
+          <view wx:if="{{filterError}}" class="filter-error">{{filterError}}</view>
         </view>
       </view>
 

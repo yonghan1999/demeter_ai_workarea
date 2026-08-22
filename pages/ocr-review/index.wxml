@@ -45,31 +45,26 @@
         </view>
       </view>
 
+      <view class="review-meta-grid" catchtap="stopCardTap">
+        <view class="edit-field vehicle-field">
+          <view class="label">车型</view>
+          <input class="review-input" data-id="{{item.id}}" data-field="vehicleCargo" value="{{item.vehicleCargo}}" maxlength="40" bindinput="setField" />
+        </view>
+        <view class="edit-field date-meta-field">
+          <view class="label">日期</view>
+          <picker mode="date" value="{{item.date}}" data-id="{{item.id}}" bindchange="setDate"><view class="review-input review-picker mono">{{item.date}}</view></picker>
+        </view>
+      </view>
+
       <view class="status-pair" catchtap="stopCardTap">
-        <button class="review-status-button {{item.unpaidClass}}" data-id="{{item.id}}" data-status="unpaid" bindtap="setStatus">未收款</button>
-        <button class="review-status-button {{item.paidClass}}" data-id="{{item.id}}" data-status="paid" bindtap="setStatus">已收款</button>
+        <button class="review-status-button {{item.unpaidClass}}" data-id="{{item.id}}" data-status="unpaid" bindtap="setStatus"><text>未收款</text></button>
+        <button class="review-status-button {{item.paidClass}}" data-id="{{item.id}}" data-status="paid" bindtap="setStatus"><text>已收款</text></button>
       </view>
 
       <view wx:if="{{item.expanded}}" class="full-review-grid" catchtap="stopCardTap">
         <view class="edit-field wide">
           <view class="label">单号</view>
           <input class="review-input mono" data-id="{{item.id}}" data-field="code" value="{{item.code}}" maxlength="30" bindinput="setField" />
-        </view>
-        <view class="edit-field">
-          <view class="label">运输日期</view>
-          <picker mode="date" value="{{item.date}}" data-id="{{item.id}}" bindchange="setDate"><view class="review-input review-picker mono">{{item.date}}</view></picker>
-        </view>
-        <view class="edit-field">
-          <view class="label">车型</view>
-          <input class="review-input" data-id="{{item.id}}" data-field="vehicleCargo" value="{{item.vehicleCargo}}" maxlength="40" bindinput="setField" />
-        </view>
-        <view class="edit-field">
-          <view class="label">始发地</view>
-          <input class="review-input" data-id="{{item.id}}" data-field="from" value="{{item.from}}" maxlength="30" bindinput="setField" />
-        </view>
-        <view class="edit-field">
-          <view class="label">目的地</view>
-          <input class="review-input" data-id="{{item.id}}" data-field="to" value="{{item.to}}" maxlength="30" bindinput="setField" />
         </view>
       </view>
     </view>

@@ -125,15 +125,29 @@
 }
 
 .status-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex: 1;
   width: 0;
   min-width: 0;
+  max-width: none;
   height: 64rpx;
   border-radius: 20rpx;
   background: #f7f9fc;
+  padding: 0;
   color: #3d5275;
   font-size: 24rpx;
   font-weight: 700;
+  line-height: normal;
+  text-align: center;
+}
+
+.status-button text {
+  display: block;
+  width: 100%;
+  line-height: 32rpx;
+  text-align: center;
 }
 
 .status-toggle .active.unpaid {

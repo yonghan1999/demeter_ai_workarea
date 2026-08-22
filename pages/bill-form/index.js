@@ -28,6 +28,7 @@ Page(withSystemLayout({
     loading: false,
     loadFailed: false,
     submitting: false,
+    amountFocused: false,
     saveDisabledClass: 'incomplete',
     suggestionOpen: false,
     suggestionMode: '',
@@ -135,6 +136,19 @@ Page(withSystemLayout({
       [`errors.${field}`]: '',
       errorSummary: ''
     }, () => this.refreshSaveAppearance());
+  },
+
+  focusAmount() {
+    if (this.data.submitting) return;
+    this.setData({ amountFocused: true });
+  },
+
+  onAmountFocus() {
+    if (!this.data.amountFocused) this.setData({ amountFocused: true });
+  },
+
+  onAmountBlur() {
+    this.setData({ amountFocused: false });
   },
 
   openSuggestionSheet(event) {

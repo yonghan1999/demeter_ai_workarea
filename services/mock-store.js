@@ -1,7 +1,7 @@
 const { nowCode } = require('../utils/format');
 
 const STORAGE_KEY = 'demeter:mock-store:v1';
-const STORE_VERSION = 5;
+const STORE_VERSION = 6;
 
 const initialSearchHistory = [
   '张三物流',
@@ -167,7 +167,6 @@ function createInitialState() {
     version: STORE_VERSION,
     billCounter: 100,
     bills: clone(initialBills),
-    recycleBin: [],
     ocrTasks: clone(initialOcrTasks),
     searchHistory: clone(initialSearchHistory)
   };
@@ -216,7 +215,7 @@ function migrateStore(store) {
   if (sourceVersion < 4 && JSON.stringify(migrated.searchHistory) === JSON.stringify(legacySearchHistory)) {
     migrated.searchHistory = clone(initialSearchHistory);
   }
-  if (!Array.isArray(migrated.recycleBin)) migrated.recycleBin = [];
+  delete migrated.recycleBin;
   if (sourceVersion < 5) {
     migrated.ocrTasks = migrated.ocrTasks.map((task) => (
       task.id === 'ocr-task-demo'

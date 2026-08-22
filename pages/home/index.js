@@ -17,11 +17,15 @@ Page(withSystemLayout({
     operatingId: '',
     appliedFilters: {
       code: '',
-      shipper: ''
+      shipper: '',
+      startDate: '',
+      endDate: ''
     },
     filterDraft: {
       code: '',
       shipper: '',
+      startDate: '',
+      endDate: '',
       status: 'all'
     },
     filterStatusOptions: [
@@ -38,9 +42,9 @@ Page(withSystemLayout({
     selectedAmount: '¥0.00',
     allSelected: false,
     deleting: false,
-    deleteText: '移入回收站',
-    movedNotice: null,
-    moveConfirmation: null
+    deleteText: '删除账单',
+    deleteConfirmation: null,
+    filterError: ''
   },
 
   onShow() {
@@ -71,6 +75,9 @@ Page(withSystemLayout({
     if (this.data.activeStatus === 'paid') labels.push('已收款');
     if (this.data.appliedFilters.code) labels.push(`订单号 ${this.data.appliedFilters.code}`);
     if (this.data.appliedFilters.shipper) labels.push(this.data.appliedFilters.shipper);
+    if (this.data.appliedFilters.startDate || this.data.appliedFilters.endDate) {
+      labels.push(`${this.data.appliedFilters.startDate || '最早'} 至 ${this.data.appliedFilters.endDate || '今天'}`);
+    }
     return labels.join(' · ');
   },
 
@@ -179,7 +186,8 @@ Page(withSystemLayout({
       filterDraft: {
         ...this.data.appliedFilters,
         status: this.data.activeStatus
-      }
+      },
+      filterError: ''
     }, () => this.refreshFilterOptions());
   },
 
@@ -230,18 +238,24 @@ Page(withSystemLayout({
 
   setFilterField(event) {
     const field = event.currentTarget.dataset.field;
-    this.setData({ [`filterDraft.${field}`]: event.detail.value });
+    this.setData({ [`filterDraft.${field}`]: event.detail.value, filterError: '' });
+  },
+
+  setFilterDate(event) {
+    const field = event.currentTarget.dataset.field;
+    this.setData({ [`filterDraft.${field}`]: event.detail.value, filterError: '' });
   },
 
   setFilterStatus(event) {
-    this.setData({ 'filterDraft.status': event.currentTarget.dataset.status }, () => {
+    this.setData({ 'filterDraft.status': event.currentTarget.dataset.status, filterError: '' }, () => {
       this.refreshFilterOptions();
     });
   },
 
   resetFilterDraft() {
     this.setData({
-      filterDraft: { code: '', shipper: '', status: 'all' }
+      filterDraft: { code: '', shipper: '', startDate: '', endDate: '', status: 'all' },
+      filterError: ''
     }, () => this.refreshFilterOptions());
   },
 
@@ -254,13 +268,20 @@ Page(withSystemLayout({
   applyFilter() {
     const code = this.data.filterDraft.code.trim();
     const shipper = this.data.filterDraft.shipper.trim();
+    const startDate = this.data.filterDraft.startDate;
+    const endDate = this.data.filterDraft.endDate;
     const status = this.data.filterDraft.status;
-    const filterCount = Number(Boolean(code)) + Number(Boolean(shipper));
+    if (startDate && endDate && startDate > endDate) {
+      this.setData({ filterError: '开始日期不能晚于结束日期' });
+      return;
+    }
+    const filterCount = Number(Boolean(code)) + Number(Boolean(shipper)) + Number(Boolean(startDate || endDate));
     this.setData({
       filterOpen: false,
-      appliedFilters: { code, shipper },
+      appliedFilters: { code, shipper, startDate, endDate },
       activeStatus: status,
-      filterCount
+      filterCount,
+      filterError: ''
     }, () => {
       this.refreshTabs();
       this.loadData();
@@ -269,7 +290,7 @@ Page(withSystemLayout({
 
   clearAdvancedFilters() {
     this.setData({
-      appliedFilters: { code: '', shipper: '' },
+      appliedFilters: { code: '', shipper: '', startDate: '', endDate: '' },
       filterCount: 0
     }, () => {
       this.refreshTabs();
@@ -337,35 +358,35 @@ Page(withSystemLayout({
     if (this.data.selectedIds.length === 0 || this.data.deleting) return;
     const ids = [...this.data.selectedIds];
     this.setData({
-      moveConfirmation: { ids, count: ids.length }
+      deleteConfirmation: { ids, count: ids.length }
     });
   },
 
-  cancelMove() {
+  cancelDelete() {
     if (this.data.deleting) return;
-    this.setData({ moveConfirmation: null });
+    this.setData({ deleteConfirmation: null });
   },
 
-  async confirmMove() {
-    const confirmation = this.data.moveConfirmation;
+  async confirmDelete() {
+    const confirmation = this.data.deleteConfirmation;
     if (!confirmation || this.data.deleting) return;
     const ids = [...confirmation.ids];
-    this.setData({ deleting: true, deleteText: '正在移入' });
+    this.setData({ deleting: true, deleteText: '正在删除' });
     try {
       const result = await billService.deleteBills(ids);
       if (!result.ok || result.count !== ids.length) throw new Error('delete incomplete');
       this.setData({
-        moveConfirmation: null,
+        deleteConfirmation: null,
         selectedIds: [],
         selectedAmount: '¥0.00',
         allSelected: false
       });
       await this.loadData();
-      this.showMovedNotice(ids);
+      wx.showToast({ title: `已删除 ${ids.length} 笔账单`, icon: 'success' });
     } catch (error) {
-      wx.showToast({ title: '移入失败，请重试', icon: 'none' });
+      wx.showToast({ title: '删除失败，请重试', icon: 'none' });
     } finally {
-      this.setData({ deleting: false, deleteText: '移入回收站' });
+      this.setData({ deleting: false, deleteText: '删除账单' });
     }
   },
 
@@ -387,31 +408,6 @@ Page(withSystemLayout({
 
   async deleteBill(event) {
     const id = event.currentTarget.dataset.id;
-    this.setData({ moveConfirmation: { ids: [id], count: 1 } });
-  },
-
-  showMovedNotice(ids) {
-    clearTimeout(this.undoTimer);
-    this.setData({ movedNotice: { ids, count: ids.length } });
-    this.undoTimer = setTimeout(() => this.setData({ movedNotice: null }), 5000);
-  },
-
-  async undoMove() {
-    const notice = this.data.movedNotice;
-    if (!notice) return;
-    clearTimeout(this.undoTimer);
-    this.setData({ movedNotice: null });
-    try {
-      const result = await billService.restoreBills(notice.ids);
-      if (!result.ok) throw new Error('restore incomplete');
-      await this.loadData();
-      wx.showToast({ title: '已恢复', icon: 'success' });
-    } catch (error) {
-      wx.showToast({ title: '恢复失败，请重试', icon: 'none' });
-    }
-  },
-
-  onUnload() {
-    clearTimeout(this.undoTimer);
+    this.setData({ deleteConfirmation: { ids: [id], count: 1 } });
   }
 }));

@@ -1,4 +1,7 @@
 .home-page {
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
   padding-bottom: 220rpx;
   background: #edf0f6;
 }
@@ -328,38 +331,7 @@
   opacity: 1;
 }
 
-.undo-notice {
-  position: fixed;
-  right: 32rpx;
-  bottom: calc(48rpx + env(safe-area-inset-bottom));
-  left: 32rpx;
-  z-index: 70;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  min-height: 64rpx;
-  border-radius: 10rpx;
-  background: #17213a;
-  padding: 0 22rpx;
-  color: #ffffff;
-  font-size: 20rpx;
-  box-shadow: 0 8rpx 24rpx rgba(23, 33, 58, 0.22);
-}
-
-.undo-notice.above-batch {
-  bottom: calc(148rpx + env(safe-area-inset-bottom));
-}
-
-.undo-notice button {
-  flex: none;
-  width: 88rpx;
-  height: 64rpx;
-  color: #9bb8ff;
-  font-size: 20rpx;
-  font-weight: 700;
-}
-
-.move-confirm-mask {
+.delete-confirm-mask {
   position: fixed;
   inset: 0;
   z-index: 90;
@@ -369,7 +341,7 @@
   background: rgba(23, 33, 58, 0.42);
 }
 
-.move-confirm-dialog {
+.delete-confirm-dialog {
   width: 658rpx;
   min-height: 416rpx;
   border-radius: 36rpx;
@@ -377,27 +349,27 @@
   padding: 44rpx 40rpx 36rpx;
 }
 
-.move-confirm-title {
+.delete-confirm-title {
   color: #17213a;
   font-size: 32rpx;
   font-weight: 700;
 }
 
-.move-confirm-dialog > text {
+.delete-confirm-dialog > text {
   display: block;
   margin-top: 48rpx;
   color: #3d5275;
   font-size: 22rpx;
 }
 
-.move-confirm-actions {
+.delete-confirm-actions {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 32rpx;
   margin-top: 96rpx;
 }
 
-.move-confirm-actions button {
+.delete-confirm-actions button {
   width: 100%;
   min-width: 0;
   max-width: 100%;
@@ -409,7 +381,7 @@
   font-weight: 700;
 }
 
-.move-confirm-actions .danger {
+.delete-confirm-actions .danger {
   background: #cc1d25;
   color: #ffffff;
 }
@@ -566,6 +538,9 @@
   z-index: 80;
   display: flex;
   align-items: flex-end;
+  width: 100vw;
+  max-width: 100vw;
+  overflow-x: hidden;
   background: rgba(14, 24, 42, 0.42);
 }
 
@@ -573,6 +548,8 @@
   display: flex;
   flex-direction: column;
   width: 100%;
+  min-width: 0;
+  max-width: 100vw;
   height: calc(100vh - 448rpx);
   max-height: calc(100vh - 448rpx);
   overflow: hidden;
@@ -632,6 +609,7 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 24rpx 32rpx 18rpx;
 }
 
@@ -660,6 +638,9 @@
 }
 
 .inline-filter-card {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
   border-radius: 26rpx;
   background: #ffffff;
   padding: 24rpx;
@@ -707,26 +688,101 @@
 }
 
 .inline-segmented {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  display: flex;
   gap: 12rpx;
   margin-top: 18rpx;
 }
 
 .inline-status-option {
-  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  width: 0;
   min-width: 0;
+  max-width: none;
   height: 66rpx;
   border-radius: 25rpx;
   background: #f3f5f9;
+  padding: 0;
   color: #526177;
   font-size: 23rpx;
   font-weight: 700;
+  line-height: normal;
+  text-align: center;
+}
+
+.inline-status-option text {
+  display: block;
+  width: 100%;
+  line-height: 30rpx;
+  text-align: center;
 }
 
 .inline-status-option.active {
   background: #1d50bf;
   color: #ffffff;
+}
+
+.date-range-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 42rpx minmax(0, 1fr);
+  align-items: center;
+  gap: 8rpx;
+  margin-top: 16rpx;
+}
+
+.date-range-picker {
+  min-width: 0;
+}
+
+.date-range-value {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-width: 0;
+  height: 76rpx;
+  overflow: hidden;
+  border-radius: 22rpx;
+  background: #f3f5f9;
+  padding: 0 12rpx;
+  color: #17213a;
+  font-size: 21rpx;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.date-range-value.placeholder {
+  color: #a8b7cb;
+  font-weight: 500;
+}
+
+.date-range-separator {
+  color: #718198;
+  font-size: 21rpx;
+  text-align: center;
+}
+
+.filter-error {
+  margin-top: 12rpx;
+  color: #cc1d25;
+  font-size: 20rpx;
+  line-height: 28rpx;
+}
+
+.delete-confirm-actions button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: normal;
+  text-align: center;
+}
+
+.delete-confirm-actions button text {
+  display: block;
+  width: 100%;
+  text-align: center;
 }
 
 .apply-filter {
@@ -735,8 +791,10 @@
   justify-content: center;
   gap: 12rpx;
   flex: none;
-  align-self: stretch;
-  width: auto;
+  align-self: center;
+  width: calc(100% - 64rpx);
+  min-width: 0;
+  max-width: calc(100% - 64rpx);
   height: 84rpx;
   margin: 0 32rpx;
   border-radius: 28rpx;

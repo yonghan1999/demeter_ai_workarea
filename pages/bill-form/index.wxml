@@ -5,19 +5,36 @@
     <view wx:if="{{errorSummary}}" class="form-error-summary">{{errorSummary}}</view>
     <view class="bill-code mono">{{billCodeDisplay}}</view>
 
-    <view class="form-card amount-card {{errors.amount ? 'field-error-card' : ''}}">
+    <view class="form-card amount-card {{errors.amount ? 'field-error-card' : ''}}" bindtap="focusAmount">
       <view class="form-label">账单金额</view>
       <view class="amount-input-row">
         <text>¥</text>
-        <input class="amount-input mono" type="digit" data-field="amount" value="{{form.amount}}" placeholder="0.00" placeholder-style="color:#17213a" maxlength="12" bindinput="setField" />
+        <input
+          id="bill-amount-input"
+          class="amount-input mono"
+          type="digit"
+          inputmode="decimal"
+          data-field="amount"
+          value="{{form.amount}}"
+          focus="{{amountFocused}}"
+          adjust-position="{{true}}"
+          cursor-spacing="32"
+          confirm-type="done"
+          placeholder="0.00"
+          placeholder-style="color:#17213a"
+          maxlength="12"
+          bindfocus="onAmountFocus"
+          bindblur="onAmountBlur"
+          bindinput="setField"
+        />
       </view>
     </view>
 
     <view class="form-card status-card">
       <view class="form-label">支付状态</view>
       <view class="status-toggle">
-        <button class="status-button {{unpaidClass}}" data-status="unpaid" bindtap="setStatus">未收款</button>
-        <button class="status-button {{paidClass}}" data-status="paid" bindtap="setStatus">已收款</button>
+        <button class="status-button {{unpaidClass}}" data-status="unpaid" bindtap="setStatus"><text>未收款</text></button>
+        <button class="status-button {{paidClass}}" data-status="paid" bindtap="setStatus"><text>已收款</text></button>
       </view>
     </view>
 

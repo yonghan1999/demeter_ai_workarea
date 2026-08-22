@@ -14,7 +14,7 @@
       <block wx:if="{{item.isCompleted}}">
         <view class="task-divider"></view>
         <view class="task-result">
-          <view class="result-summary"><view><view>识别到 <text class="result-count">{{item.bills.length}}</text> 笔账单</view><text class="result-total">合计 {{item.previewTotal}}</text></view><button class="view-button">{{item.merged ? '查看账单' : '查看结果'}}  ›</button></view>
+          <view class="result-summary"><view><view>识别到 <text class="result-count">{{item.bills.length}}</text> 笔账单</view><text class="result-total">合计 {{item.previewTotal}}</text></view><button class="view-button"><text>{{item.merged ? '查看账单' : '查看结果'}}</text><text class="view-button-arrow">›</text></button></view>
           <view wx:for="{{item.previewBills}}" wx:key="id" class="preview-row"><text class="preview-shipper">{{item.shipper}}</text><text class="confidence {{item.confidenceClass}}">可信度{{item.confidenceLevel}} {{item.confidencePercent}}%</text><text class="preview-amount mono">{{item.amountText}}</text></view>
           <view wx:if="{{item.moreCount > 0}}" class="more-count">+ {{item.moreCount}} 笔更多</view>
         </view>
