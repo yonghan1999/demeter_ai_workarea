@@ -1,0 +1,345 @@
+name: Backend CI
+
+on:
+  push:
+    paths:
+      - "backend/**"
+      - ".github/workflows/backend-ci.yml"
+  pull_request:
+    paths:
+      - "backend/**"
+      - ".github/workflows/backend-ci.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backend-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+      - name: Verify with H2 scenarios
+        run: ./mvnw --batch-mode --no-transfer-progress clean verify
+      - name: Verify Flyway and constraints on MySQL 8.4
+        run: ./mvnw --batch-mode --no-transfer-progress -Pmysql-it failsafe:integration-test failsafe:verify
+      - name: Upload verification reports
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: backend-verification-reports
+          path: |
+            backend/target/surefire-reports
+            backend/target/failsafe-reports
+            backend/target/site/jacoco
+            backend/target/classes/META-INF/sbom/application.cdx.json
+          if-no-files-found: ignore
+          retention-days: 14
+
+  secrets:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+      - name: Scan repository history for secrets
+        uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  dependencies:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+      - name: Scan dependencies for known vulnerabilities
+        env:
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+        run: ./mvnw --batch-mode --no-transfer-progress -Psecurity-scan verify
+      - name: Upload dependency scan report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: backend-dependency-scan
+          path: |
+            backend/target/dependency-check-report.html
+            backend/target/dependency-check-report.json
+          if-no-files-found: ignore
+          retention-days: 14
+
+  image:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: [verify, secrets]
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+      - name: Build production image
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: backend
+          file: backend/Dockerfile
+          push: false
+          tags: demeter-backend:ci
+          load: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Inspect runtime identity and image configuration
+        run: |
+          test "$(docker image inspect demeter-backend:ci --format '{{.Config.User}}')" = "10001:10001"
+          test "$(docker image inspect demeter-backend:ci --format '{{json .Config.Healthcheck.Test}}')" != "null"
+      - name: Scan production image
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: demeter-backend:ci
+          format: sarif
+          output: trivy-results.sarif
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+          trivyignores: backend/.trivyignore
+      - name: Upload image scan report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: backend-image-scan
+          path: trivy-results.sarif
+          if-no-files-found: ignore
+          retention-days: 14
+      - name: Smoke-test the production image
+        run: |
+          docker network create demeter-ci
+          mkdir -p "$RUNNER_TEMP/mysql-tls"
+          openssl req -newkey rsa:2048 -nodes \
+            -keyout "$RUNNER_TEMP/mysql-tls/ca-key.pem" \
+            -x509 -days 1 -subj '/CN=Demeter CI CA' \
+            -out "$RUNNER_TEMP/mysql-tls/ca.pem"
+          openssl req -newkey rsa:2048 -nodes \
+            -keyout "$RUNNER_TEMP/mysql-tls/server-key.pem" \
+            -subj '/CN=mysql' \
+            -out "$RUNNER_TEMP/mysql-tls/server.csr"
+          printf 'subjectAltName=DNS:mysql\nextendedKeyUsage=serverAuth\n' > "$RUNNER_TEMP/mysql-tls/server.ext"
+          openssl x509 -req -days 1 \
+            -in "$RUNNER_TEMP/mysql-tls/server.csr" \
+            -CA "$RUNNER_TEMP/mysql-tls/ca.pem" \
+            -CAkey "$RUNNER_TEMP/mysql-tls/ca-key.pem" \
+            -CAcreateserial \
+            -extfile "$RUNNER_TEMP/mysql-tls/server.ext" \
+            -out "$RUNNER_TEMP/mysql-tls/server-cert.pem"
+          keytool -importcert -noprompt \
+            -alias demeter-ci-ca \
+            -file "$RUNNER_TEMP/mysql-tls/ca.pem" \
+            -keystore "$RUNNER_TEMP/mysql-tls/mysql-truststore.p12" \
+            -storetype PKCS12 \
+            -storepass ci-truststore-password
+          chmod 644 "$RUNNER_TEMP/mysql-tls/ca.pem" \
+            "$RUNNER_TEMP/mysql-tls/server-cert.pem" \
+            "$RUNNER_TEMP/mysql-tls/server-key.pem" \
+            "$RUNNER_TEMP/mysql-tls/mysql-truststore.p12"
+          docker run -d --name mysql --network demeter-ci \
+            -e MYSQL_DATABASE=demeter \
+            -e MYSQL_ROOT_PASSWORD=ci-root-password \
+            -v "$RUNNER_TEMP/mysql-tls:/etc/mysql/tls:ro" \
+            mysql:8.4@sha256:b3b90af2a6552ae30c266fdb7d5dd55f3afb72404bb78d37fe8a23eb857fd3fb \
+            --character-set-server=utf8mb4 \
+            --collation-server=utf8mb4_0900_ai_ci \
+            --ssl-ca=/etc/mysql/tls/ca.pem \
+            --ssl-cert=/etc/mysql/tls/server-cert.pem \
+            --ssl-key=/etc/mysql/tls/server-key.pem \
+            --require-secure-transport=ON
+          for attempt in {1..60}; do
+            docker exec mysql mysqladmin ping -h 127.0.0.1 -uroot -pci-root-password \
+              --ssl-mode=REQUIRED --ssl-ca=/etc/mysql/tls/ca.pem --silent && break
+            sleep 2
+          done
+          docker exec mysql mysqladmin ping -h 127.0.0.1 -uroot -pci-root-password \
+            --ssl-mode=REQUIRED --ssl-ca=/etc/mysql/tls/ca.pem --silent
+          cat > "$RUNNER_TEMP/demeter-db-roles.env" <<'EOF'
+          MYSQL_HOST=mysql
+          DB_NAME=demeter
+          DB_API_PASSWORD=ci-api-db-password
+          DB_WORKER_PASSWORD=ci-worker-db-password
+          DB_MAINTENANCE_PASSWORD=ci-maintenance-db-password
+          DB_MIGRATOR_PASSWORD=ci-migration-password
+          MYSQL_ROOT_PASSWORD=ci-root-password
+          MYSQL_SSL_MODE=VERIFY_IDENTITY
+          MYSQL_SSL_CA=/etc/mysql/tls/ca.pem
+          EOF
+          chmod 600 "$RUNNER_TEMP/demeter-db-roles.env"
+          run_role_script() {
+            docker run --rm --network demeter-ci \
+              --env-file "$RUNNER_TEMP/demeter-db-roles.env" \
+              -v "$RUNNER_TEMP/mysql-tls:/etc/mysql/tls:ro" \
+              -v "$GITHUB_WORKSPACE/backend/docker/mysql:/provision:ro" \
+              mysql:8.4@sha256:b3b90af2a6552ae30c266fdb7d5dd55f3afb72404bb78d37fe8a23eb857fd3fb \
+              /bin/sh "/provision/provision-roles.sh" "$1"
+          }
+          run_role_script bootstrap
+          docker run --rm --network demeter-ci \
+            -v "$RUNNER_TEMP/mysql-tls/mysql-truststore.p12:/app/mysql-truststore.p12:ro" \
+            -e MIGRATION_DB_URL='jdbc:mysql://mysql:3306/demeter?sslMode=VERIFY_IDENTITY&connectionTimeZone=UTC' \
+            -e MIGRATION_DB_USERNAME=demeter_migrator \
+            -e MIGRATION_DB_PASSWORD=ci-migration-password \
+            -e JAVA_TOOL_OPTIONS='-Djavax.net.ssl.trustStore=/app/mysql-truststore.p12 -Djavax.net.ssl.trustStorePassword=ci-truststore-password' \
+            demeter-backend:ci migrate
+          run_role_script grants
+          docker run --rm --network demeter-ci \
+            --env-file "$RUNNER_TEMP/demeter-db-roles.env" \
+            -v "$RUNNER_TEMP/mysql-tls:/etc/mysql/tls:ro" \
+            -v "$GITHUB_WORKSPACE/backend/docker/mysql/verify-role-grants.sh:/verify-role-grants.sh:ro" \
+            mysql:8.4@sha256:b3b90af2a6552ae30c266fdb7d5dd55f3afb72404bb78d37fe8a23eb857fd3fb \
+            /bin/sh /verify-role-grants.sh
+          cat > "$RUNNER_TEMP/demeter-api.env" <<'EOF'
+          SPRING_PROFILES_ACTIVE=prod
+          DEMETER_RUNTIME_ROLE=API
+          MANAGEMENT_PORT=9090
+          MANAGEMENT_ADDRESS=0.0.0.0
+          DB_URL=jdbc:mysql://mysql:3306/demeter?sslMode=VERIFY_IDENTITY&connectionTimeZone=UTC
+          DB_USERNAME=demeter_api
+          DB_PASSWORD=ci-api-db-password
+          FLYWAY_ENABLED=false
+          SPRING_JPA_HIBERNATE_DDL_AUTO=none
+          WECHAT_APP_ID=ci-app-id
+          WECHAT_APP_SECRET=ci-app-secret-value
+          MANAGEMENT_ACCESS_TOKEN=0123456789abcdef0123456789abcdef
+          TRUSTED_PROXY_PATTERN=10\..*|172\.(1[6-9]|2[0-9]|3[0-1])\..*|192\.168\..*
+          OCR_STORAGE_PATH=/var/lib/demeter/ocr
+          OCR_STORAGE_SHARED=false
+          OCR_WORKER_ENABLED=false
+          MAINTENANCE_ENABLED=false
+          PAYMENT_RECONCILIATION_ENABLED=false
+          APP_REPLICA_COUNT=1
+          GATEWAY_RATE_LIMIT_ENABLED=false
+          EOF
+          docker run -d --name backend-api --network demeter-ci \
+            --env-file "$RUNNER_TEMP/demeter-api.env" \
+            -p 18080:8080 -p 19090:9090 \
+            -v "$RUNNER_TEMP/mysql-tls/mysql-truststore.p12:/app/mysql-truststore.p12:ro" \
+            -e JAVA_TOOL_OPTIONS='-XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError -Djavax.net.ssl.trustStore=/app/mysql-truststore.p12 -Djavax.net.ssl.trustStorePassword=ci-truststore-password' \
+            --read-only \
+            --tmpfs /tmp:rw,noexec,nosuid,nodev,size=64m \
+            --tmpfs /var/lib/demeter/ocr:rw,noexec,nosuid,nodev,size=64m \
+            --security-opt no-new-privileges:true \
+            --cap-drop ALL \
+            --pids-limit 256 \
+            demeter-backend:ci
+          for attempt in {1..60}; do
+            curl --fail --silent http://127.0.0.1:19090/actuator/health/readiness && break
+            sleep 2
+          done
+          curl --fail --silent http://127.0.0.1:19090/actuator/health/readiness
+          test "$(curl --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:19090/actuator/info)" = "401"
+          curl --fail --silent \
+            -H 'Authorization: Bearer 0123456789abcdef0123456789abcdef' \
+            http://127.0.0.1:19090/actuator/info
+          test "$(docker inspect backend-api --format '{{.State.Health.Status}}')" != "unhealthy"
+          cat > "$RUNNER_TEMP/demeter-maintenance.env" <<'EOF'
+          SPRING_PROFILES_ACTIVE=prod
+          DEMETER_RUNTIME_ROLE=MAINTENANCE
+          SERVER_ADDRESS=127.0.0.1
+          MANAGEMENT_PORT=9091
+          MANAGEMENT_ADDRESS=0.0.0.0
+          DB_URL=jdbc:mysql://mysql:3306/demeter?sslMode=VERIFY_IDENTITY&connectionTimeZone=UTC
+          DB_USERNAME=demeter_maintenance
+          DB_PASSWORD=ci-maintenance-db-password
+          FLYWAY_ENABLED=false
+          SPRING_JPA_HIBERNATE_DDL_AUTO=none
+          MANAGEMENT_ACCESS_TOKEN=0123456789abcdef0123456789abcdef
+          OCR_STORAGE_PATH=/var/lib/demeter/ocr
+          OCR_STORAGE_SHARED=true
+          OCR_WORKER_ENABLED=false
+          MAINTENANCE_ENABLED=true
+          PAYMENT_RECONCILIATION_ENABLED=true
+          EOF
+          docker run -d --name backend-maintenance --network demeter-ci \
+            --env-file "$RUNNER_TEMP/demeter-maintenance.env" \
+            -p 19091:9091 \
+            -v "$RUNNER_TEMP/mysql-tls/mysql-truststore.p12:/app/mysql-truststore.p12:ro" \
+            -e JAVA_TOOL_OPTIONS='-XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError -Djavax.net.ssl.trustStore=/app/mysql-truststore.p12 -Djavax.net.ssl.trustStorePassword=ci-truststore-password' \
+            --read-only \
+            --tmpfs /tmp:rw,noexec,nosuid,nodev,size=64m \
+            --tmpfs /var/lib/demeter/ocr:rw,noexec,nosuid,nodev,size=64m \
+            --security-opt no-new-privileges:true \
+            --cap-drop ALL \
+            --pids-limit 256 \
+            demeter-backend:ci maintenance
+          for attempt in {1..60}; do
+            curl --fail --silent http://127.0.0.1:19091/actuator/health/readiness && break
+            sleep 2
+          done
+          curl --fail --silent http://127.0.0.1:19091/actuator/health/readiness
+          test "$(docker inspect backend-maintenance --format '{{.State.Health.Status}}')" != "unhealthy"
+          cat > "$RUNNER_TEMP/demeter-worker.env" <<'EOF'
+          SPRING_PROFILES_ACTIVE=prod
+          DEMETER_RUNTIME_ROLE=WORKER
+          SERVER_ADDRESS=127.0.0.1
+          MANAGEMENT_PORT=9092
+          MANAGEMENT_ADDRESS=0.0.0.0
+          DB_URL=jdbc:mysql://mysql:3306/demeter?sslMode=VERIFY_IDENTITY&connectionTimeZone=UTC
+          DB_USERNAME=demeter_worker
+          DB_PASSWORD=ci-worker-db-password
+          FLYWAY_ENABLED=false
+          SPRING_JPA_HIBERNATE_DDL_AUTO=none
+          MANAGEMENT_ACCESS_TOKEN=0123456789abcdef0123456789abcdef
+          OCR_STORAGE_PATH=/var/lib/demeter/ocr
+          OCR_STORAGE_SHARED=true
+          OCR_WORKER_ENABLED=true
+          EOF
+          set +e
+          docker run --rm --name backend-worker --network demeter-ci \
+            --env-file "$RUNNER_TEMP/demeter-worker.env" \
+            -v "$RUNNER_TEMP/mysql-tls/mysql-truststore.p12:/app/mysql-truststore.p12:ro" \
+            -e JAVA_TOOL_OPTIONS='-XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError -Djavax.net.ssl.trustStore=/app/mysql-truststore.p12 -Djavax.net.ssl.trustStorePassword=ci-truststore-password' \
+            --read-only \
+            --tmpfs /tmp:rw,noexec,nosuid,nodev,size=64m \
+            --tmpfs /var/lib/demeter/ocr:rw,noexec,nosuid,nodev,size=64m \
+            --security-opt no-new-privileges:true \
+            --cap-drop ALL \
+            --pids-limit 256 \
+            demeter-backend:ci worker > "$RUNNER_TEMP/worker-startup.log" 2>&1
+          worker_status=$?
+          set -e
+          test "$worker_status" -ne 0
+          grep -q 'exactly one OCR provider' "$RUNNER_TEMP/worker-startup.log"
+      - name: Print container logs after a failed smoke test
+        if: failure()
+        run: |
+          docker logs backend-api || true
+          docker logs backend-maintenance || true
+          cat "$RUNNER_TEMP/worker-startup.log" 2>/dev/null || true
+
+  security-gate:
+    runs-on: ubuntu-latest
+    if: always()
+    needs: [dependencies, image]
+    steps:
+      - name: Require security and image checks to pass
+        env:
+          DEPENDENCIES_RESULT: ${{ needs.dependencies.result }}
+          IMAGE_RESULT: ${{ needs.image.result }}
+        run: |
+          test "$DEPENDENCIES_RESULT" = "success"
+          test "$IMAGE_RESULT" = "success"

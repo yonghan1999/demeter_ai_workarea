@@ -5,3 +5,11 @@ dist/
 coverage/
 *.log
 project.private.config.json
+.env
+.env.*
+!.env.example
+!.env.production.example
+backend/.env
+backend/.env.*
+!backend/.env.example
+!backend/.env.production.example

@@ -1,0 +1,254 @@
+spring:
+  application:
+    name: demeter-backend
+  autoconfigure:
+    exclude: org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
+  datasource:
+    url: ${DB_URL:jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:demeter}?useUnicode=true&characterEncoding=UTF-8&serverTimezone=UTC&allowPublicKeyRetrieval=true&useSSL=false}
+    username: ${DB_USERNAME:demeter}
+    password: ${DB_PASSWORD:demeter}
+    hikari:
+      pool-name: DemeterPool
+      minimum-idle: ${DB_POOL_MIN_IDLE:2}
+      maximum-pool-size: ${DB_POOL_MAX_SIZE:10}
+      connection-timeout: 30000
+      validation-timeout: 5000
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+        order_inserts: true
+        order_updates: true
+        jakarta.persistence.query.timeout: ${DB_QUERY_TIMEOUT_MS:30000}
+        jakarta.persistence.lock.timeout: ${DB_LOCK_TIMEOUT_MS:10000}
+  flyway:
+    enabled: true
+    clean-disabled: true
+  jackson:
+    default-property-inclusion: non_null
+  mvc:
+    problemdetails:
+      enabled: true
+  servlet:
+    multipart:
+      max-file-size: ${OCR_MAX_FILE_SIZE:10MB}
+      max-request-size: ${OCR_MAX_REQUEST_SIZE:10MB}
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+  transaction:
+    default-timeout: ${DB_TRANSACTION_TIMEOUT:30s}
+
+server:
+  port: ${SERVER_PORT:8080}
+  shutdown: graceful
+  forward-headers-strategy: none
+  max-http-request-header-size: ${SERVER_MAX_HEADER_SIZE:16KB}
+  tomcat:
+    max-http-form-post-size: ${SERVER_MAX_FORM_POST_SIZE:1MB}
+    max-parameter-count: ${SERVER_MAX_PARAMETER_COUNT:100}
+    max-part-count: ${SERVER_MAX_PART_COUNT:10}
+    threads:
+      max: ${SERVER_MAX_THREADS:200}
+      min-spare: ${SERVER_MIN_SPARE_THREADS:10}
+    max-connections: ${SERVER_MAX_CONNECTIONS:8192}
+    accept-count: ${SERVER_ACCEPT_COUNT:100}
+    connection-timeout: ${SERVER_CONNECTION_TIMEOUT:10s}
+  compression:
+    enabled: true
+    mime-types: application/json,application/problem+json
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: never
+  info:
+    env:
+      enabled: false
+  tracing:
+    enabled: ${TRACING_ENABLED:false}
+    sampling:
+      probability: ${TRACING_SAMPLE_PROBABILITY:0.1}
+  otlp:
+    tracing:
+      endpoint: ${OTEL_EXPORTER_OTLP_TRACES_ENDPOINT:http://localhost:4318/v1/traces}
+      timeout: ${OTEL_EXPORTER_OTLP_TIMEOUT:5s}
+  observations:
+    http:
+      server:
+        requests:
+          name: http.server.requests
+  metrics:
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+        demeter.business.chain.duration: true
+        demeter.business.handler.duration: true
+
+info:
+  app:
+    name: Demeter Backend
+    version: 0.1.0
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
+
+logging:
+  pattern:
+    level: "%5p [requestId:%X{requestId:-}]"
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      wechatLogin:
+        sliding-window-type: COUNT_BASED
+        sliding-window-size: 20
+        minimum-number-of-calls: 10
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 30s
+        permitted-number-of-calls-in-half-open-state: 3
+        automatic-transition-from-open-to-half-open-enabled: true
+        ignore-exceptions:
+          - com.demeter.backend.auth.infrastructure.WechatLoginRejectedException
+          - com.demeter.backend.common.error.ServiceNotConfiguredException
+      ocrProvider:
+        sliding-window-type: COUNT_BASED
+        sliding-window-size: 20
+        minimum-number-of-calls: 5
+        failure-rate-threshold: 50
+        slow-call-duration-threshold: ${OCR_PROVIDER_SLOW_CALL_THRESHOLD:10s}
+        slow-call-rate-threshold: 50
+        wait-duration-in-open-state: ${OCR_PROVIDER_CIRCUIT_OPEN_DURATION:30s}
+        permitted-number-of-calls-in-half-open-state: 2
+        automatic-transition-from-open-to-half-open-enabled: true
+  bulkhead:
+    instances:
+      wechatLogin:
+        max-concurrent-calls: ${WECHAT_MAX_CONCURRENT_CALLS:50}
+        max-wait-duration: 0
+  thread-pool-bulkhead:
+    instances:
+      ocrProvider:
+        core-thread-pool-size: ${OCR_PROVIDER_CORE_THREADS:2}
+        max-thread-pool-size: ${OCR_PROVIDER_MAX_THREADS:4}
+        queue-capacity: ${OCR_PROVIDER_QUEUE_CAPACITY:20}
+        keep-alive-duration: 20s
+  timelimiter:
+    instances:
+      ocrProvider:
+        timeout-duration: ${OCR_PROVIDER_TIMEOUT:20s}
+        cancel-running-future: true
+
+demeter:
+  database:
+    minimum-schema-version: ${DATABASE_MINIMUM_SCHEMA_VERSION:18}
+  business-time:
+    zone-id: ${BUSINESS_TIME_ZONE:Asia/Shanghai}
+  runtime:
+    role: ${DEMETER_RUNTIME_ROLE:ALL}
+  scheduler:
+    pool-size: ${SCHEDULER_POOL_SIZE:8}
+    await-termination: ${SCHEDULER_AWAIT_TERMINATION:30s}
+  http:
+    max-body-bytes: ${HTTP_MAX_BODY_BYTES:12582912}
+  pagination:
+    max-page: ${PAGINATION_MAX_PAGE:10000}
+    max-offset: ${PAGINATION_MAX_OFFSET:1000000}
+    max-size: ${PAGINATION_MAX_SIZE:100}
+  management:
+    access-token: ${MANAGEMENT_ACCESS_TOKEN:}
+  audit:
+    max-details-bytes: ${AUDIT_MAX_DETAILS_BYTES:65536}
+  idempotency:
+    max-replay-response-bytes: ${IDEMPOTENCY_MAX_REPLAY_RESPONSE_BYTES:262144}
+  auth:
+    session-ttl: ${AUTH_SESSION_TTL:30d}
+    max-active-sessions: ${AUTH_MAX_ACTIVE_SESSIONS:10}
+  rate-limit:
+    enabled: ${RATE_LIMIT_ENABLED:true}
+    maximum-keys: ${RATE_LIMIT_MAXIMUM_KEYS:100000}
+    expire-after-access: ${RATE_LIMIT_EXPIRE_AFTER_ACCESS:15m}
+    login:
+      capacity: ${RATE_LIMIT_LOGIN_CAPACITY:10}
+      refill-tokens: ${RATE_LIMIT_LOGIN_REFILL_TOKENS:10}
+      refill-period: ${RATE_LIMIT_LOGIN_REFILL_PERIOD:1m}
+    authenticated:
+      capacity: ${RATE_LIMIT_AUTH_CAPACITY:600}
+      refill-tokens: ${RATE_LIMIT_AUTH_REFILL_TOKENS:600}
+      refill-period: ${RATE_LIMIT_AUTH_REFILL_PERIOD:1m}
+    ocr-upload:
+      capacity: ${RATE_LIMIT_OCR_UPLOAD_CAPACITY:20}
+      refill-tokens: ${RATE_LIMIT_OCR_UPLOAD_REFILL_TOKENS:20}
+      refill-period: ${RATE_LIMIT_OCR_UPLOAD_REFILL_PERIOD:1m}
+    ocr-retry:
+      capacity: ${RATE_LIMIT_OCR_RETRY_CAPACITY:10}
+      refill-tokens: ${RATE_LIMIT_OCR_RETRY_REFILL_TOKENS:10}
+      refill-period: ${RATE_LIMIT_OCR_RETRY_REFILL_PERIOD:1m}
+  wechat:
+    app-id: ${WECHAT_APP_ID:}
+    app-secret: ${WECHAT_APP_SECRET:}
+    code-to-session-url: ${WECHAT_CODE_TO_SESSION_URL:https://api.weixin.qq.com/sns/jscode2session}
+    connect-timeout: ${WECHAT_CONNECT_TIMEOUT:3s}
+    read-timeout: ${WECHAT_READ_TIMEOUT:5s}
+  ocr:
+    upload:
+      max-bytes: ${OCR_MAX_BYTES:10485760}
+      max-width: ${OCR_MAX_WIDTH:12000}
+      max-height: ${OCR_MAX_HEIGHT:12000}
+      max-pixels: ${OCR_MAX_PIXELS:40000000}
+    result:
+      max-bills: ${OCR_RESULT_MAX_BILLS:100}
+      max-json-bytes: ${OCR_RESULT_MAX_JSON_BYTES:1048576}
+    storage:
+      root: ${OCR_STORAGE_PATH:./data/ocr}
+      shared: ${OCR_STORAGE_SHARED:false}
+      filesystem-enabled: ${OCR_FILESYSTEM_ENABLED:true}
+    worker:
+      enabled: ${OCR_WORKER_ENABLED:true}
+      fixed-delay: ${OCR_WORKER_DELAY:2s}
+      initial-delay: ${OCR_WORKER_INITIAL_DELAY:5s}
+      lease-duration: ${OCR_LEASE_DURATION:2m}
+      retry-delay: ${OCR_RETRY_DELAY:30s}
+      max-retry-delay: ${OCR_MAX_RETRY_DELAY:15m}
+      max-attempts: ${OCR_MAX_ATTEMPTS:3}
+      max-tasks-per-poll: ${OCR_MAX_TASKS_PER_POLL:20}
+    metrics:
+      fixed-delay: ${OCR_METRICS_DELAY:15s}
+      initial-delay: ${OCR_METRICS_INITIAL_DELAY:5s}
+  maintenance:
+    enabled: ${MAINTENANCE_ENABLED:true}
+    fixed-delay: ${MAINTENANCE_DELAY:6h}
+    initial-delay: ${MAINTENANCE_INITIAL_DELAY:1m}
+    session-retention: ${SESSION_RETENTION:7d}
+    command-replay-retention: ${COMMAND_REPLAY_RETENTION:90d}
+    maintenance-run-retention: ${MAINTENANCE_RUN_RETENTION:180d}
+    run-stale-after: ${MAINTENANCE_RUN_STALE_AFTER:2h}
+    ocr-retry-command-retention: ${OCR_RETRY_COMMAND_RETENTION:90d}
+    ocr-document-retention: ${OCR_DOCUMENT_RETENTION:30d}
+    ocr-storage-orphan-grace-period: ${OCR_STORAGE_ORPHAN_GRACE_PERIOD:2h}
+    batch-size: ${MAINTENANCE_BATCH_SIZE:100}
+    max-batches-per-run: ${MAINTENANCE_MAX_BATCHES_PER_RUN:10}
+    ocr-storage-orphan-scan-limit: ${OCR_STORAGE_ORPHAN_SCAN_LIMIT:1000}
+  payment:
+    reconciliation:
+      enabled: ${PAYMENT_RECONCILIATION_ENABLED:true}
+      fixed-delay: ${PAYMENT_RECONCILIATION_DELAY:1h}
+      initial-delay: ${PAYMENT_RECONCILIATION_INITIAL_DELAY:1m}
+      sample-size: ${PAYMENT_RECONCILIATION_SAMPLE_SIZE:20}
+  production:
+    replica-count: ${APP_REPLICA_COUNT:1}
+    gateway-rate-limit-enabled: ${GATEWAY_RATE_LIMIT_ENABLED:false}

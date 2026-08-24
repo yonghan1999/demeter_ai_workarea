@@ -1,0 +1,2 @@
+ALTER TABLE ocr_tasks
+    MODIFY COLUMN result_json MEDIUMTEXT NULL;

@@ -1,0 +1,82 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:demeter;MODE=MySQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;DB_CLOSE_DELAY=-1
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+  main:
+    banner-mode: off
+
+logging:
+  level:
+    root: WARN
+    com.demeter.backend: INFO
+
+demeter:
+  auth:
+    session-ttl: 30d
+    max-active-sessions: 10
+  rate-limit:
+    enabled: false
+    maximum-keys: 1000
+    expire-after-access: 1m
+    login:
+      capacity: 10
+      refill-tokens: 10
+      refill-period: 1m
+    authenticated:
+      capacity: 100
+      refill-tokens: 100
+      refill-period: 1m
+    ocr-upload:
+      capacity: 10
+      refill-tokens: 10
+      refill-period: 1m
+    ocr-retry:
+      capacity: 10
+      refill-tokens: 10
+      refill-period: 1m
+  payment:
+    reconciliation:
+      enabled: false
+      sample-size: 20
+  maintenance:
+    enabled: false
+    session-retention: 7d
+    command-replay-retention: 90d
+    maintenance-run-retention: 180d
+    run-stale-after: 2h
+    ocr-retry-command-retention: 90d
+    ocr-document-retention: 30d
+    ocr-storage-orphan-grace-period: 1h
+    batch-size: 100
+    max-batches-per-run: 10
+    ocr-storage-orphan-scan-limit: 100
+  ocr:
+    upload:
+      max-bytes: 10485760
+      max-width: 12000
+      max-height: 12000
+      max-pixels: 40000000
+    result:
+      max-bills: 100
+      max-json-bytes: 1048576
+    storage:
+      root: ${java.io.tmpdir}/demeter-ocr-tests-${random.uuid}
+      shared: false
+      filesystem-enabled: true
+    worker:
+      enabled: false
+      lease-duration: 2m
+      retry-delay: 1s
+      max-retry-delay: 1m
+      max-attempts: 3
+      max-tasks-per-poll: 20
+    metrics:
+      fixed-delay: 1h
+      initial-delay: 1h

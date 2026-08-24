@@ -1,0 +1,40 @@
+CREATE TABLE ocr_tasks (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    public_id VARCHAR(36) NOT NULL,
+    tenant_id BIGINT NOT NULL,
+    created_by BIGINT NOT NULL,
+    status VARCHAR(24) NOT NULL,
+    storage_key VARCHAR(512) NOT NULL,
+    original_filename VARCHAR(255) NULL,
+    content_type VARCHAR(80) NOT NULL,
+    size_bytes BIGINT NOT NULL,
+    content_sha256 VARCHAR(64) NOT NULL,
+    idempotency_key VARCHAR(128) NOT NULL,
+    request_hash VARCHAR(64) NOT NULL,
+    provider VARCHAR(80) NULL,
+    provider_request_id VARCHAR(160) NULL,
+    result_json TEXT NULL,
+    attempt_count INT NOT NULL DEFAULT 0,
+    max_attempts INT NOT NULL,
+    next_attempt_at TIMESTAMP(6) NOT NULL,
+    lease_until TIMESTAMP(6) NULL,
+    last_error_code VARCHAR(80) NULL,
+    last_error_message VARCHAR(500) NULL,
+    started_at TIMESTAMP(6) NULL,
+    completed_at TIMESTAMP(6) NULL,
+    version BIGINT NOT NULL DEFAULT 0,
+    created_at TIMESTAMP(6) NOT NULL,
+    updated_at TIMESTAMP(6) NOT NULL,
+    PRIMARY KEY (id),
+    CONSTRAINT uk_ocr_tasks_public_id UNIQUE (public_id),
+    CONSTRAINT uk_ocr_tasks_tenant_idempotency UNIQUE (tenant_id, idempotency_key),
+    CONSTRAINT fk_ocr_tasks_tenant FOREIGN KEY (tenant_id) REFERENCES tenants (id),
+    CONSTRAINT fk_ocr_tasks_created_by FOREIGN KEY (created_by) REFERENCES users (id),
+    CONSTRAINT ck_ocr_tasks_status CHECK (status IN ('PENDING', 'PROCESSING', 'RETRYING', 'SUCCEEDED', 'FAILED')),
+    CONSTRAINT ck_ocr_tasks_attempts CHECK (attempt_count >= 0 AND max_attempts > 0),
+    CONSTRAINT ck_ocr_tasks_size CHECK (size_bytes > 0)
+);
+
+CREATE INDEX idx_ocr_tasks_tenant_created ON ocr_tasks (tenant_id, created_at);
+CREATE INDEX idx_ocr_tasks_queue ON ocr_tasks (status, next_attempt_at);
+CREATE INDEX idx_ocr_tasks_lease ON ocr_tasks (status, lease_until);

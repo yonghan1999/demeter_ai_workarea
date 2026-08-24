@@ -1,0 +1,12 @@
+DELETE FROM audit_events;
+DELETE FROM maintenance_runs;
+DELETE FROM business_command_replays;
+DELETE FROM ocr_retry_commands;
+DELETE FROM ocr_tasks;
+DELETE FROM payments;
+DELETE FROM bill_tags;
+DELETE FROM bills;
+DELETE FROM auth_sessions;
+DELETE FROM bill_code_sequences;
+DELETE FROM users;
+DELETE FROM tenants;

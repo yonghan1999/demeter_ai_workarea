@@ -1,0 +1,195 @@
+services:
+  mysql:
+    image: mysql:8.4@sha256:b3b90af2a6552ae30c266fdb7d5dd55f3afb72404bb78d37fe8a23eb857fd3fb
+    container_name: demeter-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${DB_NAME:-demeter}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-demeter-root}
+      TZ: Asia/Shanghai
+    ports:
+      - "${DB_PORT:-3306}:3306"
+    volumes:
+      - demeter_mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+
+  db-users:
+    profiles: ["app"]
+    image: mysql:8.4@sha256:b3b90af2a6552ae30c266fdb7d5dd55f3afb72404bb78d37fe8a23eb857fd3fb
+    restart: "no"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      MYSQL_HOST: mysql
+      DB_NAME: ${DB_NAME:-demeter}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-demeter-root}
+      DB_API_PASSWORD: ${DB_API_PASSWORD:-local-api-password-change-me}
+      DB_WORKER_PASSWORD: ${DB_WORKER_PASSWORD:-local-worker-password-change-me}
+      DB_MAINTENANCE_PASSWORD: ${DB_MAINTENANCE_PASSWORD:-local-maintenance-password-change-me}
+      DB_MIGRATOR_PASSWORD: ${DB_MIGRATOR_PASSWORD:-local-migrator-password-change-me}
+      MYSQL_SSL_MODE: DISABLED
+    volumes:
+      - ./docker/mysql/provision-roles.sh:/provision/provision-roles.sh:ro
+      - ./docker/mysql/role-grants.sql:/provision/role-grants.sql:ro
+    entrypoint: ["/bin/sh", "/provision/provision-roles.sh"]
+    command: ["bootstrap"]
+
+  migration:
+    profiles: ["app"]
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: "no"
+    depends_on:
+      db-users:
+        condition: service_completed_successfully
+    environment:
+      MIGRATION_DB_URL: "jdbc:mysql://mysql:3306/${DB_NAME:-demeter}?connectionTimeZone=UTC&sslMode=DISABLED"
+      MIGRATION_DB_USERNAME: demeter_migrator
+      MIGRATION_DB_PASSWORD: ${DB_MIGRATOR_PASSWORD:-local-migrator-password-change-me}
+      MIGRATION_ALLOW_INSECURE_LOCAL: "true"
+    command: ["migrate"]
+
+  db-grants:
+    profiles: ["app"]
+    image: mysql:8.4@sha256:b3b90af2a6552ae30c266fdb7d5dd55f3afb72404bb78d37fe8a23eb857fd3fb
+    restart: "no"
+    depends_on:
+      migration:
+        condition: service_completed_successfully
+    environment:
+      MYSQL_HOST: mysql
+      DB_NAME: ${DB_NAME:-demeter}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-demeter-root}
+      DB_API_PASSWORD: ${DB_API_PASSWORD:-local-api-password-change-me}
+      DB_WORKER_PASSWORD: ${DB_WORKER_PASSWORD:-local-worker-password-change-me}
+      DB_MAINTENANCE_PASSWORD: ${DB_MAINTENANCE_PASSWORD:-local-maintenance-password-change-me}
+      DB_MIGRATOR_PASSWORD: ${DB_MIGRATOR_PASSWORD:-local-migrator-password-change-me}
+      MYSQL_SSL_MODE: DISABLED
+    volumes:
+      - ./docker/mysql/provision-roles.sh:/provision/provision-roles.sh:ro
+      - ./docker/mysql/role-grants.sql:/provision/role-grants.sql:ro
+    entrypoint: ["/bin/sh", "/provision/provision-roles.sh"]
+    command: ["grants"]
+
+  backend:
+    profiles: ["app"]
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db-grants:
+        condition: service_completed_successfully
+    environment:
+      SPRING_PROFILES_ACTIVE: local
+      DEMETER_RUNTIME_ROLE: API
+      MANAGEMENT_SERVER_PORT: 9090
+      DB_URL: jdbc:mysql://mysql:3306/${DB_NAME:-demeter}?useUnicode=true&characterEncoding=UTF-8&connectionTimeZone=UTC&sslMode=DISABLED
+      DB_USERNAME: demeter_api
+      DB_PASSWORD: ${DB_API_PASSWORD:-local-api-password-change-me}
+      FLYWAY_ENABLED: "false"
+      WECHAT_APP_ID: ${WECHAT_APP_ID:-local-app-id}
+      WECHAT_APP_SECRET: ${WECHAT_APP_SECRET:-local-app-secret}
+      MANAGEMENT_ACCESS_TOKEN: ${MANAGEMENT_ACCESS_TOKEN:-local-management-token-change-me}
+      MANAGEMENT_ADDRESS: 0.0.0.0
+      TRUSTED_PROXY_PATTERN: ${TRUSTED_PROXY_PATTERN:-10\\..*|172\\.(1[6-9]|2[0-9]|3[0-1])\\..*|192\\.168\\..*}
+      OCR_STORAGE_PATH: /var/lib/demeter/ocr
+      OCR_STORAGE_SHARED: "true"
+      OCR_WORKER_ENABLED: "false"
+      MAINTENANCE_ENABLED: "false"
+      PAYMENT_RECONCILIATION_ENABLED: "false"
+    ports:
+      - "${SERVER_PORT:-8080}:8080"
+      - "127.0.0.1:${MANAGEMENT_PORT:-9090}:9090"
+    volumes:
+      - demeter_ocr_data:/var/lib/demeter/ocr
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,noexec,nosuid,nodev
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    pids_limit: 256
+
+  worker:
+    profiles: ["app"]
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db-grants:
+        condition: service_completed_successfully
+    environment:
+      SPRING_PROFILES_ACTIVE: local
+      DEMETER_RUNTIME_ROLE: WORKER
+      MANAGEMENT_SERVER_PORT: 9090
+      DB_URL: jdbc:mysql://mysql:3306/${DB_NAME:-demeter}?useUnicode=true&characterEncoding=UTF-8&connectionTimeZone=UTC&sslMode=DISABLED
+      DB_USERNAME: demeter_worker
+      DB_PASSWORD: ${DB_WORKER_PASSWORD:-local-worker-password-change-me}
+      FLYWAY_ENABLED: "false"
+      OCR_WORKER_ENABLED: "true"
+      OCR_STORAGE_PATH: /var/lib/demeter/ocr
+      OCR_STORAGE_SHARED: "true"
+      MANAGEMENT_ACCESS_TOKEN: ${MANAGEMENT_ACCESS_TOKEN:-local-management-token-change-me}
+    volumes:
+      - demeter_ocr_data:/var/lib/demeter/ocr
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,noexec,nosuid,nodev
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    pids_limit: 256
+    command: ["worker"]
+
+  maintenance:
+    profiles: ["app"]
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db-grants:
+        condition: service_completed_successfully
+    environment:
+      SPRING_PROFILES_ACTIVE: local
+      DEMETER_RUNTIME_ROLE: MAINTENANCE
+      MANAGEMENT_SERVER_PORT: 9090
+      DB_URL: jdbc:mysql://mysql:3306/${DB_NAME:-demeter}?useUnicode=true&characterEncoding=UTF-8&connectionTimeZone=UTC&sslMode=DISABLED
+      DB_USERNAME: demeter_maintenance
+      DB_PASSWORD: ${DB_MAINTENANCE_PASSWORD:-local-maintenance-password-change-me}
+      FLYWAY_ENABLED: "false"
+      MAINTENANCE_ENABLED: "true"
+      PAYMENT_RECONCILIATION_ENABLED: "true"
+      OCR_STORAGE_PATH: /var/lib/demeter/ocr
+      OCR_STORAGE_SHARED: "true"
+      OCR_WORKER_ENABLED: "false"
+      MANAGEMENT_ACCESS_TOKEN: ${MANAGEMENT_ACCESS_TOKEN:-local-management-token-change-me}
+    volumes:
+      - demeter_ocr_data:/var/lib/demeter/ocr
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,noexec,nosuid,nodev
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    pids_limit: 256
+    command: ["maintenance"]
+
+volumes:
+  demeter_mysql_data:
+  demeter_ocr_data:

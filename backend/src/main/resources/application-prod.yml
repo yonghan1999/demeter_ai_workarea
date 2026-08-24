@@ -1,0 +1,104 @@
+spring:
+  jmx:
+    enabled: false
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    hikari:
+      minimum-idle: ${DB_POOL_MIN_IDLE:4}
+      maximum-pool-size: ${DB_POOL_MAX_SIZE:20}
+      connection-timeout: ${DB_CONNECTION_TIMEOUT:10s}
+      validation-timeout: ${DB_VALIDATION_TIMEOUT:3s}
+      idle-timeout: ${DB_IDLE_TIMEOUT:10m}
+      max-lifetime: ${DB_MAX_LIFETIME:30m}
+      keepalive-time: ${DB_KEEPALIVE_TIME:2m}
+      data-source-properties:
+        connectTimeout: ${DB_DRIVER_CONNECT_TIMEOUT_MS:5000}
+        socketTimeout: ${DB_DRIVER_SOCKET_TIMEOUT_MS:30000}
+        tcpKeepAlive: true
+        cachePrepStmts: true
+        prepStmtCacheSize: 250
+        prepStmtCacheSqlLimit: 2048
+        useServerPrepStmts: true
+        rewriteBatchedStatements: true
+  jpa:
+    hibernate:
+      ddl-auto: none
+  flyway:
+    enabled: ${FLYWAY_ENABLED:false}
+    validate-on-migrate: true
+    out-of-order: false
+
+server:
+  port: ${SERVER_PORT:8080}
+  address: ${SERVER_ADDRESS:0.0.0.0}
+  forward-headers-strategy: native
+  error:
+    include-message: never
+    include-binding-errors: never
+    include-stacktrace: never
+    include-exception: false
+  tomcat:
+    mbeanregistry:
+      enabled: false
+    remoteip:
+      internal-proxies: ${TRUSTED_PROXY_PATTERN:(?!)}
+      remote-ip-header: X-Forwarded-For
+      protocol-header: X-Forwarded-Proto
+    threads:
+      max: ${SERVER_MAX_THREADS:200}
+      min-spare: ${SERVER_MIN_SPARE_THREADS:10}
+    max-connections: ${SERVER_MAX_CONNECTIONS:8192}
+    accept-count: ${SERVER_ACCEPT_COUNT:100}
+    connection-timeout: ${SERVER_CONNECTION_TIMEOUT:10s}
+    max-keep-alive-requests: ${SERVER_MAX_KEEP_ALIVE_REQUESTS:100}
+
+management:
+  server:
+    port: ${MANAGEMENT_PORT:9090}
+    address: ${MANAGEMENT_ADDRESS:127.0.0.1}
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  metrics:
+    tags:
+      application: ${spring.application.name}
+  endpoint:
+    health:
+      show-details: never
+      group:
+        readiness:
+          include: readinessState,db,databaseSchema,roleReadiness
+        liveness:
+          include: livenessState
+
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+
+logging:
+  structured:
+    format:
+      console: ecs
+
+demeter:
+  management:
+    access-token: ${MANAGEMENT_ACCESS_TOKEN}
+  wechat:
+    app-id: ${WECHAT_APP_ID:}
+    app-secret: ${WECHAT_APP_SECRET:}
+  ocr:
+    storage:
+      root: ${OCR_STORAGE_PATH:/var/lib/demeter/ocr}
+      filesystem-enabled: ${OCR_FILESYSTEM_ENABLED:true}
+    worker:
+      enabled: ${OCR_WORKER_ENABLED:false}
+  maintenance:
+    enabled: ${MAINTENANCE_ENABLED:false}
+  payment:
+    reconciliation:
+      enabled: ${PAYMENT_RECONCILIATION_ENABLED:false}
