@@ -5,6 +5,7 @@ dist/
 coverage/
 *.log
 project.private.config.json
+.claude/settings.local.json
 .env
 .env.*
 !.env.example
