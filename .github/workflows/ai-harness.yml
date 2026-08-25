@@ -1,0 +1,46 @@
+name: AI Harness Policy
+
+on:
+  push:
+    paths:
+      - "AGENTS.md"
+      - ".github/**"
+      - "docs/**"
+      - "scripts/**"
+      - "backend/**"
+      - "miniprogram/**"
+  pull_request:
+    paths:
+      - "AGENTS.md"
+      - ".github/**"
+      - "docs/**"
+      - "scripts/**"
+      - "backend/**"
+      - "miniprogram/**"
+
+permissions:
+  contents: read
+
+jobs:
+  policy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+      - name: Run AI harness policy checks
+        shell: bash
+        env:
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PUSH_BEFORE_SHA: ${{ github.event.before }}
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+            base="$PR_BASE_SHA"
+          else
+            base="$PUSH_BEFORE_SHA"
+          fi
+          if [ -z "$base" ] || [ "$base" = "0000000000000000000000000000000000000000" ]; then
+            base="HEAD"
+          fi
+          sh ./scripts/ai-harness-preflight.sh "$base"

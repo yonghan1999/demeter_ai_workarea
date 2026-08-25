@@ -1,8 +1,7 @@
 # Demeter AI Coding Instructions
 
 This repository contains a production-oriented WeChat Mini Program and a Java
-backend. Treat these instructions as the shared engineering contract for
-Codex, Claude Code, GitHub Copilot, and other coding assistants.
+backend. Treat these instructions as the engineering contract for Codex.
 
 ## Project map
 
@@ -53,6 +52,12 @@ Codex, Claude Code, GitHub Copilot, and other coding assistants.
   decisions.
 
 ## Verification
+
+Classify the changed paths with `sh scripts/ai-harness-preflight.sh` before
+hand-off. Use `sh scripts/ai-harness-verify.sh` when its automated scope
+matches the change; it selects Maven verification or release preflight for
+backend work. Record the required WeChat Developer Tools evidence separately
+rather than claiming an automated Mini Program check.
 
 Run the smallest relevant checks during iteration, then the full checks before
 hand-off:

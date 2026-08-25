@@ -34,8 +34,7 @@ Mock 数据保存在 `miniprogram/services/mock-store.js`，页面统一通过 `
 
 后端运行方式、接口清单与 OCR 扩展说明见 `backend/README.md`。
 
-Codex、Claude Code 和 GitHub Copilot 的团队配置与生产使用规范见
-`docs/AI_ASSISTED_DEVELOPMENT.md`。
+Codex 的团队配置与生产使用规范见 `docs/AI_ASSISTED_DEVELOPMENT.md`。
 
 ## 调试记录
 

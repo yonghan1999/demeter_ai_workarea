@@ -1,22 +1,17 @@
 # AI 辅助开发生产规范
 
-本项目允许使用 Codex、Claude Code、GitHub Copilot 等 AI 编程工具辅助
-分析、实现、测试和代码审查。AI 工具是受约束的开发助手，不是发布审批人，
-也不能替代开发者对业务、数据和生产变更的最终负责。
+本项目使用 Codex 辅助分析、实现、测试和代码审查。Codex 是受约束的开发助手，
+不是发布审批人，也不能替代开发者对业务、数据和生产变更的最终负责。
 
 ## 已提交的配置
 
 | 文件 | 用途 |
 | --- | --- |
-| `AGENTS.md` | Codex 及其他代理的仓库级工程约束 |
-| `CLAUDE.md` | Claude Code 项目入口，复用 `AGENTS.md` |
-| `.claude/settings.json` | Claude Code 共享权限边界 |
-| `.github/copilot-instructions.md` | GitHub Copilot 的项目提示 |
-| `.claude/settings.local.json.example` | 个人 Claude Code 覆盖配置示例 |
+| `AGENTS.md` | Codex 的仓库级工程约束 |
+| `docs/AI_HARNESS.md` | Codex 的风险路由、策略检查和交付协议 |
 
-个人配置、登录信息、模型选择和本机目录不要提交。Claude Code 的个人覆盖
-应放在 `.claude/settings.local.json`；Codex 的个人偏好应放在用户目录下的
-配置或全局 `AGENTS.md`，不要写进项目规则。
+个人配置、登录信息、模型选择和本机目录不要提交。Codex 的个人偏好应放在用户
+目录下的配置或全局 `AGENTS.md`，不要写进项目规则。
 
 ## 推荐启动方式
 
@@ -25,12 +20,11 @@
 
 ```bash
 codex -C /Users/han/github/demeter -s workspace-write -a on-request
-claude --permission-mode default
 ```
 
 不要在生产服务器、含有生产凭据的目录或未审查的共享工作区中运行具有自动
-批准、绕过沙箱或全盘访问权限的模式。项目内的 Claude Code 设置只提供共享
-的最小权限和敏感路径拒绝规则，不会替代组织级 MDM/托管策略。
+批准、绕过沙箱或全盘访问权限的 Codex 模式。项目规则不会替代组织级
+MDM/托管策略。
 
 ## 任务流程
 
@@ -43,6 +37,11 @@ claude --permission-mode default
 5. 由开发者审查业务逻辑、权限、数据访问、迁移和用户体验后，才允许合并。
 6. 提交、推送、发布、数据库迁移、云资源变更和生产数据操作必须由人明确
    批准，并保留审计记录。
+
+仓库级的风险路由、自动策略检查和交付证据模板见
+[`AI_HARNESS.md`](AI_HARNESS.md)。每次交付前先执行
+`sh scripts/ai-harness-preflight.sh <base-ref>`；后端改动可执行
+`sh scripts/ai-harness-verify.sh <base-ref>` 获取对应的自动验证闭环。
 
 ## 数据和提示词边界
 
