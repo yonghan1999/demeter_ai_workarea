@@ -4,8 +4,8 @@ miniprogram_npm/
 dist/
 coverage/
 *.log
+.idea/
 project.private.config.json
-.claude/settings.local.json
 .env
 .env.*
 !.env.example
