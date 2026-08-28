@@ -97,13 +97,20 @@ OCR 接口当前已定义，但没有识别实现。在未注册识别提供方�
 }
 ```
 
-后续接入阿里云时，实现：
+已提供阿里云百炼 `qwen3-vl-plus` 适配器，仍保持在
+`HandwrittenBillOcrProvider` 边界之后，Controller 和应用服务无需改动。默认关闭；仅在
+OCR Worker 上配置以下变量后启用：
 
 ```text
-com.demeter.backend.ocr.spi.HandwrittenBillOcrProvider
+OCR_QWEN_ENABLED=true
+DASHSCOPE_API_KEY=<由密钥管理服务注入>
+DASHSCOPE_CHAT_COMPLETIONS_URL=https://<workspace-id>.cn-beijing.maas.aliyuncs.com/compatible-mode/v1/chat/completions
 ```
 
-并把实现注册为 Spring Bean。Controller 和应用服务无需改动。
+API Key 与 Endpoint 必须属于同一阿里云地域。原始账单图片会以 Base64 data URL 发送给
+阿里云百炼，因此该接入产生模型调用费用并增加第三方数据处理与可用性依赖；应在启用前完成
+数据合规评审、费用额度与告警配置。适配器只保留经过字段校验的结构化结果，不持久化厂商原始
+响应体或 API Key。公开协议参见阿里云[OpenAI Chat 兼容文档](https://help.aliyun.com/zh/model-studio/compatibility-of-openai-with-dashscope)。
 
 ## 数据库迁移
 

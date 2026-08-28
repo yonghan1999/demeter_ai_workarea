@@ -19,6 +19,9 @@
 - `OCR_STORAGE_PATH=/var/lib/demeter/ocr`
 - `OCR_WORKER_ENABLED=false`
 - `OCR_MAX_ATTEMPTS=3`
+- `OCR_QWEN_ENABLED=false`：是否启用阿里云百炼 `qwen3-vl-plus` OCR 适配器；仅 OCR Worker 应启用。
+- `DASHSCOPE_API_KEY`：从密钥管理服务注入，禁止写入镜像、Git、日志或错误响应。
+- `DASHSCOPE_CHAT_COMPLETIONS_URL`：与 API Key 同地域的 HTTPS Chat Completions Endpoint；生产优先使用业务空间专属域名。
 - `OCR_DOCUMENT_RETENTION=30d`
 - `SESSION_RETENTION=7d`
 
@@ -118,6 +121,8 @@ scripts/release-preflight.sh
 - 微信登录异常：检查微信 API 状态和凭据，按 `X-Request-Id` 定位；不要记录带 `secret` 的请求 URL。
 - OCR 积压：先暂停新 Worker 扩容操作，检查供应商限流；任务租约过期后可自动重新认领。
 - OCR 未配置：任务进入 `FAILED/OCR_NOT_CONFIGURED`，配置供应商后由用户或运维触发重试。
+- Qwen OCR 认证失败：核对 API Key 与 Endpoint 是否同地域、模型服务是否已开通；不要在工单或日志中提交 API Key。
+- Qwen OCR 限额：任务以 `OCR_PROVIDER_QUOTA_EXCEEDED` 失败；检查百炼余额、配额和限流后再重试。
 - OCR 识别未配置：接口返回 `503 OCR_NOT_CONFIGURED`，不会写入正式账单。
 - 重复收款请求：客户端必须复用原 `Idempotency-Key`；同键不同内容返回 409。
 - 账单编辑冲突：客户端重新获取账单和 `ETag`，合并后使用新的 `If-Match` 重试。

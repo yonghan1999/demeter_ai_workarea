@@ -11,6 +11,7 @@ import com.demeter.backend.ocr.infrastructure.OcrStorageProperties;
 import com.demeter.backend.ocr.infrastructure.OcrWorkerProperties;
 import com.demeter.backend.ocr.infrastructure.OcrUploadProperties;
 import com.demeter.backend.ocr.infrastructure.OcrResultProperties;
+import com.demeter.backend.ocr.infrastructure.QwenOcrProperties;
 import com.demeter.backend.maintenance.MaintenanceProperties;
 import com.demeter.backend.payment.infrastructure.PaymentReconciliationProperties;
 import com.demeter.backend.security.RateLimitProperties;
@@ -37,6 +38,7 @@ import org.springframework.context.annotation.Configuration;
         OcrWorkerProperties.class,
         OcrUploadProperties.class,
         OcrResultProperties.class,
+        QwenOcrProperties.class,
         MaintenanceProperties.class,
         PaymentReconciliationProperties.class,
         RateLimitProperties.class,
