@@ -5,6 +5,7 @@ import com.demeter.backend.ocr.domain.OcrBillCandidate;
 import com.demeter.backend.ocr.domain.OcrRecognitionResult;
 import com.demeter.backend.ocr.spi.HandwrittenBillOcrProvider;
 import com.demeter.backend.ocr.spi.OcrRecognitionRequest;
+import com.demeter.backend.ocr.spi.OcrRecognitionMemory;
 import com.demeter.backend.ocr.spi.OcrProviderFailure;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -59,6 +60,10 @@ public class QwenHandwrittenBillOcrProvider implements HandwrittenBillOcrProvide
             每个非空核心字段都必须有独立 fieldConfidences（0 到 1），不要默认所有字段相同。整体 confidence
             不得高于核心字段最低置信度；任一核心字段为 null 时不得高于 0.60。置信度只反映视觉证据，
             不反映字段是否看起来合理。
+
+            请求中可能附带当前租户历史账单词典。词典只用于帮助核对手写字形和消歧，不是事实来源；
+            只有图片中的文字与词典及位置证据一致时才可采用。严禁把词典中的值凭空填入图片中不存在
+            的字段，也不得将其他租户或未提供的历史值带入结果。
             """;
 
     private static final String USER_PROMPT = """
@@ -119,10 +124,18 @@ public class QwenHandwrittenBillOcrProvider implements HandwrittenBillOcrProvide
                         Map.of(
                                 "role", "user",
                                 "content", List.of(
-                                        Map.of("type", "text", "text", USER_PROMPT),
+                                        Map.of("type", "text", "text", USER_PROMPT + "\n" + memoryPrompt(request.memory())),
                                         Map.of(
                                                 "type", "image_url",
                                                 "image_url", Map.of("url", dataUrl))))));
+    }
+
+    private static String memoryPrompt(OcrRecognitionMemory memory) {
+        return "当前租户历史账单记忆（仅作视觉消歧候选，不得臆测）：\\n"
+                + "托运人候选: " + String.join("、", memory.shippers()) + "\\n"
+                + "出发地候选: " + String.join("、", memory.origins()) + "\\n"
+                + "目的地候选: " + String.join("、", memory.destinations()) + "\\n"
+                + "车型/货物候选: " + String.join("、", memory.vehicleCargo());
     }
 
     private OcrRecognitionResult parseResponse(JsonNode response, String taskId) {

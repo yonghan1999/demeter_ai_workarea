@@ -20,6 +20,8 @@ import com.demeter.backend.ocr.spi.HandwrittenBillOcrProvider;
 import com.demeter.backend.ocr.spi.OcrDocumentStorage;
 import com.demeter.backend.ocr.spi.OcrRecognitionRequest;
 import com.demeter.backend.ocr.spi.OcrProviderFailure;
+import com.demeter.backend.ocr.spi.OcrRecognitionMemory;
+import com.demeter.backend.bill.infrastructure.BillRepository;
 import com.demeter.backend.security.DemeterPrincipal;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -41,6 +43,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 public class OcrTaskWorker {
 
     private final OcrTaskRepository taskRepository;
+    private final BillRepository billRepository;
     private final OcrDocumentStorage storage;
     private final ObjectProvider<HandwrittenBillOcrProvider> provider;
     private final ResilientOcrRecognitionClient recognitionClient;
@@ -56,6 +59,7 @@ public class OcrTaskWorker {
 
     public OcrTaskWorker(
             OcrTaskRepository taskRepository,
+            BillRepository billRepository,
             OcrDocumentStorage storage,
             ObjectProvider<HandwrittenBillOcrProvider> provider,
             ResilientOcrRecognitionClient recognitionClient,
@@ -68,6 +72,7 @@ public class OcrTaskWorker {
             OcrTaskMetrics metrics,
             Clock clock) {
         this.taskRepository = taskRepository;
+        this.billRepository = billRepository;
         this.storage = storage;
         this.provider = provider;
         this.recognitionClient = recognitionClient;
@@ -129,6 +134,12 @@ public class OcrTaskWorker {
                                         OcrTaskMetrics.FailureCategory.NOT_CONFIGURED);
                             }
                         }),
+                        BusinessHandler.named("load-history-memory", context -> {
+                            if (context.claim == null || context.claim.exhausted() || context.failureCode != null) {
+                                return;
+                            }
+                            context.memory = loadHistoryMemory(context.claim.tenantId());
+                        }),
                         BusinessHandler.named("recognize-document", context -> {
                             if (context.claim == null || context.claim.exhausted() || context.failureCode != null) {
                                 return;
@@ -140,7 +151,8 @@ public class OcrTaskWorker {
                                                 new OcrRecognitionRequest(
                                                         context.claim.publicId(),
                                                         context.claim.attempt(),
-                                                        context.document))
+                                                        context.document,
+                                                        context.memory))
                                         .toCompletableFuture()
                                         .join();
                             } catch (RuntimeException exception) {
@@ -169,6 +181,15 @@ public class OcrTaskWorker {
                         BusinessHandler.named("persist-outcome", this::persistOutcome),
                         BusinessHandler.named("report-work", context -> context.didWork = context.claim != null)),
                 context -> context.didWork);
+    }
+
+    private OcrRecognitionMemory loadHistoryMemory(long tenantId) {
+        org.springframework.data.domain.Pageable limit = org.springframework.data.domain.PageRequest.of(0, 100);
+        return new OcrRecognitionMemory(
+                billRepository.findShipperNames(tenantId, "", limit),
+                billRepository.findOriginNames(tenantId, limit),
+                billRepository.findDestinationNames(tenantId, limit),
+                billRepository.findVehicleCargoNames(tenantId, limit));
     }
 
     private void claimTask(ProcessTaskContext context) {
@@ -421,6 +442,7 @@ public class OcrTaskWorker {
         private OcrDocument document;
         private HandwrittenBillOcrProvider provider;
         private OcrRecognitionResult result;
+        private OcrRecognitionMemory memory = OcrRecognitionMemory.empty();
         private String resultJson;
         private String failureCode;
         private String failureMessage;

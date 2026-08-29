@@ -6,7 +6,12 @@ import java.util.Objects;
 public record OcrRecognitionRequest(
         String taskId,
         int attempt,
-        OcrDocument document) {
+        OcrDocument document,
+        OcrRecognitionMemory memory) {
+
+    public OcrRecognitionRequest(String taskId, int attempt, OcrDocument document) {
+        this(taskId, attempt, document, OcrRecognitionMemory.empty());
+    }
 
     public OcrRecognitionRequest {
         if (taskId == null || taskId.isBlank()) {
@@ -16,5 +21,6 @@ public record OcrRecognitionRequest(
             throw new IllegalArgumentException("OCR attempt must be positive");
         }
         Objects.requireNonNull(document, "document");
+        memory = memory == null ? OcrRecognitionMemory.empty() : memory;
     }
 }

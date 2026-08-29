@@ -93,4 +93,31 @@ public interface BillRepository extends JpaRepository<Bill, Long>, JpaSpecificat
             @Param("tenantId") long tenantId,
             @Param("keyword") String keyword,
             Pageable pageable);
+
+    @Query("""
+            select distinct bill.origin
+            from Bill bill
+            where bill.tenantId = :tenantId and bill.deletedAt is null
+            order by bill.origin
+            """)
+    List<String> findOriginNames(@Param("tenantId") long tenantId, Pageable pageable);
+
+    @Query("""
+            select distinct bill.destination
+            from Bill bill
+            where bill.tenantId = :tenantId and bill.deletedAt is null
+            order by bill.destination
+            """)
+    List<String> findDestinationNames(@Param("tenantId") long tenantId, Pageable pageable);
+
+    @Query("""
+            select distinct bill.vehicleCargo
+            from Bill bill
+            where bill.tenantId = :tenantId
+              and bill.deletedAt is null
+              and bill.vehicleCargo is not null
+              and trim(bill.vehicleCargo) <> ''
+            order by bill.vehicleCargo
+            """)
+    List<String> findVehicleCargoNames(@Param("tenantId") long tenantId, Pageable pageable);
 }
