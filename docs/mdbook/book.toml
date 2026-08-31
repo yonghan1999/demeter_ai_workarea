@@ -1,0 +1,17 @@
+[book]
+title = "Demeter 项目功能与运营手册"
+authors = ["Demeter Team"]
+language = "zh-CN"
+src = "src"
+
+[build]
+build-dir = "book"
+
+[output.html]
+default-theme = "light"
+preferred-dark-theme = "navy"
+git-repository-url = ""
+site-url = ""
+
+[output.html.search]
+enable = true

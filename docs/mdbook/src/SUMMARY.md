@@ -1,0 +1,16 @@
+# Demeter 文档
+
+- [阅读指南](intro.md)
+- [系统概览](overview.md)
+- [运营人员手册](operations.md)
+  - [账单日常操作](operations/bills.md)
+  - [OCR 任务运营](operations/ocr.md)
+  - [收款与对账](operations/payments.md)
+  - [发布、监控与故障处理](operations/release.md)
+- [开发新人手册](development.md)
+  - [本地环境与启动](development/setup.md)
+  - [代码结构与责任链](development/architecture.md)
+  - [接口与数据约定](development/api.md)
+  - [小程序页面与服务层](development/miniprogram.md)
+- [AI 阅读索引](ai-index.md)
+- [术语表](glossary.md)

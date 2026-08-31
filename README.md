@@ -36,6 +36,8 @@ Mock 数据保存在 `miniprogram/services/mock-store.js`，页面统一通过 `
 
 Codex 的团队配置与生产使用规范见 `docs/AI_ASSISTED_DEVELOPMENT.md`。
 
+项目功能、运营流程、开发入门和 AI 阅读索引见 [`docs/mdbook/`](docs/mdbook/README.md)。
+
 ## 调试记录
 
 - 设计基准：Figma 393 x 853 正式 Flow 画板
