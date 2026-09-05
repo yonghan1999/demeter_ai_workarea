@@ -14,6 +14,9 @@ import org.springframework.data.jpa.repository.Lock;
 
 public interface BillRepository extends JpaRepository<Bill, Long>, JpaSpecificationExecutor<Bill> {
 
+    long countByDeletedAtIsNull();
+    long countByStatusAndDeletedAtIsNull(com.demeter.backend.bill.domain.BillStatus status);
+
     Optional<Bill> findByIdAndTenantIdAndDeletedAtIsNull(long id, long tenantId);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)

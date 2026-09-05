@@ -61,4 +61,13 @@ public class AuditEvent {
         this.details = details;
         this.createdAt = createdAt;
     }
+
+    public Long getId() { return id; }
+    public Long getTenantId() { return tenantId; }
+    public Long getActorUserId() { return actorUserId; }
+    public String getAction() { return action; }
+    public String getAggregateType() { return aggregateType; }
+    public String getAggregateId() { return aggregateId; }
+    public String getDetails() { return details; }
+    public Instant getCreatedAt() { return createdAt; }
 }

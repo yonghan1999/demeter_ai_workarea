@@ -4,6 +4,8 @@ import com.demeter.backend.security.BearerTokenAuthenticationFilter;
 import com.demeter.backend.security.SecurityProblemWriter;
 import com.demeter.backend.security.ApiRateLimitFilter;
 import com.demeter.backend.security.ManagementAccessFilter;
+import com.demeter.backend.admin.security.AdminAccessFilter;
+import com.demeter.backend.admin.security.AdminLoginRateLimitFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
@@ -12,6 +14,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
 
 @Configuration
@@ -41,14 +44,33 @@ public class SecurityConfig {
     }
 
     @Bean
+    FilterRegistrationBean<AdminLoginRateLimitFilter> disableAdminRateLimitFilterAutoRegistration(
+            AdminLoginRateLimitFilter filter) {
+        FilterRegistrationBean<AdminLoginRateLimitFilter> registration = new FilterRegistrationBean<>(filter);
+        registration.setEnabled(false);
+        return registration;
+    }
+
+    @Bean
+    FilterRegistrationBean<AdminAccessFilter> disableAdminFilterAutoRegistration(AdminAccessFilter filter) {
+        FilterRegistrationBean<AdminAccessFilter> registration = new FilterRegistrationBean<>(filter);
+        registration.setEnabled(false);
+        return registration;
+    }
+
+    @Bean
     SecurityFilterChain securityFilterChain(
             HttpSecurity http,
             BearerTokenAuthenticationFilter bearerTokenFilter,
             ApiRateLimitFilter rateLimitFilter,
             ManagementAccessFilter managementAccessFilter,
+            AdminAccessFilter adminAccessFilter,
+            AdminLoginRateLimitFilter adminLoginRateLimitFilter,
             SecurityProblemWriter problemWriter) throws Exception {
         return http
-                .csrf(csrf -> csrf.disable())
+                .csrf(csrf -> csrf
+                        .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
+                        .ignoringRequestMatchers("/api/**", "/actuator/**"))
                 .cors(cors -> cors.disable())
                 .headers(headers -> headers
                         .contentSecurityPolicy(csp -> csp.policyDirectives("default-src 'none'; frame-ancestors 'none'"))
@@ -66,6 +88,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/logout").permitAll()
                         .requestMatchers("/actuator/health/**", "/actuator/info", "/actuator/prometheus").permitAll()
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+                        .requestMatchers("/admin/**").permitAll()
                         .anyRequest().authenticated())
                 .exceptionHandling(exceptions -> exceptions
                         .authenticationEntryPoint((request, response, exception) -> problemWriter.write(
@@ -74,6 +97,8 @@ public class SecurityConfig {
                                 request, response, 403, "FORBIDDEN", "Access is denied")))
                 .addFilterBefore(bearerTokenFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(managementAccessFilter, BearerTokenAuthenticationFilter.class)
+                .addFilterBefore(adminAccessFilter, ManagementAccessFilter.class)
+                .addFilterAfter(adminLoginRateLimitFilter, AdminAccessFilter.class)
                 .addFilterAfter(rateLimitFilter, BearerTokenAuthenticationFilter.class)
                 .build();
     }

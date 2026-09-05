@@ -171,6 +171,10 @@ demeter:
     max-size: ${PAGINATION_MAX_SIZE:100}
   management:
     access-token: ${MANAGEMENT_ACCESS_TOKEN:}
+  admin:
+    enabled: ${ADMIN_ENABLED:false}
+    access-token: ${ADMIN_ACCESS_TOKEN:}
+    session-ttl: ${ADMIN_SESSION_TTL:8h}
   audit:
     max-details-bytes: ${AUDIT_MAX_DETAILS_BYTES:65536}
   idempotency:

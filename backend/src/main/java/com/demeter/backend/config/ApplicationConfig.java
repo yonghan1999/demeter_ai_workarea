@@ -44,6 +44,7 @@ import org.springframework.context.annotation.Configuration;
         RateLimitProperties.class,
         ProductionProperties.class,
         ManagementAccessProperties.class,
+        AdminProperties.class,
         HttpRequestProperties.class,
         PaginationProperties.class,
         DatabaseSchemaProperties.class,
