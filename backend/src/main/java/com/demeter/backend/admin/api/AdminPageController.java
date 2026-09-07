@@ -9,6 +9,10 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseCookie;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.Resource;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -30,6 +34,13 @@ public class AdminPageController {
 
     @GetMapping("/login")
     String login(Model model) { model.addAttribute("enabled", sessions.enabled()); return "admin/login"; }
+
+    @GetMapping(value = "/admin.css", produces = "text/css")
+    ResponseEntity<Resource> stylesheet() {
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType("text/css"))
+                .body(new ClassPathResource("static/admin/admin.css"));
+    }
 
     @PostMapping("/login")
     String login(@RequestParam String accessToken, HttpServletRequest request, HttpServletResponse response) {
