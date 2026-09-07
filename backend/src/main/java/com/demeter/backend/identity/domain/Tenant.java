@@ -61,4 +61,8 @@ public class Tenant {
     public TenantStatus getStatus() {
         return status;
     }
+
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
 }

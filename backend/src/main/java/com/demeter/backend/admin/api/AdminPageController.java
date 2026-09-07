@@ -3,6 +3,7 @@ package com.demeter.backend.admin.api;
 import com.demeter.backend.admin.application.AdminDashboardService;
 import com.demeter.backend.admin.security.AdminSessionService;
 import com.demeter.backend.admin.application.AdminQueryService;
+import com.demeter.backend.common.web.PaginationProperties;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -26,10 +27,11 @@ public class AdminPageController {
     private final AdminSessionService sessions;
     private final AdminDashboardService dashboard;
     private final AdminQueryService queries;
+    private final PaginationProperties pagination;
 
     public AdminPageController(AdminSessionService sessions, AdminDashboardService dashboard,
-            AdminQueryService queries) {
-        this.sessions = sessions; this.dashboard = dashboard; this.queries = queries;
+            AdminQueryService queries, PaginationProperties pagination) {
+        this.sessions = sessions; this.dashboard = dashboard; this.queries = queries; this.pagination = pagination;
     }
 
     @GetMapping("/login")
@@ -101,12 +103,16 @@ public class AdminPageController {
         return "admin/audit";
     }
 
-    private static PageRequest pageRequest(int page) {
-        return PageRequest.of(Math.min(Math.max(0, page), 10_000), 30);
+    private PageRequest pageRequest(int page) {
+        return PageRequest.of(Math.min(Math.max(0, page), pagination.maxPage() - 1), pageSize());
     }
 
-    private static PageRequest pageRequest(int page, String sortProperty) {
-        return PageRequest.of(Math.min(Math.max(0, page), 10_000), 30,
+    private PageRequest pageRequest(int page, String sortProperty) {
+        return PageRequest.of(Math.min(Math.max(0, page), pagination.maxPage() - 1), pageSize(),
                 Sort.by(Sort.Direction.DESC, sortProperty));
+    }
+
+    private int pageSize() {
+        return Math.min(30, pagination.maxSize());
     }
 }

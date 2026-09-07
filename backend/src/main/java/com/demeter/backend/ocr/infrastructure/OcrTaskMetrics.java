@@ -114,6 +114,7 @@ public class OcrTaskMetrics {
         PROVIDER_PERMANENT("provider_permanent"),
         EMPTY_RESPONSE("empty_response"),
         INVALID_RESPONSE("invalid_response"),
+        INTERNAL_ERROR("internal_error"),
         ATTEMPTS_EXHAUSTED("attempts_exhausted");
 
         private final String metricTag;

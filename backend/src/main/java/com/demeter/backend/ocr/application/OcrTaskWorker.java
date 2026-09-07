@@ -302,7 +302,15 @@ public class OcrTaskWorker {
 
     private static void classifyProviderFailure(ProcessTaskContext context, RuntimeException exception) {
         OcrProviderFailure failure = findProviderFailure(exception);
-        if (failure == null || failure.kind() == OcrProviderFailure.Kind.TRANSIENT) {
+        if (failure == null) {
+            context.fail(
+                    "OCR_INTERNAL_ERROR",
+                    "OCR processing failed unexpectedly",
+                    true,
+                    OcrTaskMetrics.FailureCategory.INTERNAL_ERROR);
+            return;
+        }
+        if (failure.kind() == OcrProviderFailure.Kind.TRANSIENT) {
             context.fail(
                     "OCR_PROVIDER_RETRYABLE",
                     "OCR provider is temporarily unavailable",
