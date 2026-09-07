@@ -101,6 +101,9 @@ services:
       WECHAT_APP_ID: ${WECHAT_APP_ID:-local-app-id}
       WECHAT_APP_SECRET: ${WECHAT_APP_SECRET:-local-app-secret}
       MANAGEMENT_ACCESS_TOKEN: ${MANAGEMENT_ACCESS_TOKEN:-local-management-token-change-me}
+      ADMIN_ENABLED: ${ADMIN_ENABLED:-false}
+      ADMIN_ACCESS_TOKEN: ${ADMIN_ACCESS_TOKEN:-}
+      ADMIN_SESSION_TTL: ${ADMIN_SESSION_TTL:-8h}
       MANAGEMENT_ADDRESS: 0.0.0.0
       TRUSTED_PROXY_PATTERN: ${TRUSTED_PROXY_PATTERN:-10\\..*|172\\.(1[6-9]|2[0-9]|3[0-1])\\..*|192\\.168\\..*}
       OCR_STORAGE_PATH: /var/lib/demeter/ocr
