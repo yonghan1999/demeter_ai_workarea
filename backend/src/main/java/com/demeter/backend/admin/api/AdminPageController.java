@@ -8,6 +8,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -33,10 +34,14 @@ public class AdminPageController {
     @PostMapping("/login")
     String login(@RequestParam String accessToken, HttpServletRequest request, HttpServletResponse response) {
         if (!sessions.verifyAccessToken(accessToken)) return "redirect:/admin/login?error";
-        Cookie cookie = new Cookie(AdminSessionService.COOKIE_NAME, sessions.createSession());
-        cookie.setHttpOnly(true); cookie.setSecure(request.isSecure()); cookie.setPath("/admin");
-        cookie.setMaxAge((int) sessions.sessionTtlSeconds());
-        response.addHeader("Set-Cookie", cookie + "; SameSite=Lax");
+        ResponseCookie cookie = ResponseCookie.from(AdminSessionService.COOKIE_NAME, sessions.createSession())
+                .httpOnly(true)
+                .secure(request.isSecure())
+                .path("/admin")
+                .maxAge(sessions.sessionTtlSeconds())
+                .sameSite("Lax")
+                .build();
+        response.addHeader("Set-Cookie", cookie.toString());
         response.setHeader("Cache-Control", "no-store");
         return "redirect:/admin";
     }
@@ -45,8 +50,9 @@ public class AdminPageController {
     String logout(HttpServletRequest request, HttpServletResponse response) {
         if (request.getCookies() != null) for (Cookie c : request.getCookies())
             if (AdminSessionService.COOKIE_NAME.equals(c.getName())) sessions.revoke(c.getValue());
-        Cookie expired = new Cookie(AdminSessionService.COOKIE_NAME, ""); expired.setMaxAge(0); expired.setPath("/admin");
-        response.addHeader("Set-Cookie", expired + "; SameSite=Lax");
+        ResponseCookie expired = ResponseCookie.from(AdminSessionService.COOKIE_NAME, "")
+                .httpOnly(true).secure(request.isSecure()).path("/admin").maxAge(0).sameSite("Lax").build();
+        response.addHeader("Set-Cookie", expired.toString());
         response.setHeader("Cache-Control", "no-store");
         return "redirect:/admin/login";
     }
