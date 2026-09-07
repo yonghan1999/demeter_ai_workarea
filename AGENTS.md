@@ -33,6 +33,13 @@ backend. Treat these instructions as the engineering contract for Codex.
 
 ## Implementation rules
 
+- Treat code quality and architecture as acceptance criteria for every requirement and code change.
+  Before implementation, inspect the affected responsibility boundaries and existing abstractions;
+  after implementation, review the diff for code smells such as oversized classes or methods,
+  duplicated rules, hidden coupling, mutable shared state, broad exception handling, persistence
+  entities leaking across layers, and misplaced domain logic. Apply SOLID, KISS, DRY, and YAGNI
+  proportionately: keep changes simple and scoped, preserve the domain/application/infrastructure
+  boundaries, and do not introduce speculative abstractions merely to satisfy a pattern.
 - Follow existing Spring, JPA, validation, error, security, and test patterns.
 - Route backend business operations through `BusinessChainExecutor`; keep
   validation, authorization, persistence, side effects, and response mapping

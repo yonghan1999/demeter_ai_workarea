@@ -18,6 +18,8 @@ import org.springframework.test.web.servlet.MockMvc;
 
 @SpringBootTest(properties = {
         "demeter.management.access-token=0123456789abcdef0123456789abcdef",
+        "demeter.admin.enabled=true",
+        "demeter.admin.access-token=0123456789abcdef0123456789abcdef",
         "demeter.http.max-body-bytes=1024"
 })
 @AutoConfigureMockMvc
@@ -65,6 +67,15 @@ class SecurityHardeningIntegrationTest {
                 .andExpect(header().string("Referrer-Policy", "no-referrer"))
                 .andExpect(header().string("Content-Security-Policy", "default-src 'none'; frame-ancestors 'none'"))
                 .andExpect(header().string("Permissions-Policy", "camera=(), microphone=(), geolocation=()"));
+    }
+
+    @Test
+    void allowsSameOriginStylesheetForAdminPagesWithoutRelaxingApiPolicy() throws Exception {
+        mockMvc.perform(get("/admin/admin.css"))
+                .andExpect(status().isOk())
+                .andExpect(header().string(
+                        "Content-Security-Policy",
+                        "default-src 'none'; style-src 'self'; frame-ancestors 'none'"));
     }
 
     @Test

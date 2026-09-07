@@ -73,7 +73,11 @@ public class SecurityConfig {
                         .ignoringRequestMatchers("/api/**", "/actuator/**"))
                 .cors(cors -> cors.disable())
                 .headers(headers -> headers
-                        .contentSecurityPolicy(csp -> csp.policyDirectives("default-src 'none'; frame-ancestors 'none'"))
+                        .addHeaderWriter((request, response) -> response.setHeader(
+                                "Content-Security-Policy",
+                                request.getRequestURI().startsWith("/admin")
+                                        ? "default-src 'none'; style-src 'self'; frame-ancestors 'none'"
+                                        : "default-src 'none'; frame-ancestors 'none'"))
                         .referrerPolicy(referrer -> referrer.policy(
                                 ReferrerPolicyHeaderWriter.ReferrerPolicy.NO_REFERRER))
                         .permissionsPolicyHeader(permissions -> permissions.policy(

@@ -43,7 +43,6 @@ public class AdminAccessFilter extends OncePerRequestFilter {
             chain.doFilter(request, response);
         } finally {
             response.setHeader("Cache-Control", "no-store");
-            response.setHeader("Content-Security-Policy", "default-src 'none'; style-src 'self'; frame-ancestors 'none'");
             SecurityContextHolder.clearContext();
         }
     }
