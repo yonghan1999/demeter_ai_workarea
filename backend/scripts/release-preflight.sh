@@ -41,7 +41,7 @@ run_static_checks() {
   grep -q '^FLYWAY_ENABLED=false$' "$ROOT_DIR/.env.production.example"
   grep -q '^SPRINGDOC_API_DOCS_ENABLED=false$' "$ROOT_DIR/.env.production.example"
   grep -q '^SPRINGDOC_SWAGGER_UI_ENABLED=false$' "$ROOT_DIR/.env.production.example"
-  grep -q '^DATABASE_MINIMUM_SCHEMA_VERSION=18$' "$ROOT_DIR/.env.production.example"
+  grep -q '^DATABASE_MINIMUM_SCHEMA_VERSION=22$' "$ROOT_DIR/.env.production.example"
 
   log "checking local secret files are not staged for release"
   if git -C "$ROOT_DIR/.." ls-files --error-unmatch .env .env.production backend/.env backend/.env.production >/dev/null 2>&1; then
