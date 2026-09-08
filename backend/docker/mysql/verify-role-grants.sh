@@ -91,6 +91,7 @@ allow demeter_api "API table reads and writes" "
   SELECT COUNT(*) FROM ocr_retry_commands;
   SELECT COUNT(*) FROM business_command_replays;
   SELECT COUNT(*) FROM audit_events;
+  SELECT COUNT(*) FROM maintenance_runs;
   INSERT INTO tenants SELECT * FROM tenants WHERE 1 = 0;
   INSERT INTO users SELECT * FROM users WHERE 1 = 0;
   INSERT INTO auth_sessions SELECT * FROM auth_sessions WHERE 1 = 0;
@@ -120,7 +121,9 @@ allow demeter_api "API table reads and writes" "
 
 deny demeter_api "DDL" "CREATE TABLE forbidden_api_ddl (id BIGINT PRIMARY KEY)"
 deny demeter_api "scheduler state" "SELECT * FROM shedlock LIMIT 0"
-deny demeter_api "maintenance run state" "SELECT * FROM maintenance_runs LIMIT 0"
+deny demeter_api "maintenance run insertion" "INSERT INTO maintenance_runs SELECT * FROM maintenance_runs WHERE 1 = 0"
+deny demeter_api "maintenance run update" "UPDATE maintenance_runs SET status = status WHERE 1 = 0"
+deny demeter_api "maintenance run deletion" "DELETE FROM maintenance_runs WHERE 1 = 0"
 deny demeter_api "session deletion" "DELETE FROM auth_sessions WHERE 1 = 0"
 deny demeter_api "ledger deletion" "DELETE FROM payments WHERE 1 = 0"
 deny demeter_api "audit deletion" "DELETE FROM audit_events WHERE 1 = 0"

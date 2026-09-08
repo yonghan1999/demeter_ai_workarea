@@ -138,6 +138,12 @@ class AdminPageControllerIntegrationTest {
         assertThat(detail.payments()).hasSize(1);
     }
 
+    @Test
+    void rendersMaintenanceRunPageAsReadOnly() throws Exception {
+        mockMvc.perform(get("/admin/maintenance").cookie(adminCookie(loginCookie())))
+                .andExpect(status().isOk()).andExpect(view().name("admin/maintenance"));
+    }
+
     private void assertPageSize(org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder request,
             String cookie, long expectedElements) throws Exception {
         MvcResult result = mockMvc.perform(request.cookie(adminCookie(cookie)))

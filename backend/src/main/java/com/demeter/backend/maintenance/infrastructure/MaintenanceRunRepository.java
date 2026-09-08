@@ -19,4 +19,6 @@ public interface MaintenanceRunRepository extends JpaRepository<MaintenanceRun, 
     List<Long> findIdsStartedBefore(@Param("cutoff") Instant cutoff, Pageable pageable);
 
     java.util.Optional<MaintenanceRun> findTopByRunTypeOrderByStartedAtDescIdDesc(String runType);
+
+    List<MaintenanceRun> findAllByRunTypeOrderByStartedAtDescIdDesc(String runType, Pageable pageable);
 }

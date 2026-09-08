@@ -102,9 +102,29 @@ public class MaintenanceRun {
         return status;
     }
 
+    public String getRunType() {
+        return runType;
+    }
+
     public Instant getStartedAt() {
         return startedAt;
     }
+
+    public Instant getCompletedAt() {
+        return completedAt;
+    }
+
+    public Long getDurationMs() {
+        return durationMs;
+    }
+
+    public int getDeletedSessions() { return deletedSessions; }
+    public int getDeletedCommandReplays() { return deletedCommandReplays; }
+    public int getDeletedOcrRetryCommands() { return deletedOcrRetryCommands; }
+    public int getDeletedOcrDocuments() { return deletedOcrDocuments; }
+    public int getDeletedOcrOrphans() { return deletedOcrOrphans; }
+    public int getFailureCount() { return failureCount; }
+    public String getFailureSummary() { return failureSummary; }
 
     private static String truncate(String value) {
         if (value == null) {

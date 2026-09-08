@@ -7,6 +7,7 @@ import com.demeter.backend.identity.domain.UserAccount;
 import com.demeter.backend.ocr.domain.OcrTask;
 import com.demeter.backend.payment.domain.Payment;
 import com.demeter.backend.payment.infrastructure.PaymentLedgerDiscrepancy;
+import com.demeter.backend.maintenance.domain.MaintenanceRun;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -89,6 +90,17 @@ public final class AdminRows {
                     bill.getPaidAmount(), bill.getOutstandingAmount(), bill.getStatus() == null ? null : bill.getStatus().name(),
                     bill.getDueDate(), List.copyOf(bill.getTags()), bill.getCreatedAt(), bill.getUpdatedAt(),
                     bill.getDeletedAt(), List.copyOf(payments), List.copyOf(auditEvents));
+        }
+    }
+
+    public record MaintenanceRunRow(Long id, String status, Instant startedAt, Instant completedAt,
+            Long durationMs, int deletedSessions, int deletedCommandReplays, int deletedOcrRetryCommands,
+            int deletedOcrDocuments, int deletedOcrOrphans, int failureCount, String failureSummary) {
+        public static MaintenanceRunRow from(MaintenanceRun run) {
+            return new MaintenanceRunRow(run.getId(), run.getStatus() == null ? null : run.getStatus().name(),
+                    run.getStartedAt(), run.getCompletedAt(), run.getDurationMs(), run.getDeletedSessions(),
+                    run.getDeletedCommandReplays(), run.getDeletedOcrRetryCommands(), run.getDeletedOcrDocuments(),
+                    run.getDeletedOcrOrphans(), run.getFailureCount(), run.getFailureSummary());
         }
     }
 

@@ -17,6 +17,7 @@ GRANT SELECT, INSERT, UPDATE ON `__DB_NAME__`.`ocr_tasks` TO 'demeter_api'@'%';
 GRANT SELECT, INSERT ON `__DB_NAME__`.`ocr_retry_commands` TO 'demeter_api'@'%';
 GRANT SELECT, INSERT ON `__DB_NAME__`.`business_command_replays` TO 'demeter_api'@'%';
 GRANT SELECT, INSERT ON `__DB_NAME__`.`audit_events` TO 'demeter_api'@'%';
+GRANT SELECT ON `__DB_NAME__`.`maintenance_runs` TO 'demeter_api'@'%';
 
 -- Worker: claims and updates OCR tasks, and appends audit events.
 GRANT SELECT ON `__DB_NAME__`.`flyway_schema_history` TO 'demeter_worker'@'%';
