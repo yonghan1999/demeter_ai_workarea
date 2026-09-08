@@ -10,6 +10,7 @@ import com.demeter.backend.payment.infrastructure.PaymentLedgerDiscrepancy;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.List;
 
 /** Explicit, presentation-safe rows for the server-rendered management pages. */
 public final class AdminRows {
@@ -74,6 +75,20 @@ public final class AdminRows {
         public static LedgerDiscrepancyRow from(PaymentLedgerDiscrepancy item) {
             return new LedgerDiscrepancyRow(item.billId(), item.tenantId(), item.recordedAmount(),
                     item.ledgerAmount(), item.recordedAmount().subtract(item.ledgerAmount()));
+        }
+    }
+
+    public record BillDetailRow(Long id, Long tenantId, String code, String shipper, String vehicleCargo,
+            LocalDate date, String origin, String destination, BigDecimal amount, BigDecimal paidAmount,
+            BigDecimal outstandingAmount, String status, LocalDate dueDate, List<String> tags,
+            Instant createdAt, Instant updatedAt, Instant deletedAt, List<PaymentRow> payments,
+            List<AuditRow> auditEvents) {
+        public static BillDetailRow from(Bill bill, List<PaymentRow> payments, List<AuditRow> auditEvents) {
+            return new BillDetailRow(bill.getId(), bill.getTenantId(), bill.getCode(), bill.getShipper(),
+                    bill.getVehicleCargo(), bill.getDate(), bill.getOrigin(), bill.getDestination(), bill.getAmount(),
+                    bill.getPaidAmount(), bill.getOutstandingAmount(), bill.getStatus() == null ? null : bill.getStatus().name(),
+                    bill.getDueDate(), List.copyOf(bill.getTags()), bill.getCreatedAt(), bill.getUpdatedAt(),
+                    bill.getDeletedAt(), List.copyOf(payments), List.copyOf(auditEvents));
         }
     }
 

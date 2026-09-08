@@ -21,6 +21,7 @@ import org.springframework.test.web.servlet.MvcResult;
 import jakarta.servlet.http.Cookie;
 import org.springframework.data.domain.Page;
 import com.demeter.backend.admin.security.AdminSessionService;
+import com.demeter.backend.admin.application.AdminRows.BillDetailRow;
 
 @SpringBootTest(properties = {
         "demeter.admin.enabled=true",
@@ -111,6 +112,15 @@ class AdminPageControllerIntegrationTest {
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/demeter/admin"))
                 .andExpect(header().string("Set-Cookie", org.hamcrest.Matchers.containsString("Path=/demeter/admin")));
+    }
+
+    @Test
+    void rendersBillDetailWithPaymentsAndAuditContext() throws Exception {
+        MvcResult result = mockMvc.perform(get("/admin/bills/1202").cookie(adminCookie(loginCookie())))
+                .andExpect(status().isOk()).andExpect(view().name("admin/bill-detail")).andReturn();
+        BillDetailRow detail = (BillDetailRow) result.getModelAndView().getModel().get("detail");
+        assertThat(detail.code()).isEqualTo("TR-20240515-009");
+        assertThat(detail.payments()).hasSize(1);
     }
 
     private void assertPageSize(org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder request,
