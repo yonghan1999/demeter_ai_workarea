@@ -1,5 +1,7 @@
 package com.demeter.backend.config;
 
+import static com.demeter.backend.common.web.RequestPaths.applicationPath;
+
 import com.demeter.backend.security.BearerTokenAuthenticationFilter;
 import com.demeter.backend.security.SecurityProblemWriter;
 import com.demeter.backend.security.ApiRateLimitFilter;
@@ -75,8 +77,8 @@ public class SecurityConfig {
                 .headers(headers -> headers
                         .addHeaderWriter((request, response) -> response.setHeader(
                                 "Content-Security-Policy",
-                                request.getRequestURI().startsWith("/admin")
-                                        ? "default-src 'none'; style-src 'self'; frame-ancestors 'none'"
+                                applicationPath(request).startsWith("/admin")
+                                        ? "default-src 'none'; style-src 'self'; script-src 'self'; frame-ancestors 'none'"
                                         : "default-src 'none'; frame-ancestors 'none'"))
                         .referrerPolicy(referrer -> referrer.policy(
                                 ReferrerPolicyHeaderWriter.ReferrerPolicy.NO_REFERRER))
@@ -106,4 +108,5 @@ public class SecurityConfig {
                 .addFilterAfter(rateLimitFilter, BearerTokenAuthenticationFilter.class)
                 .build();
     }
+
 }

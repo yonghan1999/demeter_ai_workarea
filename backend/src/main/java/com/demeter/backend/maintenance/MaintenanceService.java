@@ -7,6 +7,8 @@ import com.demeter.backend.common.chain.BusinessContext;
 import com.demeter.backend.common.chain.BusinessHandler;
 import com.demeter.backend.identity.infrastructure.AuthSessionRepository;
 import com.demeter.backend.common.idempotency.infrastructure.BusinessCommandReplayRepository;
+import com.demeter.backend.admin.infrastructure.AdminCommandReplayRepository;
+import com.demeter.backend.admin.infrastructure.AdminSessionRepository;
 import com.demeter.backend.maintenance.domain.MaintenanceRun;
 import com.demeter.backend.maintenance.infrastructure.MaintenanceRunRepository;
 import com.demeter.backend.ocr.domain.OcrTask;
@@ -43,6 +45,8 @@ public class MaintenanceService {
 
     private final AuthSessionRepository sessionRepository;
     private final BusinessCommandReplayRepository replayRepository;
+    private final AdminCommandReplayRepository adminReplayRepository;
+    private final AdminSessionRepository adminSessionRepository;
     private final OcrTaskRepository taskRepository;
     private final OcrRetryCommandRepository retryCommandRepository;
     private final OcrDocumentStorage storage;
@@ -63,6 +67,8 @@ public class MaintenanceService {
     public MaintenanceService(
             AuthSessionRepository sessionRepository,
             BusinessCommandReplayRepository replayRepository,
+            AdminCommandReplayRepository adminReplayRepository,
+            AdminSessionRepository adminSessionRepository,
             OcrTaskRepository taskRepository,
             OcrRetryCommandRepository retryCommandRepository,
             OcrDocumentStorage storage,
@@ -74,6 +80,8 @@ public class MaintenanceService {
             Clock clock) {
         this.sessionRepository = sessionRepository;
         this.replayRepository = replayRepository;
+        this.adminReplayRepository = adminReplayRepository;
+        this.adminSessionRepository = adminSessionRepository;
         this.taskRepository = taskRepository;
         this.retryCommandRepository = retryCommandRepository;
         this.storage = storage;
@@ -138,6 +146,8 @@ public class MaintenanceService {
                                 new MaintenanceRun("system.maintenance", context.startedAt))),
                         BusinessHandler.named("cleanup-auth-sessions", this::cleanupSessions),
                         BusinessHandler.named("cleanup-command-replays", this::cleanupCommandReplays),
+                        BusinessHandler.named("cleanup-admin-command-replays", this::cleanupAdminCommandReplays),
+                        BusinessHandler.named("cleanup-admin-sessions", this::cleanupAdminSessions),
                         BusinessHandler.named("cleanup-maintenance-runs", this::cleanupMaintenanceRuns),
                         BusinessHandler.named("cleanup-ocr-retry-commands", this::cleanupOcrRetryCommands),
                         BusinessHandler.named("claim-ocr-documents", this::claimOcrDocuments),
@@ -299,6 +309,38 @@ public class MaintenanceService {
             if (count < properties.batchSize()) {
                 return;
             }
+        }
+    }
+
+    private void cleanupAdminCommandReplays(MaintenanceContext context) {
+        java.time.Instant cutoff = clock.instant().minus(properties.commandReplayRetention());
+        for (int batch = 0; batch < properties.maxBatchesPerRun(); batch++) {
+            Integer deleted = transactionTemplate.execute(status -> {
+                List<Long> ids = adminReplayRepository.findIdsCreatedBefore(
+                        cutoff, PageRequest.of(0, properties.batchSize()));
+                if (ids.isEmpty()) {
+                    return 0;
+                }
+                adminReplayRepository.deleteAllByIdInBatch(ids);
+                return ids.size();
+            });
+            if ((deleted == null ? 0 : deleted) < properties.batchSize()) {
+                return;
+            }
+        }
+    }
+
+    private void cleanupAdminSessions(MaintenanceContext context) {
+        java.time.Instant cutoff = clock.instant().minus(properties.sessionRetention());
+        for (int batch = 0; batch < properties.maxBatchesPerRun(); batch++) {
+            Integer deleted = transactionTemplate.execute(status -> {
+                List<String> ids = adminSessionRepository.findInactiveIdsBefore(
+                        cutoff, PageRequest.of(0, properties.batchSize()));
+                if (ids.isEmpty()) return 0;
+                adminSessionRepository.deleteAllByIdInBatch(ids);
+                return ids.size();
+            });
+            if ((deleted == null ? 0 : deleted) < properties.batchSize()) return;
         }
     }
 

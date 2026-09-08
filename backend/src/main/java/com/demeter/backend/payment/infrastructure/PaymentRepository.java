@@ -7,12 +7,13 @@ import java.math.BigDecimal;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-public interface PaymentRepository extends JpaRepository<Payment, Long> {
+public interface PaymentRepository extends JpaRepository<Payment, Long>, JpaSpecificationExecutor<Payment> {
 
     Optional<Payment> findByTenantIdAndIdempotencyKey(long tenantId, String idempotencyKey);
 
@@ -29,6 +30,8 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     List<Payment> findAllByBillIdAndTenantIdOrderByPaidAtDescIdDesc(long billId, long tenantId);
 
     Page<Payment> findAllByBillIdAndTenantId(long billId, long tenantId, Pageable pageable);
+
+    Page<Payment> findAllByOrderByPaidAtDescIdDesc(Pageable pageable);
 
     @Query("""
             select new com.demeter.backend.payment.infrastructure.PaymentLedgerDiscrepancy(

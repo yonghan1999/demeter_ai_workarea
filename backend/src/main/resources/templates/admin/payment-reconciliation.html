@@ -1,0 +1,4 @@
+<!doctype html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="UTF-8"><title>支付对账 - Demeter 管理台</title><link rel="stylesheet" th:href="@{/admin/admin.css}"></head>
+<body><header th:replace="~{admin/fragments :: header}"></header><main><h1>支付账本异常</h1><p class="warning">此页面只读。发现异常后请保留账单和租户 ID，按支付对账流程处理，不要直接改数据库。</p><table><thead><tr><th>账单 ID</th><th>租户 ID</th><th>账单已收金额</th><th>流水合计</th><th>差额</th></tr></thead><tbody><tr th:each="item : ${items}"><td th:text="${item.billId}">-</td><td th:text="${item.tenantId}">-</td><td th:text="${item.recordedAmount}">0.00</td><td th:text="${item.ledgerAmount}">0.00</td><td class="error" th:text="${item.difference}">0.00</td></tr><tr th:if="${#lists.isEmpty(items)}"><td colspan="5" class="empty">未发现账本不一致</td></tr></tbody></table><p><a th:href="@{/admin/payments}">返回收款流水</a></p></main></body></html>

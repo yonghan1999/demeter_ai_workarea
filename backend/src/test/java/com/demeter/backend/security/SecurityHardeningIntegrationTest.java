@@ -70,12 +70,28 @@ class SecurityHardeningIntegrationTest {
     }
 
     @Test
-    void allowsSameOriginStylesheetForAdminPagesWithoutRelaxingApiPolicy() throws Exception {
+    void allowsOnlySameOriginAssetsForAdminPagesWithoutRelaxingApiPolicy() throws Exception {
         mockMvc.perform(get("/admin/admin.css"))
                 .andExpect(status().isOk())
                 .andExpect(header().string(
                         "Content-Security-Policy",
-                        "default-src 'none'; style-src 'self'; frame-ancestors 'none'"));
+                        "default-src 'none'; style-src 'self'; script-src 'self'; frame-ancestors 'none'"));
+
+        mockMvc.perform(get("/admin/admin.js"))
+                .andExpect(status().isOk())
+                .andExpect(header().string(
+                        "Content-Security-Policy",
+                        "default-src 'none'; style-src 'self'; script-src 'self'; frame-ancestors 'none'"));
+    }
+
+    @Test
+    void protectsAdminRoutesWhenApplicationUsesAContextPath() throws Exception {
+        mockMvc.perform(get("/demeter/admin/tenants").contextPath("/demeter").servletPath("/admin/tenants"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(header().string("Location", "/demeter/admin/login"))
+                .andExpect(header().string(
+                        "Content-Security-Policy",
+                        "default-src 'none'; style-src 'self'; script-src 'self'; frame-ancestors 'none'"));
     }
 
     @Test

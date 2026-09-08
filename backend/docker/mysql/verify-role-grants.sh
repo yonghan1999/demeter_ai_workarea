@@ -81,6 +81,8 @@ allow demeter_api "API table reads and writes" "
   SELECT COUNT(*) FROM tenants;
   SELECT COUNT(*) FROM users;
   SELECT COUNT(*) FROM auth_sessions;
+  SELECT COUNT(*) FROM admin_sessions;
+  SELECT COUNT(*) FROM admin_command_replays;
   SELECT COUNT(*) FROM bill_code_sequences;
   SELECT COUNT(*) FROM bills;
   SELECT COUNT(*) FROM bill_tags;
@@ -88,9 +90,12 @@ allow demeter_api "API table reads and writes" "
   SELECT COUNT(*) FROM ocr_tasks;
   SELECT COUNT(*) FROM ocr_retry_commands;
   SELECT COUNT(*) FROM business_command_replays;
+  SELECT COUNT(*) FROM audit_events;
   INSERT INTO tenants SELECT * FROM tenants WHERE 1 = 0;
   INSERT INTO users SELECT * FROM users WHERE 1 = 0;
   INSERT INTO auth_sessions SELECT * FROM auth_sessions WHERE 1 = 0;
+  INSERT INTO admin_sessions SELECT * FROM admin_sessions WHERE 1 = 0;
+  INSERT INTO admin_command_replays SELECT * FROM admin_command_replays WHERE 1 = 0;
   INSERT INTO bill_code_sequences SELECT * FROM bill_code_sequences WHERE 1 = 0;
   INSERT INTO bills SELECT * FROM bills WHERE 1 = 0;
   INSERT INTO bill_tags SELECT * FROM bill_tags WHERE 1 = 0;
@@ -104,6 +109,9 @@ allow demeter_api "API table reads and writes" "
     SELECT 0, NULL, 'VERIFY', 'VERIFY', '0', NULL, NULL, CURRENT_TIMESTAMP(6)
     WHERE 1 = 0;
   UPDATE auth_sessions SET revoked_at = revoked_at WHERE 1 = 0;
+  UPDATE admin_sessions SET revoked_at = revoked_at WHERE 1 = 0;
+  UPDATE tenants SET status = status, updated_at = updated_at WHERE 1 = 0;
+  UPDATE users SET status = status, updated_at = updated_at WHERE 1 = 0;
   UPDATE bill_code_sequences SET next_value = next_value WHERE 1 = 0;
   UPDATE bills SET updated_at = updated_at WHERE 1 = 0;
   UPDATE payments SET version = version WHERE 1 = 0;
@@ -113,12 +121,12 @@ allow demeter_api "API table reads and writes" "
 deny demeter_api "DDL" "CREATE TABLE forbidden_api_ddl (id BIGINT PRIMARY KEY)"
 deny demeter_api "scheduler state" "SELECT * FROM shedlock LIMIT 0"
 deny demeter_api "maintenance run state" "SELECT * FROM maintenance_runs LIMIT 0"
-deny demeter_api "tenant mutation" "UPDATE tenants SET name = name WHERE 1 = 0"
 deny demeter_api "session deletion" "DELETE FROM auth_sessions WHERE 1 = 0"
 deny demeter_api "ledger deletion" "DELETE FROM payments WHERE 1 = 0"
-deny demeter_api "audit reads" "SELECT * FROM audit_events LIMIT 0"
 deny demeter_api "audit deletion" "DELETE FROM audit_events WHERE 1 = 0"
 deny demeter_api "idempotency retention deletion" "DELETE FROM business_command_replays WHERE 1 = 0"
+deny demeter_api "admin idempotency retention deletion" "DELETE FROM admin_command_replays WHERE 1 = 0"
+deny demeter_api "admin session deletion" "DELETE FROM admin_sessions WHERE 1 = 0"
 
 allow demeter_worker "OCR queue processing" "
   SELECT COUNT(*) FROM flyway_schema_history;
@@ -145,7 +153,9 @@ allow demeter_maintenance "retention, lifecycle and reconciliation" "
   SELECT COUNT(*) FROM shedlock;
   SELECT COUNT(*) FROM maintenance_runs;
   SELECT COUNT(*) FROM auth_sessions;
+  SELECT COUNT(*) FROM admin_sessions;
   SELECT COUNT(*) FROM business_command_replays;
+  SELECT COUNT(*) FROM admin_command_replays;
   SELECT COUNT(*) FROM ocr_retry_commands;
   SELECT COUNT(*) FROM ocr_tasks;
   SELECT COUNT(*) FROM bills;
@@ -156,7 +166,9 @@ allow demeter_maintenance "retention, lifecycle and reconciliation" "
   UPDATE maintenance_runs SET status = status WHERE 1 = 0;
   UPDATE ocr_tasks SET updated_at = updated_at WHERE 1 = 0;
   DELETE FROM auth_sessions WHERE 1 = 0;
+  DELETE FROM admin_sessions WHERE 1 = 0;
   DELETE FROM business_command_replays WHERE 1 = 0;
+  DELETE FROM admin_command_replays WHERE 1 = 0;
   DELETE FROM ocr_retry_commands WHERE 1 = 0;"
 
 allow demeter_maintenance "maintenance run retention" "DELETE FROM maintenance_runs WHERE 1 = 0"

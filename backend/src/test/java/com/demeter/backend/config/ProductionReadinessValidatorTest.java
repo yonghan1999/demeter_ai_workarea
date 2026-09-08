@@ -17,6 +17,8 @@ import org.springframework.mock.env.MockEnvironment;
 
 class ProductionReadinessValidatorTest {
 
+    private static final Path ABSOLUTE_STORAGE_PATH = Path.of(System.getProperty("java.io.tmpdir")).toAbsolutePath();
+
     private static final WechatProperties WECHAT = new WechatProperties(
             "production-app-id",
             "production-secret",
@@ -32,6 +34,31 @@ class ProductionReadinessValidatorTest {
             policy(),
             policy(),
             policy());
+
+    @Test
+    void rejectsReusingTheManagementSecretForTheAdminConsole() {
+        MockEnvironment environment = productionEnvironment(
+                "jdbc:mysql://db:3306/demeter?sslMode=VERIFY_IDENTITY&connectionTimeZone=UTC",
+                "demeter_api",
+                false);
+        ProductionReadinessValidator validator = new ProductionReadinessValidator(
+                environment,
+                WECHAT,
+                new OcrStorageProperties(ABSOLUTE_STORAGE_PATH, false),
+                RATE_LIMIT,
+                new ProductionProperties(1, false),
+                disabledWorker(),
+                new MaintenanceProperties(false, Duration.ofDays(7), Duration.ofDays(90), Duration.ofDays(180),
+                        Duration.ofHours(2), Duration.ofDays(90), Duration.ofDays(30), Duration.ofHours(2), 100, 10, 1000),
+                new PaymentReconciliationProperties(false, 20),
+                new RuntimeRoleProperties(RuntimeRole.API),
+                new ManagementAccessProperties("0123456789abcdef0123456789abcdef"),
+                new AdminProperties(true, "0123456789abcdef0123456789abcdef", Duration.ofHours(8)),
+                java.util.List.of());
+
+        assertThatThrownBy(validator::afterPropertiesSet)
+                .hasMessageContaining("ADMIN_ACCESS_TOKEN must differ");
+    }
 
     @Test
     void rejectsAMySqlConnectionWithoutCertificateAndHostnameVerification() {
@@ -62,7 +89,7 @@ class ProductionReadinessValidatorTest {
         ProductionReadinessValidator validator = validator(
                 "jdbc:mysql://db:3306/demeter?sslMode=VERIFY_IDENTITY&connectionTimeZone=UTC",
                 new ProductionProperties(1, false),
-                new OcrStorageProperties(Path.of("/var/lib/demeter/ocr"), false));
+                new OcrStorageProperties(ABSOLUTE_STORAGE_PATH, false));
 
         assertThatCode(validator::afterPropertiesSet).doesNotThrowAnyException();
     }
@@ -441,10 +468,13 @@ class ProductionReadinessValidatorTest {
             boolean maintenanceEnabled,
             boolean reconciliationEnabled,
             java.util.List<HandwrittenBillOcrProvider> providers) {
+        OcrStorageProperties portableStorage = storage.root().isAbsolute() || !storage.root().startsWith("/")
+                ? storage
+                : new OcrStorageProperties(ABSOLUTE_STORAGE_PATH, storage.shared());
         return new ProductionReadinessValidator(
                 environment,
                 WECHAT,
-                storage,
+                portableStorage,
                 RATE_LIMIT,
                 production,
                 worker,
@@ -464,6 +494,7 @@ class ProductionReadinessValidatorTest {
                 new RuntimeRoleProperties(role),
                 new ManagementAccessProperties(
                         "0123456789abcdef0123456789abcdef"),
+                new AdminProperties(false, null, Duration.ofHours(8)),
                 providers);
     }
 

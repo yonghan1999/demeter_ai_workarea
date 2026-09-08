@@ -37,6 +37,7 @@ public class ProductionReadinessValidator implements InitializingBean {
     private final PaymentReconciliationProperties reconciliation;
     private final RuntimeRoleProperties runtime;
     private final ManagementAccessProperties management;
+    private final AdminProperties admin;
     private final List<HandwrittenBillOcrProvider> ocrProviders;
 
     public ProductionReadinessValidator(
@@ -50,6 +51,7 @@ public class ProductionReadinessValidator implements InitializingBean {
             PaymentReconciliationProperties reconciliation,
             RuntimeRoleProperties runtime,
             ManagementAccessProperties management,
+            AdminProperties admin,
             List<HandwrittenBillOcrProvider> ocrProviders) {
         this.environment = environment;
         this.wechat = wechat;
@@ -61,6 +63,7 @@ public class ProductionReadinessValidator implements InitializingBean {
         this.reconciliation = reconciliation;
         this.runtime = runtime;
         this.management = management;
+        this.admin = admin;
         this.ocrProviders = List.copyOf(ocrProviders);
     }
 
@@ -197,6 +200,9 @@ public class ProductionReadinessValidator implements InitializingBean {
         }
         if (!rateLimit.enabled()) {
             throw new IllegalStateException("In-process rate limiting must remain enabled on the production API");
+        }
+        if (admin.enabled() && admin.accessToken().equals(management.accessToken())) {
+            throw new IllegalStateException("ADMIN_ACCESS_TOKEN must differ from MANAGEMENT_ACCESS_TOKEN");
         }
     }
 

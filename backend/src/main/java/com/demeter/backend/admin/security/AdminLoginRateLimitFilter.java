@@ -1,5 +1,7 @@
 package com.demeter.backend.admin.security;
 
+import static com.demeter.backend.common.web.RequestPaths.applicationPath;
+
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import io.github.bucket4j.Bandwidth;
@@ -23,7 +25,7 @@ public class AdminLoginRateLimitFilter extends OncePerRequestFilter {
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        return !"/admin/login".equals(request.getRequestURI()) || !"POST".equalsIgnoreCase(request.getMethod());
+        return !"/admin/login".equals(applicationPath(request)) || !"POST".equalsIgnoreCase(request.getMethod());
     }
 
     @Override
@@ -35,4 +37,5 @@ public class AdminLoginRateLimitFilter extends OncePerRequestFilter {
         if (!bucket.tryConsume(1)) { response.sendError(429, "Too many login attempts"); return; }
         chain.doFilter(request, response);
     }
+
 }

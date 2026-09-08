@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<body>
+<header th:fragment="header">
+    <strong>Demeter 管理台</strong>
+    <nav>
+        <a th:href="@{/admin}">概览</a>
+        <a th:href="@{/admin/tenants}">租户</a>
+        <a th:href="@{/admin/users}">用户</a>
+        <a th:href="@{/admin/bills}">账单</a>
+        <a th:href="@{/admin/payments}">收款</a>
+        <a th:href="@{/admin/payment-reconciliation}">对账异常</a>
+        <a th:href="@{/admin/ocr}">OCR</a>
+        <a th:href="@{/admin/audit}">审计</a>
+    </nav>
+    <form method="post" th:action="@{/admin/logout}">
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+        <button class="link" type="submit">退出</button>
+    </form>
+</header>
+</body>
+</html>

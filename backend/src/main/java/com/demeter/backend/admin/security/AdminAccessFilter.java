@@ -1,5 +1,7 @@
 package com.demeter.backend.admin.security;
 
+import static com.demeter.backend.common.web.RequestPaths.applicationPath;
+
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
@@ -20,13 +22,13 @@ public class AdminAccessFilter extends OncePerRequestFilter {
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        return !request.getRequestURI().startsWith("/admin");
+        return !applicationPath(request).startsWith("/admin");
     }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
-        String path = request.getRequestURI();
+        String path = applicationPath(request);
         if (!sessions.enabled()) {
             response.sendError(HttpServletResponse.SC_NOT_FOUND);
             return;
@@ -35,7 +37,8 @@ public class AdminAccessFilter extends OncePerRequestFilter {
         if (sessions.isActive(token)) {
             SecurityContextHolder.getContext().setAuthentication(
                     new UsernamePasswordAuthenticationToken(new AdminPrincipal("configured-admin"), null, List.of()));
-        } else if (!path.equals("/admin/login") && !path.equals("/admin/admin.css") && !path.startsWith("/admin/assets/")) {
+        } else if (!path.equals("/admin/login") && !path.equals("/admin/admin.css")
+                && !path.equals("/admin/admin.js") && !path.startsWith("/admin/assets/")) {
             response.sendRedirect(request.getContextPath() + "/admin/login");
             return;
         }
@@ -54,4 +57,5 @@ public class AdminAccessFilter extends OncePerRequestFilter {
         }
         return null;
     }
+
 }

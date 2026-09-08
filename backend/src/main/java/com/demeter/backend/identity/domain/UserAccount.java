@@ -77,4 +77,18 @@ public class UserAccount {
     public UserStatus getStatus() {
         return status;
     }
+
+    public void disable(Instant now) {
+        if (status == UserStatus.DISABLED) throw new IllegalStateException("User is already disabled");
+        status = UserStatus.DISABLED;
+        updatedAt = now;
+    }
+
+    public void enable(Instant now) {
+        if (status == UserStatus.ACTIVE) throw new IllegalStateException("User is already active");
+        status = UserStatus.ACTIVE;
+        updatedAt = now;
+    }
+
+    public Instant getUpdatedAt() { return updatedAt; }
 }

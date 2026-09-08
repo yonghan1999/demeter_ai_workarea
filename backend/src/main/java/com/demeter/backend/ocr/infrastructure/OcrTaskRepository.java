@@ -11,13 +11,18 @@ import java.util.Set;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-public interface OcrTaskRepository extends JpaRepository<OcrTask, Long> {
+public interface OcrTaskRepository extends JpaRepository<OcrTask, Long>, JpaSpecificationExecutor<OcrTask> {
 
     Optional<OcrTask> findByPublicIdAndTenantId(String publicId, long tenantId);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select task from OcrTask task where task.publicId = :publicId")
+    Optional<OcrTask> findByPublicIdForUpdate(@Param("publicId") String publicId);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""

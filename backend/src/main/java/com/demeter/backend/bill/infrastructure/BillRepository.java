@@ -20,6 +20,10 @@ public interface BillRepository extends JpaRepository<Bill, Long>, JpaSpecificat
     Optional<Bill> findByIdAndTenantIdAndDeletedAtIsNull(long id, long tenantId);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select bill from Bill bill where bill.id = :id")
+    Optional<Bill> findByIdForUpdate(@Param("id") long id);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select bill from Bill bill where bill.id = :id and bill.tenantId = :tenantId")
     Optional<Bill> findAnyByIdAndTenantIdForUpdate(
             @Param("id") long id,

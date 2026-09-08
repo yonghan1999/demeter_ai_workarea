@@ -9,6 +9,8 @@ import com.demeter.backend.common.chain.BusinessContext;
 import com.demeter.backend.common.chain.BusinessHandler;
 import com.demeter.backend.identity.infrastructure.TenantRepository;
 import com.demeter.backend.identity.infrastructure.UserAccountRepository;
+import com.demeter.backend.config.ConditionalOnRuntimeRole;
+import com.demeter.backend.config.RuntimeRole;
 import com.demeter.backend.ocr.infrastructure.OcrTaskRepository;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -16,6 +18,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
 @Service
+@ConditionalOnRuntimeRole(RuntimeRole.API)
 public class AdminDashboardService {
     private final BillRepository bills;
     private final TenantRepository tenants;

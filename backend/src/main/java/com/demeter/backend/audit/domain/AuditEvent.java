@@ -68,6 +68,7 @@ public class AuditEvent {
     public String getAction() { return action; }
     public String getAggregateType() { return aggregateType; }
     public String getAggregateId() { return aggregateId; }
+    public String getRequestId() { return requestId; }
     public String getDetails() { return details; }
     public Instant getCreatedAt() { return createdAt; }
 }

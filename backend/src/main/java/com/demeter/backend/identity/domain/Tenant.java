@@ -62,7 +62,21 @@ public class Tenant {
         return status;
     }
 
+    public void suspend(Instant now) {
+        if (status == TenantStatus.SUSPENDED) throw new IllegalStateException("Tenant is already suspended");
+        status = TenantStatus.SUSPENDED;
+        updatedAt = now;
+    }
+
+    public void activate(Instant now) {
+        if (status == TenantStatus.ACTIVE) throw new IllegalStateException("Tenant is already active");
+        status = TenantStatus.ACTIVE;
+        updatedAt = now;
+    }
+
     public Instant getCreatedAt() {
         return createdAt;
     }
+
+    public Instant getUpdatedAt() { return updatedAt; }
 }

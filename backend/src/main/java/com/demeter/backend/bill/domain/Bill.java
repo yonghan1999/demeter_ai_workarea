@@ -181,6 +181,15 @@ public class Bill {
         refreshStatus();
     }
 
+    public void reversePaymentBySystem(BigDecimal paymentAmount, Instant now) {
+        if (paymentAmount == null || paymentAmount.signum() <= 0 || paidAmount.compareTo(paymentAmount) < 0) {
+            throw new IllegalArgumentException("Payment reversal amount is invalid");
+        }
+        paidAmount = paidAmount.subtract(paymentAmount);
+        this.updatedAt = now;
+        refreshStatus();
+    }
+
     public void softDelete(Long actorUserId, String reason, Instant now) {
         if (deletedAt != null) {
             throw new IllegalStateException("Bill has already been deleted");
@@ -192,6 +201,16 @@ public class Bill {
         this.updatedAt = now;
     }
 
+    public void softDeleteBySystem(String reason, Instant now) {
+        if (deletedAt != null) {
+            throw new IllegalStateException("Bill has already been deleted");
+        }
+        this.deletedBy = null;
+        this.deleteReason = reason;
+        this.deletedAt = now;
+        this.updatedAt = now;
+    }
+
     public void restore(Long actorUserId, Instant now) {
         if (deletedAt == null) {
             throw new IllegalStateException("Only a deleted bill can be restored");
@@ -200,6 +219,16 @@ public class Bill {
         this.deleteReason = null;
         this.deletedAt = null;
         this.updatedBy = actorUserId;
+        this.updatedAt = now;
+    }
+
+    public void restoreBySystem(Instant now) {
+        if (deletedAt == null) {
+            throw new IllegalStateException("Only a deleted bill can be restored");
+        }
+        this.deletedBy = null;
+        this.deleteReason = null;
+        this.deletedAt = null;
         this.updatedAt = now;
     }
 
