@@ -89,6 +89,7 @@ class SecurityHardeningIntegrationTest {
         mockMvc.perform(get("/demeter/admin/tenants").contextPath("/demeter").servletPath("/admin/tenants"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(header().string("Location", "/demeter/admin/login"))
+                .andExpect(header().string("Cache-Control", "no-store"))
                 .andExpect(header().string(
                         "Content-Security-Policy",
                         "default-src 'none'; style-src 'self'; script-src 'self'; frame-ancestors 'none'"));

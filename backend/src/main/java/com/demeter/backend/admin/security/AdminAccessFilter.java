@@ -39,6 +39,7 @@ public class AdminAccessFilter extends OncePerRequestFilter {
                     new UsernamePasswordAuthenticationToken(new AdminPrincipal("configured-admin"), null, List.of()));
         } else if (!path.equals("/admin/login") && !path.equals("/admin/admin.css")
                 && !path.equals("/admin/admin.js") && !path.startsWith("/admin/assets/")) {
+            response.setHeader("Cache-Control", "no-store");
             response.sendRedirect(request.getContextPath() + "/admin/login");
             return;
         }
