@@ -15,13 +15,13 @@ class DatabaseSchemaHealthIndicatorTest {
         createFlywayHistory(dataSource);
         JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
         insertMigration(jdbcTemplate, 1, "17", true);
-        insertMigration(jdbcTemplate, 2, "18", true);
+        insertMigration(jdbcTemplate, 2, "22", true);
 
-        var health = new DatabaseSchemaHealthIndicator(dataSource, new DatabaseSchemaProperties(18)).health();
+        var health = new DatabaseSchemaHealthIndicator(dataSource, new DatabaseSchemaProperties(22)).health();
 
         assertThat(health.getStatus()).isEqualTo(Status.UP);
-        assertThat(health.getDetails()).containsEntry("version", 18);
-        assertThat(health.getDetails()).containsEntry("minimumVersion", 18);
+        assertThat(health.getDetails()).containsEntry("version", 22);
+        assertThat(health.getDetails()).containsEntry("minimumVersion", 22);
     }
 
     @Test
@@ -31,11 +31,11 @@ class DatabaseSchemaHealthIndicatorTest {
         JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
         insertMigration(jdbcTemplate, 1, "17", true);
 
-        var health = new DatabaseSchemaHealthIndicator(dataSource, new DatabaseSchemaProperties(18)).health();
+        var health = new DatabaseSchemaHealthIndicator(dataSource, new DatabaseSchemaProperties(22)).health();
 
         assertThat(health.getStatus()).isEqualTo(Status.DOWN);
         assertThat(health.getDetails()).containsEntry("actualVersion", 17);
-        assertThat(health.getDetails()).containsEntry("minimumVersion", 18);
+        assertThat(health.getDetails()).containsEntry("minimumVersion", 22);
         assertThat(health.getDetails()).containsEntry("failedMigrations", 0);
     }
 
@@ -44,10 +44,10 @@ class DatabaseSchemaHealthIndicatorTest {
         JdbcDataSource dataSource = dataSource("schema-health-failed");
         createFlywayHistory(dataSource);
         JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
-        insertMigration(jdbcTemplate, 1, "18", true);
+        insertMigration(jdbcTemplate, 1, "22", true);
         insertMigration(jdbcTemplate, 2, "19", false);
 
-        var health = new DatabaseSchemaHealthIndicator(dataSource, new DatabaseSchemaProperties(18)).health();
+        var health = new DatabaseSchemaHealthIndicator(dataSource, new DatabaseSchemaProperties(22)).health();
 
         assertThat(health.getStatus()).isEqualTo(Status.DOWN);
         assertThat(health.getDetails()).containsEntry("failedMigrations", 1);
@@ -58,7 +58,7 @@ class DatabaseSchemaHealthIndicatorTest {
         JdbcDataSource dataSource = dataSource("schema-health-empty");
         createFlywayHistory(dataSource);
 
-        var health = new DatabaseSchemaHealthIndicator(dataSource, new DatabaseSchemaProperties(18)).health();
+        var health = new DatabaseSchemaHealthIndicator(dataSource, new DatabaseSchemaProperties(22)).health();
 
         assertThat(health.getStatus()).isEqualTo(Status.DOWN);
         assertThat(health.getDetails()).containsKey("error");
