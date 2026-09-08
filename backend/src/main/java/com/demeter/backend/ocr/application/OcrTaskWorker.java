@@ -304,10 +304,10 @@ public class OcrTaskWorker {
         OcrProviderFailure failure = findProviderFailure(exception);
         if (failure == null) {
             context.fail(
-                    "OCR_INTERNAL_ERROR",
-                    "OCR processing failed unexpectedly",
-                    true,
-                    OcrTaskMetrics.FailureCategory.INTERNAL_ERROR);
+                    "OCR_PROVIDER_RETRYABLE",
+                    "OCR provider failed unexpectedly and will be retried",
+                    false,
+                    OcrTaskMetrics.FailureCategory.PROVIDER_RETRYABLE);
             return;
         }
         if (failure.kind() == OcrProviderFailure.Kind.TRANSIENT) {

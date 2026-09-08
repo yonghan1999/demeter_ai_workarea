@@ -174,7 +174,7 @@ public class QwenHandwrittenBillOcrProvider implements HandwrittenBillOcrProvide
         LocalDate date = date(value, "date");
         String origin = text(value, "from");
         String destination = text(value, "to");
-        BigDecimal amount = decimal(value, "amount");
+        BigDecimal amount = normalizeAmount(decimal(value, "amount"));
         Map<String, BigDecimal> fieldConfidences = fieldConfidences(value.path("fieldConfidences"));
         return new OcrBillCandidate(
                 externalId,
@@ -271,6 +271,17 @@ public class QwenHandwrittenBillOcrProvider implements HandwrittenBillOcrProvide
             throw invalidResponse("Qwen OCR " + field + " is invalid", exception);
         }
         throw invalidResponse("Qwen OCR " + field + " must be a number");
+    }
+
+    private static BigDecimal normalizeAmount(BigDecimal amount) {
+        if (amount == null) {
+            return null;
+        }
+        try {
+            return amount.setScale(2);
+        } catch (ArithmeticException exception) {
+            throw invalidResponse("Qwen OCR amount must have at most two decimal places", exception);
+        }
     }
 
     private static BillStatus status(JsonNode value) {
