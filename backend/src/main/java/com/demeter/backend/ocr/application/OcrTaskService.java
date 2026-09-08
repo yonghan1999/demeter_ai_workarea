@@ -10,7 +10,6 @@ import com.demeter.backend.common.chain.BusinessHandler;
 import com.demeter.backend.common.error.BusinessRuleException;
 import com.demeter.backend.common.error.ConflictException;
 import com.demeter.backend.common.error.ResourceNotFoundException;
-import com.demeter.backend.common.error.ServiceNotConfiguredException;
 import com.demeter.backend.common.idempotency.CanonicalValues;
 import com.demeter.backend.common.idempotency.IdempotencyKeys;
 import com.demeter.backend.common.web.PaginationGuard;
@@ -25,7 +24,6 @@ import com.demeter.backend.ocr.infrastructure.OcrTaskRepository;
 import com.demeter.backend.ocr.infrastructure.OcrWorkerProperties;
 import com.demeter.backend.ocr.infrastructure.OcrUploadProperties;
 import com.demeter.backend.ocr.spi.OcrDocumentStorage;
-import com.demeter.backend.ocr.spi.HandwrittenBillOcrProvider;
 import com.demeter.backend.security.CurrentActor;
 import com.demeter.backend.security.DemeterPrincipal;
 import com.demeter.backend.security.TokenDigests;
@@ -43,7 +41,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.beans.factory.ObjectProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -71,7 +68,6 @@ public class OcrTaskService {
     private final OcrTaskRepository taskRepository;
     private final OcrRetryCommandRepository retryCommandRepository;
     private final OcrDocumentStorage storage;
-    private final ObjectProvider<HandwrittenBillOcrProvider> provider;
     private final CurrentActor currentActor;
     private final AuditService auditService;
     private final BusinessChainExecutor chainExecutor;
@@ -91,7 +87,6 @@ public class OcrTaskService {
             OcrTaskRepository taskRepository,
             OcrRetryCommandRepository retryCommandRepository,
             OcrDocumentStorage storage,
-            ObjectProvider<HandwrittenBillOcrProvider> provider,
             CurrentActor currentActor,
             AuditService auditService,
             BusinessChainExecutor chainExecutor,
@@ -104,7 +99,6 @@ public class OcrTaskService {
         this.taskRepository = taskRepository;
         this.retryCommandRepository = retryCommandRepository;
         this.storage = storage;
-        this.provider = provider;
         this.currentActor = currentActor;
         this.auditService = auditService;
         this.chainExecutor = chainExecutor;
@@ -142,7 +136,6 @@ public class OcrTaskService {
                 BusinessChainExecutionMode.EXTERNAL_IO,
                 List.of(
                         BusinessHandler.named("resolve-actor", this::resolveActor),
-                        BusinessHandler.named("verify-provider-available", context -> requireProviderConfigured()),
                         BusinessHandler.named("validate-idempotency", context ->
                                 context.idempotencyKey = requireIdempotencyKey(context.requestedIdempotencyKey)),
                         BusinessHandler.named("read-and-validate-image", this::readAndValidateImage),
@@ -216,7 +209,6 @@ public class OcrTaskService {
                 BusinessChainExecutionMode.ATOMIC_DATABASE,
                 List.of(
                         BusinessHandler.named("resolve-actor", this::resolveActor),
-                        BusinessHandler.named("verify-provider-available", context -> requireProviderConfigured()),
                         BusinessHandler.named("normalize-command", context -> {
                             context.idempotencyKey = requireIdempotencyKey(context.requestedIdempotencyKey);
                             context.requestHash = CanonicalValues.sha256(context.publicId);
@@ -402,14 +394,6 @@ public class OcrTaskService {
 
     private <C extends ActorContext> void resolveActor(C context) {
         context.actor = currentActor.require();
-    }
-
-    private void requireProviderConfigured() {
-        if (provider.getIfUnique() == null) {
-            throw new ServiceNotConfiguredException(
-                    "OCR_NOT_CONFIGURED",
-                    "OCR recognition is not configured");
-        }
     }
 
     private static String requireIdempotencyKey(String value) {

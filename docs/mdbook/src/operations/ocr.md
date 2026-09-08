@@ -10,7 +10,8 @@
 
 ## 异常处理
 
-- 未配置供应商：接口返回 `503 OCR_NOT_CONFIGURED`，不会写入正式账单。
+- 未配置供应商：生产 Worker 会拒绝启动；本地一体化环境中的任务会进入
+  `failed/OCR_NOT_CONFIGURED`，不会写入正式账单。
 - 供应商限额：任务失败码为 `OCR_PROVIDER_QUOTA_EXCEEDED`，检查额度和限流后重试。
 - 认证失败：核对 API Key 与 Endpoint 是否同地域；不要在日志或工单中提交密钥。
 - 任务积压：观察租约和 Worker 日志，先确认供应商限流，再扩容 Worker。

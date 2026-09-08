@@ -1,9 +1,7 @@
 package com.demeter.backend.ocr.api;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.is;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.util.Base64;
@@ -37,7 +35,7 @@ class OcrProviderUnavailableIntegrationTest {
     JdbcTemplate jdbcTemplate;
 
     @Test
-    void rejectsUploadsWithoutPersistingAnythingWhenNoProviderIsConfigured() throws Exception {
+    void enqueuesUploadsWithoutLoadingAProviderInTheApiRole() throws Exception {
         MockMultipartFile image = new MockMultipartFile(
                 "image",
                 "ledger.png",
@@ -48,9 +46,9 @@ class OcrProviderUnavailableIntegrationTest {
                         .file(image)
                         .header("Idempotency-Key", "ocr-provider-missing")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer test-token-alpha"))
-                .andExpect(status().isServiceUnavailable())
-                .andExpect(jsonPath("$.code", is("OCR_NOT_CONFIGURED")));
+                .andExpect(status().isAccepted());
 
-        assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM ocr_tasks", Integer.class)).isZero();
+        assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM ocr_tasks", Integer.class)).isOne();
+        assertThat(jdbcTemplate.queryForObject("SELECT status FROM ocr_tasks", String.class)).isEqualTo("PENDING");
     }
 }

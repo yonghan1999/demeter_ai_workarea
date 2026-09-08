@@ -87,15 +87,10 @@ OpenAPI/Swagger 仅用于本地和非生产调试。生产 Profile 默认关闭�
 
 ## OCR 接入边界
 
-OCR 接口当前已定义，但没有识别实现。在未注册识别提供方时，上传接口返回 `503 Service Unavailable`，响应码为：
-
-```json
-{
-  "status": 503,
-  "code": "OCR_NOT_CONFIGURED",
-  "detail": "OCR recognition is not configured"
-}
-```
+OCR API 只校验图片、保存原图并将任务可靠写入数据库，不在 API 进程调用或探测识别供应商。
+识别供应商仅由独立 Worker 加载；生产 Worker 未配置且唯一的供应商时会拒绝启动，避免任务被
+无声积压。在本地 `ALL` 角色未配置供应商时，任务仍会入队，随后由 Worker 标记为
+`FAILED/OCR_NOT_CONFIGURED`，配置供应商后可通过用户端或管理台重试。
 
 已提供阿里云百炼 `qwen3-vl-plus` 适配器，仍保持在
 `HandwrittenBillOcrProvider` 边界之后，Controller 和应用服务无需改动。默认关闭；仅在
