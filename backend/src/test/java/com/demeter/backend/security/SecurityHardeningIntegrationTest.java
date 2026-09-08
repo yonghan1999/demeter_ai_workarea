@@ -96,6 +96,15 @@ class SecurityHardeningIntegrationTest {
     }
 
     @Test
+    void doesNotTreatSimilarPrefixesAsAdminRoutes() throws Exception {
+        mockMvc.perform(get("/administrator"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(header().string(
+                        "Content-Security-Policy",
+                        "default-src 'none'; frame-ancestors 'none'"));
+    }
+
+    @Test
     void doesNotEnableBrowserCorsForTheMiniProgramApi() throws Exception {
         mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options(
                                 "/api/v1/auth/wechat/login")

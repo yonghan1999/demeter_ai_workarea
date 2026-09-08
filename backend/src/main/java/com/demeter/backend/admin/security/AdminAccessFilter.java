@@ -1,6 +1,7 @@
 package com.demeter.backend.admin.security;
 
 import static com.demeter.backend.common.web.RequestPaths.applicationPath;
+import static com.demeter.backend.common.web.RequestPaths.isPathOrChild;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -22,7 +23,7 @@ public class AdminAccessFilter extends OncePerRequestFilter {
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        return !applicationPath(request).startsWith("/admin");
+        return !isPathOrChild(applicationPath(request), "/admin");
     }
 
     @Override

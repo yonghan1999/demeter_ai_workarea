@@ -13,4 +13,8 @@ public final class RequestPaths {
         return contextPath == null || contextPath.isEmpty() ? requestUri
                 : requestUri.substring(contextPath.length());
     }
+
+    public static boolean isPathOrChild(String path, String basePath) {
+        return path.equals(basePath) || path.startsWith(basePath + "/");
+    }
 }

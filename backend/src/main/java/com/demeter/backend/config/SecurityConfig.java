@@ -1,6 +1,7 @@
 package com.demeter.backend.config;
 
 import static com.demeter.backend.common.web.RequestPaths.applicationPath;
+import static com.demeter.backend.common.web.RequestPaths.isPathOrChild;
 
 import com.demeter.backend.security.BearerTokenAuthenticationFilter;
 import com.demeter.backend.security.SecurityProblemWriter;
@@ -77,7 +78,7 @@ public class SecurityConfig {
                 .headers(headers -> headers
                         .addHeaderWriter((request, response) -> response.setHeader(
                                 "Content-Security-Policy",
-                                applicationPath(request).startsWith("/admin")
+                                isPathOrChild(applicationPath(request), "/admin")
                                         ? "default-src 'none'; style-src 'self'; script-src 'self'; frame-ancestors 'none'"
                                         : "default-src 'none'; frame-ancestors 'none'"))
                         .referrerPolicy(referrer -> referrer.policy(
