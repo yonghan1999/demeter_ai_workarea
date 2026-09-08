@@ -24,7 +24,6 @@ import com.demeter.backend.identity.infrastructure.UserAccountRepository;
 import com.demeter.backend.identity.infrastructure.AuthSessionRepository;
 import com.demeter.backend.ocr.domain.OcrTask;
 import com.demeter.backend.ocr.infrastructure.OcrTaskRepository;
-import com.demeter.backend.ocr.spi.HandwrittenBillOcrProvider;
 import com.demeter.backend.payment.domain.Payment;
 import com.demeter.backend.payment.infrastructure.PaymentRepository;
 import com.demeter.backend.admin.infrastructure.AdminCommandReplay;
@@ -34,7 +33,6 @@ import java.math.BigDecimal;
 import java.util.Map;
 import java.util.List;
 import java.util.Optional;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -62,7 +60,6 @@ public class AdminCommandService {
     private final PaymentRepository payments;
     private final AdminCommandReplayRepository replays;
     private final AuditService audit;
-    private final ObjectProvider<HandwrittenBillOcrProvider> ocrProvider;
     private final TransactionTemplate transaction;
     private final Clock clock;
     private final BusinessChainExecutor executor;
@@ -77,7 +74,6 @@ public class AdminCommandService {
             PaymentRepository payments,
             AdminCommandReplayRepository replays,
             AuditService audit,
-            ObjectProvider<HandwrittenBillOcrProvider> ocrProvider,
             PlatformTransactionManager transactionManager,
             Clock clock,
             BusinessChainExecutor executor) {
@@ -89,7 +85,6 @@ public class AdminCommandService {
         this.payments = payments;
         this.replays = replays;
         this.audit = audit;
-        this.ocrProvider = ocrProvider;
         this.transaction = new TransactionTemplate(transactionManager);
         this.clock = clock;
         this.executor = executor;
@@ -132,9 +127,6 @@ public class AdminCommandService {
     public void retryOcr(String publicId, String idempotencyKey) {
         String key = IdempotencyKeys.require(idempotencyKey);
         execute(OCR_RETRY, key, CanonicalValues.sha256(publicId), () -> {
-            if (ocrProvider.getIfUnique() == null) {
-                throw new BusinessRuleException("OCR recognition provider is not configured");
-            }
             OcrTask task = ocrTasks.findByPublicIdForUpdate(publicId)
                     .orElseThrow(() -> new ResourceNotFoundException("OCR task does not exist"));
             try {
