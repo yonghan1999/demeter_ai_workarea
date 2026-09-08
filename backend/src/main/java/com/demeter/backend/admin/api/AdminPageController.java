@@ -122,6 +122,13 @@ public class AdminPageController {
         return change(() -> commands.activateTenant(id, reason, idempotencyKey), redirect, "/admin/tenants", "租户已恢复");
     }
 
+    @PostMapping("/tenants/{id}/revoke-sessions")
+    String revokeTenantSessions(@PathVariable long id, @RequestParam String reason,
+            @RequestParam String idempotencyKey, RedirectAttributes redirect) {
+        return change(() -> commands.revokeTenantSessions(id, reason, idempotencyKey), redirect,
+                "/admin/tenants", "租户全部会话已撤销");
+    }
+
     @GetMapping("/users")
     String userList(@RequestParam(defaultValue = "0") int page,
             @RequestParam(required = false) Long id, @RequestParam(required = false) Long tenantId,

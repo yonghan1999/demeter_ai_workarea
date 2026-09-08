@@ -61,6 +61,19 @@ public interface AuthSessionRepository extends JpaRepository<AuthSession, String
             @Param("userId") long userId,
             @Param("now") Instant now);
 
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+            select session
+            from AuthSession session
+            where session.userId in :userIds
+              and session.revokedAt is null
+              and session.expiresAt > :now
+            order by session.createdAt desc, session.id desc
+            """)
+    List<AuthSession> findActiveByUserIdsForUpdate(
+            @Param("userIds") List<Long> userIds,
+            @Param("now") Instant now);
+
     @Query("""
             select new com.demeter.backend.security.DemeterPrincipal(
                 user.id, user.tenantId, user.openId, user.displayName)

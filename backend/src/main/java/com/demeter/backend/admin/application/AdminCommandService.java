@@ -32,6 +32,7 @@ import com.demeter.backend.admin.infrastructure.AdminCommandReplayRepository;
 import java.time.Clock;
 import java.math.BigDecimal;
 import java.util.Map;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -50,6 +51,7 @@ public class AdminCommandService {
     private static final String USER_DISABLE = "admin.user.disable";
     private static final String USER_ENABLE = "admin.user.enable";
     private static final String USER_REVOKE_SESSIONS = "admin.user.revoke-sessions";
+    private static final String TENANT_REVOKE_SESSIONS = "admin.tenant.revoke-sessions";
     private static final String PAYMENT_REVERSE = "admin.payment.reverse";
 
     private final TenantRepository tenants;
@@ -172,6 +174,24 @@ public class AdminCommandService {
             authSessions.saveAllAndFlush(activeSessions);
             audit.recordSystem(user.getTenantId(), "ADMIN_USER_SESSIONS_REVOKED", "USER", user.getId(),
                     Map.of("reason", normalizedReason, "revokedCount", activeSessions.size()));
+        });
+    }
+
+    public void revokeTenantSessions(long id, String reason, String idempotencyKey) {
+        String normalizedReason = requireReason(reason, "撤销租户会话原因不能为空");
+        execute(TENANT_REVOKE_SESSIONS, idempotencyKey, CanonicalValues.sha256(id, normalizedReason), () -> {
+            Tenant tenant = tenants.findByIdForUpdate(id)
+                    .orElseThrow(() -> new ResourceNotFoundException("Tenant " + id + " does not exist"));
+            List<Long> userIds = users.findAllByTenantIdForUpdate(id).stream().map(UserAccount::getId).toList();
+            var now = clock.instant();
+            var activeSessions = userIds.isEmpty()
+                    ? List.<com.demeter.backend.identity.domain.AuthSession>of()
+                    : authSessions.findActiveByUserIdsForUpdate(userIds, now);
+            activeSessions.forEach(session -> session.revoke(now));
+            authSessions.saveAllAndFlush(activeSessions);
+            audit.recordSystem(tenant.getId(), "ADMIN_TENANT_SESSIONS_REVOKED", "TENANT", tenant.getId(),
+                    Map.of("reason", normalizedReason, "revokedCount", activeSessions.size(),
+                            "userCount", userIds.size()));
         });
     }
 

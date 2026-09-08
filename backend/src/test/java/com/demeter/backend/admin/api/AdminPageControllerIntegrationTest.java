@@ -91,6 +91,21 @@ class AdminPageControllerIntegrationTest {
     }
 
     @Test
+    void revokesAllTenantSessionsAndWritesAudit() throws Exception {
+        String cookie = loginCookie();
+        mockMvc.perform(post("/admin/tenants/1001/revoke-sessions")
+                        .cookie(new Cookie("DEMETER_ADMIN_SESSION", cookie)).with(csrf())
+                        .param("reason", "租户整体隔离").param("idempotencyKey", "admin-test-tenant-revoke-1"))
+                .andExpect(status().is3xxRedirection()).andExpect(redirectedUrl("/admin/tenants"));
+        assertThat(jdbcTemplate.queryForObject(
+                "select count(*) from auth_sessions s join users u on u.id=s.user_id where u.tenant_id=1001 and s.revoked_at is not null", Integer.class))
+                .isEqualTo(1);
+        assertThat(jdbcTemplate.queryForObject(
+                "select count(*) from audit_events where action='ADMIN_TENANT_SESSIONS_REVOKED' and aggregate_id='1001'", Integer.class))
+                .isEqualTo(1);
+    }
+
+    @Test
     void filtersManagementListsAndRendersOperationalPages() throws Exception {
         String cookie = loginCookie();
 
