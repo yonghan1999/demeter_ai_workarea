@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="UTF-8"><title>审计详情 - Demeter 管理台</title><link rel="stylesheet" th:href="@{/admin/admin.css}"></head>
+<body><header th:replace="~{admin/fragments :: header}"></header><main>
+<p><a th:href="@{/admin/audit}">← 返回审计列表</a></p>
+<h1>审计详情</h1>
+<section class="card detail-grid">
+<div><b>记录 ID</b><span th:text="${detail.id}">-</span></div>
+<div><b>时间</b><span th:text="${detail.createdAt}">-</span></div>
+<div><b>租户</b><span th:text="${detail.tenantId}">-</span></div>
+<div><b>操作</b><span th:text="${detail.action}">-</span></div>
+<div><b>对象类型</b><span th:text="${detail.aggregateType}">-</span></div>
+<div><b>对象 ID</b><span th:text="${detail.aggregateId}">-</span></div>
+<div><b>操作者</b><span th:text="${detail.actorUserId != null ? detail.actorUserId : '系统/管理台'}">系统/管理台</span></div>
+<div><b>Request ID</b><span th:text="${detail.requestId}">-</span></div>
+</section>
+<h2>结构化详情</h2>
+<pre class="card" th:text="${detail.details != null ? detail.details : '无详情'}">无详情</pre>
+</main></body></html>

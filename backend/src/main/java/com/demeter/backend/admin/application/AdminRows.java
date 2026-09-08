@@ -63,11 +63,20 @@ public final class AdminRows {
         }
     }
 
-    public record AuditRow(Instant createdAt, Long tenantId, String action, String aggregateType,
+    public record AuditRow(Long id, Instant createdAt, Long tenantId, String action, String aggregateType,
             String aggregateId, Long actorUserId, String requestId) {
         public static AuditRow from(AuditEvent event) {
-            return new AuditRow(event.getCreatedAt(), event.getTenantId(), event.getAction(),
+            return new AuditRow(event.getId(), event.getCreatedAt(), event.getTenantId(), event.getAction(),
                     event.getAggregateType(), event.getAggregateId(), event.getActorUserId(), event.getRequestId());
+        }
+    }
+
+    public record AuditDetailRow(Long id, Instant createdAt, Long tenantId, String action, String aggregateType,
+            String aggregateId, Long actorUserId, String requestId, String details) {
+        public static AuditDetailRow from(AuditEvent event) {
+            return new AuditDetailRow(event.getId(), event.getCreatedAt(), event.getTenantId(), event.getAction(),
+                    event.getAggregateType(), event.getAggregateId(), event.getActorUserId(), event.getRequestId(),
+                    event.getDetails());
         }
     }
 

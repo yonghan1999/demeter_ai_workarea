@@ -144,6 +144,22 @@ class AdminPageControllerIntegrationTest {
                 .andExpect(status().isOk()).andExpect(view().name("admin/maintenance"));
     }
 
+    @Test
+    void rendersAuditDetailWithoutExposingPersistenceEntity() throws Exception {
+        jdbcTemplate.update("insert into audit_events (tenant_id, action, aggregate_type, aggregate_id, request_id, details, created_at) "
+                + "values (1001, 'TEST_AUDIT', 'BILL', '1202', 'req-admin-detail', '{\"reason\":\"核验\"}', CURRENT_TIMESTAMP)");
+        Long id = jdbcTemplate.queryForObject("select max(id) from audit_events where action='TEST_AUDIT'", Long.class);
+
+        MvcResult result = mockMvc.perform(get("/admin/audit/" + id).cookie(adminCookie(loginCookie())))
+                .andExpect(status().isOk()).andExpect(view().name("admin/audit-detail")).andReturn();
+        Object detail = result.getModelAndView().getModel().get("detail");
+        assertThat(detail).isInstanceOf(com.demeter.backend.admin.application.AdminRows.AuditDetailRow.class);
+        com.demeter.backend.admin.application.AdminRows.AuditDetailRow row =
+                (com.demeter.backend.admin.application.AdminRows.AuditDetailRow) detail;
+        assertThat(row.id()).isEqualTo(id);
+        assertThat(row.details()).contains("核验");
+    }
+
     private void assertPageSize(org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder request,
             String cookie, long expectedElements) throws Exception {
         MvcResult result = mockMvc.perform(request.cookie(adminCookie(cookie)))
