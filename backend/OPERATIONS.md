@@ -120,7 +120,7 @@ scripts/release-preflight.sh
 
 ## 管理台运维操作
 
-管理台仅在 API 角色加载，访问路径为 `/admin`。启用前必须通过环境变量注入至少 32 个字符的 `ADMIN_ACCESS_TOKEN`，并限制 API 入口只允许内网或 VPN 访问。
+管理台仅在 API 角色加载，访问路径为 `/admin`。启用前必须通过环境变量注入至少 32 个字符的 `ADMIN_ACCESS_TOKEN`，并限制 API 入口只允许内网或 VPN 访问。`ADMIN_SESSION_TTL` 必须配置为正时长（默认 `8h`），配置为零或负数时服务会拒绝启动。
 
 管理台提供以下受审计操作：
 
