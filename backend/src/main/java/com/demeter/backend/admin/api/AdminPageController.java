@@ -48,10 +48,17 @@ public class AdminPageController {
     private final AdminQueryService queries;
     private final AdminCommandService commands;
     private final PaginationProperties pagination;
+    private final AdminOperationFeedback operationFeedback;
 
     public AdminPageController(AdminSessionService sessions, AdminDashboardService dashboard,
-            AdminQueryService queries, AdminCommandService commands, PaginationProperties pagination) {
-        this.sessions = sessions; this.dashboard = dashboard; this.queries = queries; this.commands = commands; this.pagination = pagination;
+            AdminQueryService queries, AdminCommandService commands, PaginationProperties pagination,
+            AdminOperationFeedback operationFeedback) {
+        this.sessions = sessions;
+        this.dashboard = dashboard;
+        this.queries = queries;
+        this.commands = commands;
+        this.pagination = pagination;
+        this.operationFeedback = operationFeedback;
     }
 
     @GetMapping("/login")
@@ -114,19 +121,21 @@ public class AdminPageController {
     @PostMapping("/tenants/{id}/suspend")
     String suspendTenant(@PathVariable long id, @RequestParam String reason, @RequestParam String idempotencyKey,
             RedirectAttributes redirect) {
-        return change(() -> commands.suspendTenant(id, reason, idempotencyKey), redirect, "/admin/tenants", "租户已暂停");
+        return operationFeedback.execute(() -> commands.suspendTenant(id, reason, idempotencyKey), redirect,
+                "/admin/tenants", "租户已暂停");
     }
 
     @PostMapping("/tenants/{id}/activate")
     String activateTenant(@PathVariable long id, @RequestParam String reason, @RequestParam String idempotencyKey,
             RedirectAttributes redirect) {
-        return change(() -> commands.activateTenant(id, reason, idempotencyKey), redirect, "/admin/tenants", "租户已恢复");
+        return operationFeedback.execute(() -> commands.activateTenant(id, reason, idempotencyKey), redirect,
+                "/admin/tenants", "租户已恢复");
     }
 
     @PostMapping("/tenants/{id}/revoke-sessions")
     String revokeTenantSessions(@PathVariable long id, @RequestParam String reason,
             @RequestParam String idempotencyKey, RedirectAttributes redirect) {
-        return change(() -> commands.revokeTenantSessions(id, reason, idempotencyKey), redirect,
+        return operationFeedback.execute(() -> commands.revokeTenantSessions(id, reason, idempotencyKey), redirect,
                 "/admin/tenants", "租户全部会话已撤销");
     }
 
@@ -145,19 +154,22 @@ public class AdminPageController {
     @PostMapping("/users/{id}/disable")
     String disableUser(@PathVariable long id, @RequestParam String reason, @RequestParam String idempotencyKey,
             RedirectAttributes redirect) {
-        return change(() -> commands.disableUser(id, reason, idempotencyKey), redirect, "/admin/users", "用户已禁用");
+        return operationFeedback.execute(() -> commands.disableUser(id, reason, idempotencyKey), redirect,
+                "/admin/users", "用户已禁用");
     }
 
     @PostMapping("/users/{id}/enable")
     String enableUser(@PathVariable long id, @RequestParam String reason, @RequestParam String idempotencyKey,
             RedirectAttributes redirect) {
-        return change(() -> commands.enableUser(id, reason, idempotencyKey), redirect, "/admin/users", "用户已启用");
+        return operationFeedback.execute(() -> commands.enableUser(id, reason, idempotencyKey), redirect,
+                "/admin/users", "用户已启用");
     }
 
     @PostMapping("/users/{id}/revoke-sessions")
     String revokeUserSessions(@PathVariable long id, @RequestParam String reason, @RequestParam String idempotencyKey,
             RedirectAttributes redirect) {
-        return change(() -> commands.revokeUserSessions(id, reason, idempotencyKey), redirect, "/admin/users", "用户会话已撤销");
+        return operationFeedback.execute(() -> commands.revokeUserSessions(id, reason, idempotencyKey), redirect,
+                "/admin/users", "用户会话已撤销");
     }
 
     @GetMapping("/bills")
@@ -188,26 +200,29 @@ public class AdminPageController {
     @PostMapping("/bills/{id}/delete")
     String deleteBill(@PathVariable long id, @RequestParam String reason, @RequestParam String idempotencyKey,
             RedirectAttributes redirect) {
-        return change(() -> commands.deleteBill(id, reason, idempotencyKey), redirect, "/admin/bills", "账单已删除");
+        return operationFeedback.execute(() -> commands.deleteBill(id, reason, idempotencyKey), redirect,
+                "/admin/bills", "账单已删除");
     }
 
     @PostMapping("/bills/batch-delete")
     String deleteBills(@RequestParam(name = "billIds", required = false) List<Long> billIds,
             @RequestParam String reason, @RequestParam String idempotencyKey, RedirectAttributes redirect) {
-        return change(() -> commands.deleteBills(billIds, reason, idempotencyKey), redirect,
+        return operationFeedback.execute(() -> commands.deleteBills(billIds, reason, idempotencyKey), redirect,
                 "/admin/bills", "选中的账单已删除");
     }
 
     @PostMapping("/bills/{id}/restore")
     String restoreBill(@PathVariable long id, @RequestParam String reason, @RequestParam String idempotencyKey,
             RedirectAttributes redirect) {
-        return change(() -> commands.restoreBill(id, reason, idempotencyKey), redirect, "/admin/bills", "账单已恢复");
+        return operationFeedback.execute(() -> commands.restoreBill(id, reason, idempotencyKey), redirect,
+                "/admin/bills", "账单已恢复");
     }
 
     @PostMapping("/ocr/{id}/retry")
     String retryOcr(@PathVariable String id, @RequestParam String reason, @RequestParam String idempotencyKey,
             RedirectAttributes redirect) {
-        return change(() -> commands.retryOcr(id, reason, idempotencyKey), redirect, "/admin/ocr", "OCR 任务已重新排队");
+        return operationFeedback.execute(() -> commands.retryOcr(id, reason, idempotencyKey), redirect,
+                "/admin/ocr", "OCR 任务已重新排队");
     }
 
     @GetMapping("/payments")
@@ -231,7 +246,7 @@ public class AdminPageController {
     @PostMapping("/payments/{paymentId}/reverse")
     String reversePayment(@PathVariable long paymentId, @RequestParam long billId, @RequestParam String reason,
             @RequestParam String idempotencyKey, RedirectAttributes redirect) {
-        return change(() -> commands.reversePayment(billId, paymentId, reason, idempotencyKey), redirect,
+        return operationFeedback.execute(() -> commands.reversePayment(billId, paymentId, reason, idempotencyKey), redirect,
                 "/admin/payments", "收款已冲正");
     }
 
@@ -246,25 +261,6 @@ public class AdminPageController {
         model.addAttribute("filter", filter);
         model.addAttribute("page", queries.audit(filter, pageRequest(page, "createdAt")));
         return "admin/audit";
-    }
-
-    private String change(Runnable operation, RedirectAttributes redirect, String target, String success) {
-        try {
-            operation.run();
-            redirect.addFlashAttribute("message", success);
-        } catch (RuntimeException exception) {
-            redirect.addFlashAttribute("error", safeMessage(exception));
-        }
-        return "redirect:" + target;
-    }
-
-    private static String safeMessage(RuntimeException exception) {
-        if (exception instanceof com.demeter.backend.common.error.BusinessRuleException
-                || exception instanceof com.demeter.backend.common.error.ConflictException
-                || exception instanceof com.demeter.backend.common.error.ResourceNotFoundException) {
-            return exception.getMessage();
-        }
-        return "操作失败，请稍后重试并根据 requestId 查看日志";
     }
 
     private PageRequest pageRequest(int page) {
