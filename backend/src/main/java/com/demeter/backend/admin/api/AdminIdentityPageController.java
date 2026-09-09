@@ -4,6 +4,7 @@ import com.demeter.backend.admin.application.AdminCommandService;
 import com.demeter.backend.admin.application.AdminQueryFilters.TenantFilter;
 import com.demeter.backend.admin.application.AdminQueryFilters.UserFilter;
 import com.demeter.backend.admin.application.AdminQueryService;
+import com.demeter.backend.admin.application.AdminTenantCommandService;
 import com.demeter.backend.config.ConditionalOnRuntimeRole;
 import com.demeter.backend.config.RuntimeRole;
 import com.demeter.backend.identity.domain.TenantStatus;
@@ -22,13 +23,16 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 @RequestMapping("/admin")
 public class AdminIdentityPageController {
     private final AdminQueryService queries;
+    private final AdminTenantCommandService tenantCommands;
     private final AdminCommandService commands;
     private final AdminPageRequestFactory pages;
     private final AdminOperationFeedback feedback;
 
-    public AdminIdentityPageController(AdminQueryService queries, AdminCommandService commands,
+    public AdminIdentityPageController(AdminQueryService queries, AdminTenantCommandService tenantCommands,
+            AdminCommandService commands,
             AdminPageRequestFactory pages, AdminOperationFeedback feedback) {
         this.queries = queries;
+        this.tenantCommands = tenantCommands;
         this.commands = commands;
         this.pages = pages;
         this.feedback = feedback;
@@ -48,21 +52,21 @@ public class AdminIdentityPageController {
     @PostMapping("/tenants/{id}/suspend")
     String suspendTenant(@PathVariable long id, @RequestParam String reason, @RequestParam String idempotencyKey,
             RedirectAttributes redirect) {
-        return feedback.execute(() -> commands.suspendTenant(id, reason, idempotencyKey), redirect,
+        return feedback.execute(() -> tenantCommands.suspend(id, reason, idempotencyKey), redirect,
                 "/admin/tenants", "租户已暂停");
     }
 
     @PostMapping("/tenants/{id}/activate")
     String activateTenant(@PathVariable long id, @RequestParam String reason, @RequestParam String idempotencyKey,
             RedirectAttributes redirect) {
-        return feedback.execute(() -> commands.activateTenant(id, reason, idempotencyKey), redirect,
+        return feedback.execute(() -> tenantCommands.activate(id, reason, idempotencyKey), redirect,
                 "/admin/tenants", "租户已恢复");
     }
 
     @PostMapping("/tenants/{id}/revoke-sessions")
     String revokeTenantSessions(@PathVariable long id, @RequestParam String reason,
             @RequestParam String idempotencyKey, RedirectAttributes redirect) {
-        return feedback.execute(() -> commands.revokeTenantSessions(id, reason, idempotencyKey), redirect,
+        return feedback.execute(() -> tenantCommands.revokeSessions(id, reason, idempotencyKey), redirect,
                 "/admin/tenants", "租户全部会话已撤销");
     }
 

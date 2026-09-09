@@ -15,11 +15,8 @@ import com.demeter.backend.common.idempotency.CanonicalValues;
 import com.demeter.backend.common.idempotency.IdempotencyKeys;
 import com.demeter.backend.config.ConditionalOnRuntimeRole;
 import com.demeter.backend.config.RuntimeRole;
-import com.demeter.backend.identity.domain.Tenant;
-import com.demeter.backend.identity.domain.TenantStatus;
 import com.demeter.backend.identity.domain.UserAccount;
 import com.demeter.backend.identity.domain.UserStatus;
-import com.demeter.backend.identity.infrastructure.TenantRepository;
 import com.demeter.backend.identity.infrastructure.UserAccountRepository;
 import com.demeter.backend.identity.infrastructure.AuthSessionRepository;
 import com.demeter.backend.payment.domain.Payment;
@@ -44,15 +41,11 @@ public class AdminCommandService {
     private static final String BILL_DELETE = "admin.bill.delete";
     private static final String BILL_BATCH_DELETE = "admin.bill.batch-delete";
     private static final String BILL_RESTORE = "admin.bill.restore";
-    private static final String TENANT_SUSPEND = "admin.tenant.suspend";
-    private static final String TENANT_ACTIVATE = "admin.tenant.activate";
     private static final String USER_DISABLE = "admin.user.disable";
     private static final String USER_ENABLE = "admin.user.enable";
     private static final String USER_REVOKE_SESSIONS = "admin.user.revoke-sessions";
-    private static final String TENANT_REVOKE_SESSIONS = "admin.tenant.revoke-sessions";
     private static final String PAYMENT_REVERSE = "admin.payment.reverse";
 
-    private final TenantRepository tenants;
     private final UserAccountRepository users;
     private final AuthSessionRepository authSessions;
     private final BillRepository bills;
@@ -65,7 +58,6 @@ public class AdminCommandService {
     private final BusinessChain<CommandContext, Boolean> commandChain;
 
     public AdminCommandService(
-            TenantRepository tenants,
             UserAccountRepository users,
             AuthSessionRepository authSessions,
             BillRepository bills,
@@ -75,7 +67,6 @@ public class AdminCommandService {
             PlatformTransactionManager transactionManager,
             Clock clock,
             BusinessChainExecutor executor) {
-        this.tenants = tenants;
         this.users = users;
         this.authSessions = authSessions;
         this.bills = bills;
@@ -153,14 +144,6 @@ public class AdminCommandService {
         });
     }
 
-    public void suspendTenant(long id, String reason, String idempotencyKey) {
-        changeTenantStatus(id, TenantStatus.SUSPENDED, reason, idempotencyKey);
-    }
-
-    public void activateTenant(long id, String reason, String idempotencyKey) {
-        changeTenantStatus(id, TenantStatus.ACTIVE, reason, idempotencyKey);
-    }
-
     public void disableUser(long id, String reason, String idempotencyKey) {
         changeUserStatus(id, UserStatus.DISABLED, reason, idempotencyKey);
     }
@@ -180,24 +163,6 @@ public class AdminCommandService {
             authSessions.saveAllAndFlush(activeSessions);
             audit.recordSystem(user.getTenantId(), "ADMIN_USER_SESSIONS_REVOKED", "USER", user.getId(),
                     Map.of("reason", normalizedReason, "revokedCount", activeSessions.size()));
-        });
-    }
-
-    public void revokeTenantSessions(long id, String reason, String idempotencyKey) {
-        String normalizedReason = requireReason(reason, "撤销租户会话原因不能为空");
-        execute(TENANT_REVOKE_SESSIONS, idempotencyKey, CanonicalValues.sha256(id, normalizedReason), () -> {
-            Tenant tenant = tenants.findByIdForUpdate(id)
-                    .orElseThrow(() -> new ResourceNotFoundException("Tenant " + id + " does not exist"));
-            List<Long> userIds = users.findAllByTenantIdForUpdate(id).stream().map(UserAccount::getId).toList();
-            var now = clock.instant();
-            var activeSessions = userIds.isEmpty()
-                    ? List.<com.demeter.backend.identity.domain.AuthSession>of()
-                    : authSessions.findActiveByUserIdsForUpdate(userIds, now);
-            activeSessions.forEach(session -> session.revoke(now));
-            authSessions.saveAllAndFlush(activeSessions);
-            audit.recordSystem(tenant.getId(), "ADMIN_TENANT_SESSIONS_REVOKED", "TENANT", tenant.getId(),
-                    Map.of("reason", normalizedReason, "revokedCount", activeSessions.size(),
-                            "userCount", userIds.size()));
         });
     }
 
@@ -231,22 +196,6 @@ public class AdminCommandService {
             bills.saveAndFlush(bill);
             audit.recordSystem(bill.getTenantId(), "ADMIN_PAYMENT_REVERSED", "PAYMENT", payment.getId(),
                     Map.of("billId", billId, "reason", normalizedReason));
-        });
-    }
-
-    private void changeTenantStatus(long id, TenantStatus target, String reason, String idempotencyKey) {
-        String normalizedReason = requireReason(reason, "状态变更原因不能为空");
-        String operation = target == TenantStatus.ACTIVE ? TENANT_ACTIVATE : TENANT_SUSPEND;
-        execute(operation, idempotencyKey, CanonicalValues.sha256(id, normalizedReason), () -> {
-            Tenant tenant = tenants.findByIdForUpdate(id)
-                    .orElseThrow(() -> new ResourceNotFoundException("Tenant " + id + " does not exist"));
-            if (tenant.getStatus() == target) throw new ConflictException("Tenant is already " + target.name().toLowerCase());
-            if (target == TenantStatus.ACTIVE) tenant.activate(clock.instant());
-            else tenant.suspend(clock.instant());
-            tenants.saveAndFlush(tenant);
-            audit.recordSystem(tenant.getId(), target == TenantStatus.ACTIVE
-                            ? "ADMIN_TENANT_ACTIVATED" : "ADMIN_TENANT_SUSPENDED",
-                    "TENANT", tenant.getId(), Map.of("reason", normalizedReason));
         });
     }
 
