@@ -91,14 +91,16 @@ public final class AdminRows {
     public record BillDetailRow(Long id, Long tenantId, String code, String shipper, String vehicleCargo,
             LocalDate date, String origin, String destination, BigDecimal amount, BigDecimal paidAmount,
             BigDecimal outstandingAmount, String status, LocalDate dueDate, List<String> tags,
-            Instant createdAt, Instant updatedAt, Instant deletedAt, List<PaymentRow> payments,
+            Instant createdAt, Instant updatedAt, Instant deletedAt, Long deletedBy, String deleteReason,
+            List<PaymentRow> payments,
             List<AuditRow> auditEvents) {
         public static BillDetailRow from(Bill bill, List<PaymentRow> payments, List<AuditRow> auditEvents) {
             return new BillDetailRow(bill.getId(), bill.getTenantId(), bill.getCode(), bill.getShipper(),
                     bill.getVehicleCargo(), bill.getDate(), bill.getOrigin(), bill.getDestination(), bill.getAmount(),
                     bill.getPaidAmount(), bill.getOutstandingAmount(), bill.getStatus() == null ? null : bill.getStatus().name(),
                     bill.getDueDate(), List.copyOf(bill.getTags()), bill.getCreatedAt(), bill.getUpdatedAt(),
-                    bill.getDeletedAt(), List.copyOf(payments), List.copyOf(auditEvents));
+                    bill.getDeletedAt(), bill.getDeletedBy(), bill.getDeleteReason(), List.copyOf(payments),
+                    List.copyOf(auditEvents));
         }
     }
 

@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -170,11 +171,16 @@ class AdminPageControllerIntegrationTest {
 
     @Test
     void rendersBillDetailWithPaymentsAndAuditContext() throws Exception {
+        jdbcTemplate.update("update bills set deleted_at=CURRENT_TIMESTAMP, deleted_by=1101, delete_reason='重复账单核验' where id=1202");
         MvcResult result = mockMvc.perform(get("/admin/bills/1202").cookie(adminCookie(loginCookie())))
                 .andExpect(status().isOk()).andExpect(view().name("admin/bill-detail")).andReturn();
         BillDetailRow detail = (BillDetailRow) result.getModelAndView().getModel().get("detail");
         assertThat(detail.code()).isEqualTo("TR-20240515-009");
         assertThat(detail.payments()).hasSize(1);
+        assertThat(detail.deletedBy()).isEqualTo(1101L);
+        assertThat(detail.deleteReason()).isEqualTo("重复账单核验");
+        mockMvc.perform(get("/admin/bills/1202").cookie(adminCookie(loginCookie())))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("/admin/payments?billId=1202")));
     }
 
     @Test
