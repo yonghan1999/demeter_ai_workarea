@@ -225,6 +225,9 @@ jobs:
           WECHAT_APP_ID=ci-app-id
           WECHAT_APP_SECRET=ci-app-secret-value
           MANAGEMENT_ACCESS_TOKEN=0123456789abcdef0123456789abcdef
+          ADMIN_ENABLED=true
+          ADMIN_ACCESS_TOKEN=admin-ci-access-token-012345678901234567890
+          ADMIN_SESSION_TTL=8h
           TRUSTED_PROXY_PATTERN=10\..*|172\.(1[6-9]|2[0-9]|3[0-1])\..*|192\.168\..*
           OCR_STORAGE_PATH=/var/lib/demeter/ocr
           OCR_STORAGE_SHARED=false
@@ -255,6 +258,9 @@ jobs:
           curl --fail --silent \
             -H 'Authorization: Bearer 0123456789abcdef0123456789abcdef' \
             http://127.0.0.1:19090/actuator/info
+          test "$(curl --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:18080/admin)" = "302"
+          curl --fail --silent http://127.0.0.1:18080/admin/admin.css | grep ':root' >/dev/null
+          curl --fail --silent http://127.0.0.1:18080/admin/admin.js | grep 'addEventListener' >/dev/null
           test "$(docker inspect backend-api --format '{{.State.Health.Status}}')" != "unhealthy"
           cat > "$RUNNER_TEMP/demeter-maintenance.env" <<'EOF'
           SPRING_PROFILES_ACTIVE=prod
