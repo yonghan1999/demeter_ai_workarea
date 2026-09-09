@@ -61,6 +61,47 @@ class ProductionReadinessValidatorTest {
     }
 
     @Test
+    void rejectsAPlaceholderAdminSecret() {
+        ProductionReadinessValidator validator = validator(
+                productionEnvironment(
+                        "jdbc:mysql://db:3306/demeter?sslMode=VERIFY_IDENTITY&connectionTimeZone=UTC",
+                        "demeter_api",
+                        false),
+                new ProductionProperties(1, false),
+                new OcrStorageProperties(ABSOLUTE_STORAGE_PATH, false),
+                RuntimeRole.API,
+                disabledWorker(),
+                false,
+                false,
+                java.util.List.of(),
+                new AdminProperties(true, "replace-with-at-least-32-random-characters", Duration.ofHours(8)));
+
+        assertThatThrownBy(validator::afterPropertiesSet)
+                .hasMessageContaining("ADMIN_ACCESS_TOKEN must not use a placeholder value");
+    }
+
+    @Test
+    void rejectsEnablingTheAdminConsoleOutsideTheApiRole() {
+        HandwrittenBillOcrProvider provider = request -> null;
+        ProductionReadinessValidator validator = validator(
+                productionEnvironment(
+                        "jdbc:mysql://db:3306/demeter?sslMode=VERIFY_IDENTITY&connectionTimeZone=UTC",
+                        "demeter_worker",
+                        false),
+                new ProductionProperties(1, false),
+                new OcrStorageProperties(ABSOLUTE_STORAGE_PATH, true),
+                RuntimeRole.WORKER,
+                enabledWorker(),
+                false,
+                false,
+                java.util.List.of(provider),
+                new AdminProperties(true, "admin-production-token-01234567890123456789", Duration.ofHours(8)));
+
+        assertThatThrownBy(validator::afterPropertiesSet)
+                .hasMessageContaining("ADMIN_ENABLED may only be true for the API role");
+    }
+
+    @Test
     void rejectsAMySqlConnectionWithoutCertificateAndHostnameVerification() {
         ProductionReadinessValidator validator = validator(
                 "jdbc:mysql://db:3306/demeter?sslMode=REQUIRED&connectionTimeZone=UTC",
@@ -468,6 +509,20 @@ class ProductionReadinessValidatorTest {
             boolean maintenanceEnabled,
             boolean reconciliationEnabled,
             java.util.List<HandwrittenBillOcrProvider> providers) {
+        return validator(environment, production, storage, role, worker, maintenanceEnabled,
+                reconciliationEnabled, providers, new AdminProperties(false, null, Duration.ofHours(8)));
+    }
+
+    private static ProductionReadinessValidator validator(
+            MockEnvironment environment,
+            ProductionProperties production,
+            OcrStorageProperties storage,
+            RuntimeRole role,
+            OcrWorkerProperties worker,
+            boolean maintenanceEnabled,
+            boolean reconciliationEnabled,
+            java.util.List<HandwrittenBillOcrProvider> providers,
+            AdminProperties admin) {
         OcrStorageProperties portableStorage = storage.root().isAbsolute() || !storage.root().startsWith("/")
                 ? storage
                 : new OcrStorageProperties(ABSOLUTE_STORAGE_PATH, storage.shared());
@@ -494,7 +549,7 @@ class ProductionReadinessValidatorTest {
                 new RuntimeRoleProperties(role),
                 new ManagementAccessProperties(
                         "0123456789abcdef0123456789abcdef"),
-                new AdminProperties(false, null, Duration.ofHours(8)),
+                admin,
                 providers);
     }
 

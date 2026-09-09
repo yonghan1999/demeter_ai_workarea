@@ -149,6 +149,9 @@ public class ProductionReadinessValidator implements InitializingBean {
     }
 
     private void validateRole() {
+        if (admin.enabled() && runtime.role() != RuntimeRole.API) {
+            throw new IllegalStateException("ADMIN_ENABLED may only be true for the API role");
+        }
         switch (runtime.role()) {
             case API -> validateApiRole();
             case WORKER -> validateWorkerRole();
@@ -201,8 +204,11 @@ public class ProductionReadinessValidator implements InitializingBean {
         if (!rateLimit.enabled()) {
             throw new IllegalStateException("In-process rate limiting must remain enabled on the production API");
         }
-        if (admin.enabled() && admin.accessToken().equals(management.accessToken())) {
-            throw new IllegalStateException("ADMIN_ACCESS_TOKEN must differ from MANAGEMENT_ACCESS_TOKEN");
+        if (admin.enabled()) {
+            String adminToken = requireSecret(admin.accessToken(), "ADMIN_ACCESS_TOKEN");
+            if (adminToken.equals(management.accessToken())) {
+                throw new IllegalStateException("ADMIN_ACCESS_TOKEN must differ from MANAGEMENT_ACCESS_TOKEN");
+            }
         }
     }
 
