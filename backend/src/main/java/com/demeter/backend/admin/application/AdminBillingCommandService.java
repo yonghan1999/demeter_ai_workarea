@@ -16,9 +16,6 @@ import com.demeter.backend.common.idempotency.CanonicalValues;
 import com.demeter.backend.common.idempotency.IdempotencyKeys;
 import com.demeter.backend.config.ConditionalOnRuntimeRole;
 import com.demeter.backend.config.RuntimeRole;
-import com.demeter.backend.payment.domain.Payment;
-import com.demeter.backend.payment.infrastructure.PaymentRepository;
-import java.math.BigDecimal;
 import java.time.Clock;
 import java.util.Collection;
 import java.util.List;
@@ -33,29 +30,24 @@ public class AdminBillingCommandService {
     private static final String BILL_DELETE = "admin.bill.delete";
     private static final String BILL_BATCH_DELETE = "admin.bill.batch-delete";
     private static final String BILL_RESTORE = "admin.bill.restore";
-    private static final String PAYMENT_REVERSE = "admin.payment.reverse";
 
     private final BillRepository bills;
-    private final PaymentRepository payments;
     private final AuditService audit;
     private final Clock clock;
     private final AdminCommandRunner runner;
     private final BusinessChain<BillContext, Boolean> deleteChain;
     private final BusinessChain<BatchBillContext, Boolean> batchDeleteChain;
     private final BusinessChain<BillContext, Boolean> restoreChain;
-    private final BusinessChain<PaymentContext, Boolean> reversePaymentChain;
 
-    public AdminBillingCommandService(BillRepository bills, PaymentRepository payments, AuditService audit,
+    public AdminBillingCommandService(BillRepository bills, AuditService audit,
             Clock clock, AdminCommandRunner runner) {
         this.bills = bills;
-        this.payments = payments;
         this.audit = audit;
         this.clock = clock;
         this.runner = runner;
         this.deleteChain = buildDeleteChain();
         this.batchDeleteChain = buildBatchDeleteChain();
         this.restoreChain = buildRestoreChain();
-        this.reversePaymentChain = buildReversePaymentChain();
     }
 
     public void deleteBill(long id, String reason, String idempotencyKey) {
@@ -68,10 +60,6 @@ public class AdminBillingCommandService {
 
     public void restoreBill(long id, String reason, String idempotencyKey) {
         runner.execute(restoreChain, new BillContext(id, reason, idempotencyKey, BILL_RESTORE));
-    }
-
-    public void reversePayment(long billId, long paymentId, String reason, String idempotencyKey) {
-        runner.execute(reversePaymentChain, new PaymentContext(billId, paymentId, reason, idempotencyKey));
     }
 
     private BusinessChain<BillContext, Boolean> buildDeleteChain() {
@@ -146,50 +134,6 @@ public class AdminBillingCommandService {
                         BusinessHandler.named("write-audit", context -> audit.recordSystem(
                                 context.bill.getTenantId(), "ADMIN_BILL_RESTORED", "BILL", context.bill.getId(),
                                 Map.of("reason", context.reason)))),
-                ignored -> Boolean.TRUE);
-    }
-
-    private BusinessChain<PaymentContext, Boolean> buildReversePaymentChain() {
-        return BusinessChain.of(PAYMENT_REVERSE, BusinessChainExecutionMode.ATOMIC_DATABASE,
-                List.of(
-                        BusinessHandler.named("normalize-command", context -> context.normalize()),
-                        BusinessHandler.named("reserve-idempotency", context -> reserve(context)),
-                        BusinessHandler.named("load-bill-for-update", context -> context.bill = bills.findByIdForUpdate(
-                                context.billId).orElseThrow(() -> new ResourceNotFoundException(
-                                        "Bill " + context.billId + " does not exist"))),
-                        BusinessHandler.named("load-payment-for-update", context -> context.payment = payments
-                                .findByIdAndTenantIdForUpdate(context.paymentId, context.bill.getTenantId())
-                                .orElseThrow(() -> new ResourceNotFoundException(
-                                        "Payment " + context.paymentId + " does not exist"))),
-                        BusinessHandler.named("validate-payment", context -> {
-                            if (!context.payment.getBillId().equals(context.billId)) {
-                                throw new ResourceNotFoundException("Payment does not belong to the bill");
-                            }
-                            if (context.payment.getStatus() != com.demeter.backend.payment.domain.PaymentStatus.ACTIVE) {
-                                throw new ConflictException("The payment has already been reversed");
-                            }
-                            BigDecimal ledgerAmount = payments.sumActiveAmount(
-                                    context.bill.getTenantId(), context.bill.getId(), BigDecimal.ZERO.setScale(2));
-                            if (ledgerAmount.compareTo(context.bill.getPaidAmount()) != 0) {
-                                throw new ConflictException(
-                                        "The bill payment ledger is inconsistent; contact support before retrying");
-                            }
-                        }),
-                        BusinessHandler.named("reverse-payment", context -> {
-                            try {
-                                context.payment.reverse(null, context.reason, context.key, context.hash, clock.instant());
-                                context.bill.reversePaymentBySystem(context.payment.getAmount(), clock.instant());
-                            } catch (IllegalArgumentException | IllegalStateException exception) {
-                                throw new BusinessRuleException(exception.getMessage());
-                            }
-                        }),
-                        BusinessHandler.named("persist-payment-and-bill", context -> {
-                            payments.saveAndFlush(context.payment);
-                            bills.saveAndFlush(context.bill);
-                        }),
-                        BusinessHandler.named("write-audit", context -> audit.recordSystem(
-                                context.bill.getTenantId(), "ADMIN_PAYMENT_REVERSED", "PAYMENT", context.payment.getId(),
-                                Map.of("billId", context.billId, "reason", context.reason)))),
                 ignored -> Boolean.TRUE);
     }
 
@@ -279,37 +223,4 @@ public class AdminBillingCommandService {
         public String requestHash() { return hash; }
     }
 
-    private static final class PaymentContext extends BusinessContext implements AdminIdempotentCommand {
-        private final long billId;
-        private final long paymentId;
-        private final String requestedReason;
-        private final String requestedKey;
-        private String reason;
-        private String key;
-        private String hash;
-        private Bill bill;
-        private Payment payment;
-
-        private PaymentContext(long billId, long paymentId, String reason, String key) {
-            this.billId = billId;
-            this.paymentId = paymentId;
-            this.requestedReason = reason;
-            this.requestedKey = key;
-        }
-
-        private void normalize() {
-            reason = requireReason(requestedReason, "冲正原因不能为空");
-            key = IdempotencyKeys.require(requestedKey);
-            hash = CanonicalValues.sha256(billId, paymentId, reason);
-        }
-
-        @Override
-        public String operationName() { return PAYMENT_REVERSE; }
-
-        @Override
-        public String idempotencyKey() { return key; }
-
-        @Override
-        public String requestHash() { return hash; }
-    }
 }

@@ -1,6 +1,7 @@
 package com.demeter.backend.admin.api;
 
 import com.demeter.backend.admin.application.AdminBillingCommandService;
+import com.demeter.backend.admin.application.AdminPaymentCommandService;
 import com.demeter.backend.admin.application.AdminQueryFilters.BillFilter;
 import com.demeter.backend.admin.application.AdminQueryFilters.DeletionStatus;
 import com.demeter.backend.admin.application.AdminQueryFilters.PaymentFilter;
@@ -25,13 +26,16 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 public class AdminBillingPageController {
     private final AdminQueryService queries;
     private final AdminBillingCommandService commands;
+    private final AdminPaymentCommandService paymentCommands;
     private final AdminPageRequestFactory pages;
     private final AdminOperationFeedback feedback;
 
     public AdminBillingPageController(AdminQueryService queries, AdminBillingCommandService commands,
+            AdminPaymentCommandService paymentCommands,
             AdminPageRequestFactory pages, AdminOperationFeedback feedback) {
         this.queries = queries;
         this.commands = commands;
+        this.paymentCommands = paymentCommands;
         this.pages = pages;
         this.feedback = feedback;
     }
@@ -91,7 +95,7 @@ public class AdminBillingPageController {
     @PostMapping("/payments/{paymentId}/reverse")
     String reversePayment(@PathVariable long paymentId, @RequestParam long billId, @RequestParam String reason,
             @RequestParam String idempotencyKey, RedirectAttributes redirect) {
-        return feedback.execute(() -> commands.reversePayment(billId, paymentId, reason, idempotencyKey), redirect,
+        return feedback.execute(() -> paymentCommands.reverse(billId, paymentId, reason, idempotencyKey), redirect,
                 "/admin/payments", "收款已冲正");
     }
 }
