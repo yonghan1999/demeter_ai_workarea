@@ -41,7 +41,14 @@ run_static_checks() {
   grep -q '^FLYWAY_ENABLED=false$' "$ROOT_DIR/.env.production.example"
   grep -q '^SPRINGDOC_API_DOCS_ENABLED=false$' "$ROOT_DIR/.env.production.example"
   grep -q '^SPRINGDOC_SWAGGER_UI_ENABLED=false$' "$ROOT_DIR/.env.production.example"
-  grep -q '^DATABASE_MINIMUM_SCHEMA_VERSION=22$' "$ROOT_DIR/.env.production.example"
+  latest_schema_version="$(find "$ROOT_DIR/src/main/resources/db/migration" "$ROOT_DIR/src/main/java/db/migration" \
+    -maxdepth 1 -type f -name 'V*__*' -exec basename {} \; \
+    | sed -n 's/^V\([0-9][0-9]*\)__.*/\1/p' | sort -n | tail -1)"
+  if [ -z "$latest_schema_version" ]; then
+    printf '[preflight] no versioned database migration found\n' >&2
+    exit 1
+  fi
+  grep -q "^DATABASE_MINIMUM_SCHEMA_VERSION=${latest_schema_version}$" "$ROOT_DIR/.env.production.example"
 
   log "checking local secret files are not staged for release"
   if git -C "$ROOT_DIR/.." ls-files --error-unmatch .env .env.production backend/.env backend/.env.production >/dev/null 2>&1; then
