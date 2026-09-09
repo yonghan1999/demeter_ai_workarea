@@ -30,7 +30,8 @@ import com.demeter.backend.admin.application.AdminRows.BillDetailRow;
 })
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
-@Sql(scripts = {"classpath:db/testdata/cleanup.sql", "classpath:db/testdata/bills-basic.sql"},
+@Sql(scripts = {"classpath:db/testdata/cleanup.sql", "classpath:db/testdata/bills-basic.sql",
+        "classpath:db/testdata/ocr-pending.sql"},
         executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
 class AdminPageControllerIntegrationTest {
     @Autowired MockMvc mockMvc;
@@ -158,6 +159,26 @@ class AdminPageControllerIntegrationTest {
 
         mockMvc.perform(get("/admin/payment-reconciliation").cookie(adminCookie(cookie)))
                 .andExpect(status().isOk()).andExpect(view().name("admin/payment-reconciliation"));
+    }
+
+    @Test
+    void retriesFailedOcrWithAuditedReason() throws Exception {
+        jdbcTemplate.update("update ocr_tasks set status='FAILED', attempt_count=max_attempts, "
+                + "last_error_code='OCR_TEST_FAILURE', last_error_message='测试失败', "
+                + "completed_at=CURRENT_TIMESTAMP, updated_at=CURRENT_TIMESTAMP where id=1501");
+
+        mockMvc.perform(post("/admin/ocr/00000000-0000-0000-0000-000000001501/retry")
+                        .cookie(adminCookie(loginCookie())).with(csrf())
+                        .param("reason", "供应商恢复后重试")
+                        .param("idempotencyKey", "admin-test-ocr-retry-1"))
+                .andExpect(status().is3xxRedirection()).andExpect(redirectedUrl("/admin/ocr"));
+
+        assertThat(jdbcTemplate.queryForObject("select status from ocr_tasks where id=1501", String.class))
+                .isEqualTo("PENDING");
+        assertThat(jdbcTemplate.queryForObject(
+                "select details from audit_events where action='ADMIN_OCR_TASK_RETRIED' and aggregate_id=?",
+                String.class, "00000000-0000-0000-0000-000000001501"))
+                .contains("供应商恢复后重试");
     }
 
     @Test

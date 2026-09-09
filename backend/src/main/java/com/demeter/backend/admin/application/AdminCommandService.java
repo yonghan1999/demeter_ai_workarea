@@ -159,9 +159,10 @@ public class AdminCommandService {
         });
     }
 
-    public void retryOcr(String publicId, String idempotencyKey) {
+    public void retryOcr(String publicId, String reason, String idempotencyKey) {
+        String normalizedReason = requireReason(reason, "重试原因不能为空");
         String key = IdempotencyKeys.require(idempotencyKey);
-        execute(OCR_RETRY, key, CanonicalValues.sha256(publicId), () -> {
+        execute(OCR_RETRY, key, CanonicalValues.sha256(publicId, normalizedReason), () -> {
             OcrTask task = ocrTasks.findByPublicIdForUpdate(publicId)
                     .orElseThrow(() -> new ResourceNotFoundException("OCR task does not exist"));
             try {
@@ -170,7 +171,8 @@ public class AdminCommandService {
                 throw new BusinessRuleException(exception.getMessage());
             }
             ocrTasks.saveAndFlush(task);
-            audit.recordSystem(task.getTenantId(), "ADMIN_OCR_TASK_RETRIED", "OCR_TASK", task.getPublicId(), null);
+            audit.recordSystem(task.getTenantId(), "ADMIN_OCR_TASK_RETRIED", "OCR_TASK", task.getPublicId(),
+                    Map.of("reason", normalizedReason));
         });
     }
 

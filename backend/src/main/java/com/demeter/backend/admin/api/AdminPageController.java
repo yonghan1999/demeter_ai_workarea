@@ -205,8 +205,9 @@ public class AdminPageController {
     }
 
     @PostMapping("/ocr/{id}/retry")
-    String retryOcr(@PathVariable String id, @RequestParam String idempotencyKey, RedirectAttributes redirect) {
-        return change(() -> commands.retryOcr(id, idempotencyKey), redirect, "/admin/ocr", "OCR 任务已重新排队");
+    String retryOcr(@PathVariable String id, @RequestParam String reason, @RequestParam String idempotencyKey,
+            RedirectAttributes redirect) {
+        return change(() -> commands.retryOcr(id, reason, idempotencyKey), redirect, "/admin/ocr", "OCR 任务已重新排队");
     }
 
     @GetMapping("/payments")
