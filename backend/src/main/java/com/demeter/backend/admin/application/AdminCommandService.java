@@ -15,10 +15,6 @@ import com.demeter.backend.common.idempotency.CanonicalValues;
 import com.demeter.backend.common.idempotency.IdempotencyKeys;
 import com.demeter.backend.config.ConditionalOnRuntimeRole;
 import com.demeter.backend.config.RuntimeRole;
-import com.demeter.backend.identity.domain.UserAccount;
-import com.demeter.backend.identity.domain.UserStatus;
-import com.demeter.backend.identity.infrastructure.UserAccountRepository;
-import com.demeter.backend.identity.infrastructure.AuthSessionRepository;
 import com.demeter.backend.payment.domain.Payment;
 import com.demeter.backend.payment.infrastructure.PaymentRepository;
 import com.demeter.backend.admin.infrastructure.AdminCommandReplay;
@@ -41,13 +37,8 @@ public class AdminCommandService {
     private static final String BILL_DELETE = "admin.bill.delete";
     private static final String BILL_BATCH_DELETE = "admin.bill.batch-delete";
     private static final String BILL_RESTORE = "admin.bill.restore";
-    private static final String USER_DISABLE = "admin.user.disable";
-    private static final String USER_ENABLE = "admin.user.enable";
-    private static final String USER_REVOKE_SESSIONS = "admin.user.revoke-sessions";
     private static final String PAYMENT_REVERSE = "admin.payment.reverse";
 
-    private final UserAccountRepository users;
-    private final AuthSessionRepository authSessions;
     private final BillRepository bills;
     private final PaymentRepository payments;
     private final AdminCommandReplayRepository replays;
@@ -58,8 +49,6 @@ public class AdminCommandService {
     private final BusinessChain<CommandContext, Boolean> commandChain;
 
     public AdminCommandService(
-            UserAccountRepository users,
-            AuthSessionRepository authSessions,
             BillRepository bills,
             PaymentRepository payments,
             AdminCommandReplayRepository replays,
@@ -67,8 +56,6 @@ public class AdminCommandService {
             PlatformTransactionManager transactionManager,
             Clock clock,
             BusinessChainExecutor executor) {
-        this.users = users;
-        this.authSessions = authSessions;
         this.bills = bills;
         this.payments = payments;
         this.replays = replays;
@@ -144,28 +131,6 @@ public class AdminCommandService {
         });
     }
 
-    public void disableUser(long id, String reason, String idempotencyKey) {
-        changeUserStatus(id, UserStatus.DISABLED, reason, idempotencyKey);
-    }
-
-    public void enableUser(long id, String reason, String idempotencyKey) {
-        changeUserStatus(id, UserStatus.ACTIVE, reason, idempotencyKey);
-    }
-
-    public void revokeUserSessions(long id, String reason, String idempotencyKey) {
-        String normalizedReason = requireReason(reason, "撤销会话原因不能为空");
-        execute(USER_REVOKE_SESSIONS, idempotencyKey, CanonicalValues.sha256(id, normalizedReason), () -> {
-            UserAccount user = users.findByIdForUpdate(id)
-                    .orElseThrow(() -> new ResourceNotFoundException("User " + id + " does not exist"));
-            var now = clock.instant();
-            var activeSessions = authSessions.findActiveByUserIdForUpdate(id, now);
-            activeSessions.forEach(session -> session.revoke(now));
-            authSessions.saveAllAndFlush(activeSessions);
-            audit.recordSystem(user.getTenantId(), "ADMIN_USER_SESSIONS_REVOKED", "USER", user.getId(),
-                    Map.of("reason", normalizedReason, "revokedCount", activeSessions.size()));
-        });
-    }
-
     public void reversePayment(long billId, long paymentId, String reason, String idempotencyKey) {
         String normalizedReason = requireReason(reason, "冲正原因不能为空");
         String key = IdempotencyKeys.require(idempotencyKey);
@@ -196,22 +161,6 @@ public class AdminCommandService {
             bills.saveAndFlush(bill);
             audit.recordSystem(bill.getTenantId(), "ADMIN_PAYMENT_REVERSED", "PAYMENT", payment.getId(),
                     Map.of("billId", billId, "reason", normalizedReason));
-        });
-    }
-
-    private void changeUserStatus(long id, UserStatus target, String reason, String idempotencyKey) {
-        String normalizedReason = requireReason(reason, "状态变更原因不能为空");
-        String operation = target == UserStatus.ACTIVE ? USER_ENABLE : USER_DISABLE;
-        execute(operation, idempotencyKey, CanonicalValues.sha256(id, normalizedReason), () -> {
-            UserAccount user = users.findByIdForUpdate(id)
-                    .orElseThrow(() -> new ResourceNotFoundException("User " + id + " does not exist"));
-            if (user.getStatus() == target) throw new ConflictException("User is already " + target.name().toLowerCase());
-            if (target == UserStatus.ACTIVE) user.enable(clock.instant());
-            else user.disable(clock.instant());
-            users.saveAndFlush(user);
-            audit.recordSystem(user.getTenantId(), target == UserStatus.ACTIVE
-                            ? "ADMIN_USER_ENABLED" : "ADMIN_USER_DISABLED",
-                    "USER", user.getId(), Map.of("reason", normalizedReason));
         });
     }
 

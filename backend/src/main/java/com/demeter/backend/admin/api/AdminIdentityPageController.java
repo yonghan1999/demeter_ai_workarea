@@ -1,10 +1,10 @@
 package com.demeter.backend.admin.api;
 
-import com.demeter.backend.admin.application.AdminCommandService;
 import com.demeter.backend.admin.application.AdminQueryFilters.TenantFilter;
 import com.demeter.backend.admin.application.AdminQueryFilters.UserFilter;
 import com.demeter.backend.admin.application.AdminQueryService;
 import com.demeter.backend.admin.application.AdminTenantCommandService;
+import com.demeter.backend.admin.application.AdminUserCommandService;
 import com.demeter.backend.config.ConditionalOnRuntimeRole;
 import com.demeter.backend.config.RuntimeRole;
 import com.demeter.backend.identity.domain.TenantStatus;
@@ -24,16 +24,16 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 public class AdminIdentityPageController {
     private final AdminQueryService queries;
     private final AdminTenantCommandService tenantCommands;
-    private final AdminCommandService commands;
+    private final AdminUserCommandService userCommands;
     private final AdminPageRequestFactory pages;
     private final AdminOperationFeedback feedback;
 
     public AdminIdentityPageController(AdminQueryService queries, AdminTenantCommandService tenantCommands,
-            AdminCommandService commands,
+            AdminUserCommandService userCommands,
             AdminPageRequestFactory pages, AdminOperationFeedback feedback) {
         this.queries = queries;
         this.tenantCommands = tenantCommands;
-        this.commands = commands;
+        this.userCommands = userCommands;
         this.pages = pages;
         this.feedback = feedback;
     }
@@ -85,21 +85,21 @@ public class AdminIdentityPageController {
     @PostMapping("/users/{id}/disable")
     String disableUser(@PathVariable long id, @RequestParam String reason, @RequestParam String idempotencyKey,
             RedirectAttributes redirect) {
-        return feedback.execute(() -> commands.disableUser(id, reason, idempotencyKey), redirect,
+        return feedback.execute(() -> userCommands.disable(id, reason, idempotencyKey), redirect,
                 "/admin/users", "用户已禁用");
     }
 
     @PostMapping("/users/{id}/enable")
     String enableUser(@PathVariable long id, @RequestParam String reason, @RequestParam String idempotencyKey,
             RedirectAttributes redirect) {
-        return feedback.execute(() -> commands.enableUser(id, reason, idempotencyKey), redirect,
+        return feedback.execute(() -> userCommands.enable(id, reason, idempotencyKey), redirect,
                 "/admin/users", "用户已启用");
     }
 
     @PostMapping("/users/{id}/revoke-sessions")
     String revokeUserSessions(@PathVariable long id, @RequestParam String reason,
             @RequestParam String idempotencyKey, RedirectAttributes redirect) {
-        return feedback.execute(() -> commands.revokeUserSessions(id, reason, idempotencyKey), redirect,
+        return feedback.execute(() -> userCommands.revokeSessions(id, reason, idempotencyKey), redirect,
                 "/admin/users", "用户会话已撤销");
     }
 }
