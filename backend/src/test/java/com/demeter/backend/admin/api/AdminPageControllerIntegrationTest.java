@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -61,6 +62,96 @@ class AdminPageControllerIntegrationTest {
         assertThat(jdbcTemplate.queryForObject(
                 "select count(*) from audit_events where action='ADMIN_TENANT_SUSPENDED' and tenant_id=1001", Integer.class))
                 .isEqualTo(1);
+    }
+
+    @Test
+    void activatesTenantIdempotentlyAndRejectsAChangedReplay() throws Exception {
+        jdbcTemplate.update("update tenants set status='SUSPENDED' where id=1001");
+        String cookie = loginCookie();
+
+        for (int attempt = 0; attempt < 2; attempt++) {
+            mockMvc.perform(post("/admin/tenants/1001/activate").cookie(adminCookie(cookie)).with(csrf())
+                            .param("reason", "复核完成").param("idempotencyKey", "admin-test-activate-1"))
+                    .andExpect(status().is3xxRedirection())
+                    .andExpect(redirectedUrl("/admin/tenants"))
+                    .andExpect(flash().attribute("message", "租户已恢复"));
+        }
+
+        mockMvc.perform(post("/admin/tenants/1001/activate").cookie(adminCookie(cookie)).with(csrf())
+                        .param("reason", "不同的恢复原因").param("idempotencyKey", "admin-test-activate-1"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(flash().attribute("error", "The Idempotency-Key was already used for a different request"));
+
+        assertThat(jdbcTemplate.queryForObject("select status from tenants where id=1001", String.class))
+                .isEqualTo("ACTIVE");
+        assertThat(jdbcTemplate.queryForObject(
+                "select count(*) from audit_events where action='ADMIN_TENANT_ACTIVATED' and tenant_id=1001",
+                Integer.class)).isEqualTo(1);
+        assertThat(jdbcTemplate.queryForObject(
+                "select count(*) from admin_command_replays where operation_name='admin.tenant.activate' "
+                        + "and idempotency_key='admin-test-activate-1'", Integer.class)).isEqualTo(1);
+    }
+
+    @Test
+    void rejectsBlankManagementReasonWithoutChangingState() throws Exception {
+        mockMvc.perform(post("/admin/tenants/1001/suspend").cookie(adminCookie(loginCookie())).with(csrf())
+                        .param("reason", "   ").param("idempotencyKey", "admin-test-blank-reason"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(flash().attribute("error", "状态变更原因不能为空"));
+
+        assertThat(jdbcTemplate.queryForObject("select status from tenants where id=1001", String.class))
+                .isEqualTo("ACTIVE");
+        assertThat(jdbcTemplate.queryForObject(
+                "select count(*) from audit_events where action='ADMIN_TENANT_SUSPENDED' and tenant_id=1001",
+                Integer.class)).isZero();
+    }
+
+    @Test
+    void disablesAndEnablesUserWithTenantScopedAudit() throws Exception {
+        String cookie = loginCookie();
+
+        mockMvc.perform(post("/admin/users/1101/disable").cookie(adminCookie(cookie)).with(csrf())
+                        .param("reason", "账号风险核查").param("idempotencyKey", "admin-test-disable-user-1"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(flash().attribute("message", "用户已禁用"));
+        assertThat(jdbcTemplate.queryForObject("select status from users where id=1101", String.class))
+                .isEqualTo("DISABLED");
+
+        mockMvc.perform(post("/admin/users/1101/enable").cookie(adminCookie(cookie)).with(csrf())
+                        .param("reason", "风险核查通过").param("idempotencyKey", "admin-test-enable-user-1"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(flash().attribute("message", "用户已启用"));
+
+        assertThat(jdbcTemplate.queryForObject("select status from users where id=1101", String.class))
+                .isEqualTo("ACTIVE");
+        assertThat(jdbcTemplate.queryForObject(
+                "select count(*) from audit_events where action in ('ADMIN_USER_DISABLED', 'ADMIN_USER_ENABLED') "
+                        + "and tenant_id=1001 and aggregate_id='1101'", Integer.class)).isEqualTo(2);
+    }
+
+    @Test
+    void deletesAndRestoresSingleBillWithTenantScopedAudit() throws Exception {
+        String cookie = loginCookie();
+
+        mockMvc.perform(post("/admin/bills/1201/delete").cookie(adminCookie(cookie)).with(csrf())
+                        .param("reason", "重复账单核验").param("idempotencyKey", "admin-test-delete-bill-1"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(flash().attribute("message", "账单已删除"));
+        assertThat(jdbcTemplate.queryForObject(
+                "select count(*) from bills where id=1201 and deleted_at is not null "
+                        + "and deleted_by is null and delete_reason='重复账单核验'", Integer.class)).isEqualTo(1);
+
+        mockMvc.perform(post("/admin/bills/1201/restore").cookie(adminCookie(cookie)).with(csrf())
+                        .param("reason", "确认并非重复账单").param("idempotencyKey", "admin-test-restore-bill-1"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(flash().attribute("message", "账单已恢复"));
+
+        assertThat(jdbcTemplate.queryForObject(
+                "select count(*) from bills where id=1201 and deleted_at is null "
+                        + "and deleted_by is null and delete_reason is null", Integer.class)).isEqualTo(1);
+        assertThat(jdbcTemplate.queryForObject(
+                "select count(*) from audit_events where action in ('ADMIN_BILL_DELETED', 'ADMIN_BILL_RESTORED') "
+                        + "and tenant_id=1001 and aggregate_id='1201'", Integer.class)).isEqualTo(2);
     }
 
     @Test

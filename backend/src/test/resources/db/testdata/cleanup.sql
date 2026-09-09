@@ -1,5 +1,6 @@
 DELETE FROM audit_events;
 DELETE FROM maintenance_runs;
+DELETE FROM admin_command_replays;
 DELETE FROM business_command_replays;
 DELETE FROM ocr_retry_commands;
 DELETE FROM ocr_tasks;
