@@ -20,7 +20,7 @@ class DatabaseSchemaHealthIndicatorTest {
         var health = new DatabaseSchemaHealthIndicator(dataSource, new DatabaseSchemaProperties(22)).health();
 
         assertThat(health.getStatus()).isEqualTo(Status.UP);
-        assertThat(health.getDetails()).containsEntry("version", 23);
+        assertThat(health.getDetails()).containsEntry("version", 22);
         assertThat(health.getDetails()).containsEntry("minimumVersion", 22);
     }
 

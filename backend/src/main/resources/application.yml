@@ -155,7 +155,7 @@ resilience4j:
 
 demeter:
   database:
-    minimum-schema-version: ${DATABASE_MINIMUM_SCHEMA_VERSION:22}
+    minimum-schema-version: ${DATABASE_MINIMUM_SCHEMA_VERSION:23}
   business-time:
     zone-id: ${BUSINESS_TIME_ZONE:Asia/Shanghai}
   runtime:
