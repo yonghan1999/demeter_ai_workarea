@@ -22,8 +22,6 @@ import com.demeter.backend.identity.domain.UserStatus;
 import com.demeter.backend.identity.infrastructure.TenantRepository;
 import com.demeter.backend.identity.infrastructure.UserAccountRepository;
 import com.demeter.backend.identity.infrastructure.AuthSessionRepository;
-import com.demeter.backend.ocr.domain.OcrTask;
-import com.demeter.backend.ocr.infrastructure.OcrTaskRepository;
 import com.demeter.backend.payment.domain.Payment;
 import com.demeter.backend.payment.infrastructure.PaymentRepository;
 import com.demeter.backend.admin.infrastructure.AdminCommandReplay;
@@ -46,7 +44,6 @@ public class AdminCommandService {
     private static final String BILL_DELETE = "admin.bill.delete";
     private static final String BILL_BATCH_DELETE = "admin.bill.batch-delete";
     private static final String BILL_RESTORE = "admin.bill.restore";
-    private static final String OCR_RETRY = "admin.ocr.retry";
     private static final String TENANT_SUSPEND = "admin.tenant.suspend";
     private static final String TENANT_ACTIVATE = "admin.tenant.activate";
     private static final String USER_DISABLE = "admin.user.disable";
@@ -59,7 +56,6 @@ public class AdminCommandService {
     private final UserAccountRepository users;
     private final AuthSessionRepository authSessions;
     private final BillRepository bills;
-    private final OcrTaskRepository ocrTasks;
     private final PaymentRepository payments;
     private final AdminCommandReplayRepository replays;
     private final AuditService audit;
@@ -73,7 +69,6 @@ public class AdminCommandService {
             UserAccountRepository users,
             AuthSessionRepository authSessions,
             BillRepository bills,
-            OcrTaskRepository ocrTasks,
             PaymentRepository payments,
             AdminCommandReplayRepository replays,
             AuditService audit,
@@ -84,7 +79,6 @@ public class AdminCommandService {
         this.users = users;
         this.authSessions = authSessions;
         this.bills = bills;
-        this.ocrTasks = ocrTasks;
         this.payments = payments;
         this.replays = replays;
         this.audit = audit;
@@ -155,23 +149,6 @@ public class AdminCommandService {
             bill.restoreBySystem(clock.instant());
             bills.saveAndFlush(bill);
             audit.recordSystem(bill.getTenantId(), "ADMIN_BILL_RESTORED", "BILL", bill.getId(),
-                    Map.of("reason", normalizedReason));
-        });
-    }
-
-    public void retryOcr(String publicId, String reason, String idempotencyKey) {
-        String normalizedReason = requireReason(reason, "重试原因不能为空");
-        String key = IdempotencyKeys.require(idempotencyKey);
-        execute(OCR_RETRY, key, CanonicalValues.sha256(publicId, normalizedReason), () -> {
-            OcrTask task = ocrTasks.findByPublicIdForUpdate(publicId)
-                    .orElseThrow(() -> new ResourceNotFoundException("OCR task does not exist"));
-            try {
-                task.retry(clock.instant());
-            } catch (IllegalStateException exception) {
-                throw new BusinessRuleException(exception.getMessage());
-            }
-            ocrTasks.saveAndFlush(task);
-            audit.recordSystem(task.getTenantId(), "ADMIN_OCR_TASK_RETRIED", "OCR_TASK", task.getPublicId(),
                     Map.of("reason", normalizedReason));
         });
     }

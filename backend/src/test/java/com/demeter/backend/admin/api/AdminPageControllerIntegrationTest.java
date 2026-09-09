@@ -257,15 +257,29 @@ class AdminPageControllerIntegrationTest {
         jdbcTemplate.update("update ocr_tasks set status='FAILED', attempt_count=max_attempts, "
                 + "last_error_code='OCR_TEST_FAILURE', last_error_message='测试失败', "
                 + "completed_at=CURRENT_TIMESTAMP, updated_at=CURRENT_TIMESTAMP where id=1501");
+        String cookie = loginCookie();
 
+        for (int attempt = 0; attempt < 2; attempt++) {
+            mockMvc.perform(post("/admin/ocr/00000000-0000-0000-0000-000000001501/retry")
+                            .cookie(adminCookie(cookie)).with(csrf())
+                            .param("reason", "供应商恢复后重试")
+                            .param("idempotencyKey", "admin-test-ocr-retry-1"))
+                    .andExpect(status().is3xxRedirection())
+                    .andExpect(redirectedUrl("/admin/ocr"))
+                    .andExpect(flash().attribute("message", "OCR 任务已重新排队"));
+        }
         mockMvc.perform(post("/admin/ocr/00000000-0000-0000-0000-000000001501/retry")
-                        .cookie(adminCookie(loginCookie())).with(csrf())
-                        .param("reason", "供应商恢复后重试")
+                        .cookie(adminCookie(cookie)).with(csrf())
+                        .param("reason", "不同的重试原因")
                         .param("idempotencyKey", "admin-test-ocr-retry-1"))
-                .andExpect(status().is3xxRedirection()).andExpect(redirectedUrl("/admin/ocr"));
+                .andExpect(status().is3xxRedirection())
+                .andExpect(flash().attribute("error", "The Idempotency-Key was already used for a different request"));
 
         assertThat(jdbcTemplate.queryForObject("select status from ocr_tasks where id=1501", String.class))
                 .isEqualTo("PENDING");
+        assertThat(jdbcTemplate.queryForObject(
+                "select count(*) from audit_events where action='ADMIN_OCR_TASK_RETRIED' and aggregate_id=?",
+                Integer.class, "00000000-0000-0000-0000-000000001501")).isEqualTo(1);
         assertThat(jdbcTemplate.queryForObject(
                 "select details from audit_events where action='ADMIN_OCR_TASK_RETRIED' and aggregate_id=?",
                 String.class, "00000000-0000-0000-0000-000000001501"))

@@ -1,6 +1,6 @@
 package com.demeter.backend.admin.api;
 
-import com.demeter.backend.admin.application.AdminCommandService;
+import com.demeter.backend.admin.application.AdminOcrCommandService;
 import com.demeter.backend.admin.application.AdminQueryFilters.OcrFilter;
 import com.demeter.backend.admin.application.AdminQueryService;
 import com.demeter.backend.config.ConditionalOnRuntimeRole;
@@ -20,11 +20,11 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 @RequestMapping("/admin/ocr")
 public class AdminOcrPageController {
     private final AdminQueryService queries;
-    private final AdminCommandService commands;
+    private final AdminOcrCommandService commands;
     private final AdminPageRequestFactory pages;
     private final AdminOperationFeedback feedback;
 
-    public AdminOcrPageController(AdminQueryService queries, AdminCommandService commands,
+    public AdminOcrPageController(AdminQueryService queries, AdminOcrCommandService commands,
             AdminPageRequestFactory pages, AdminOperationFeedback feedback) {
         this.queries = queries;
         this.commands = commands;
@@ -48,7 +48,7 @@ public class AdminOcrPageController {
     @PostMapping("/{id}/retry")
     String retry(@PathVariable String id, @RequestParam String reason, @RequestParam String idempotencyKey,
             RedirectAttributes redirect) {
-        return feedback.execute(() -> commands.retryOcr(id, reason, idempotencyKey), redirect,
+        return feedback.execute(() -> commands.retry(id, reason, idempotencyKey), redirect,
                 "/admin/ocr", "OCR 任务已重新排队");
     }
 }
