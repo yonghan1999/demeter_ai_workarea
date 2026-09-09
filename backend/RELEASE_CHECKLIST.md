@@ -48,6 +48,17 @@ replacement for target-environment verification.
 - [ ] Roll out one API instance first.
 - [ ] Confirm WeChat login, bill list, bill creation, payment creation, soft
       delete, restore, and OCR upload contract.
+- [ ] If `ADMIN_ENABLED=true`, confirm `/admin` redirects unauthenticated users
+      to `/admin/login`, and the login page loads `/admin/admin.css` and
+      `/admin/admin.js` with same-origin security headers.
+- [ ] If `ADMIN_ENABLED=true`, log in through the approved secret-injection
+      path, confirm the admin cookie is `HttpOnly`, `SameSite=Lax`, scoped to
+      `/admin`, and marked `Secure` when accessed through HTTPS; then verify
+      logout invalidates the session.
+- [ ] If `ADMIN_ENABLED=true`, execute one non-production destructive-operation
+      rehearsal with a test record: CSRF protection, required reason,
+      idempotency replay, tenant-scoped audit event, and safe error feedback
+      must all be observed before enabling the console for operators.
 - [ ] Expand traffic gradually while watching error rate, P95 latency, Hikari
       pool usage, MySQL lock waits, and OCR queue depth.
 
