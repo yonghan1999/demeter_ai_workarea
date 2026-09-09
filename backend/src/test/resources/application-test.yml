@@ -26,8 +26,8 @@ demeter:
     maximum-keys: 1000
     expire-after-access: 1m
     login:
-      capacity: 10
-      refill-tokens: 10
+      capacity: 100
+      refill-tokens: 100
       refill-period: 1m
     authenticated:
       capacity: 100

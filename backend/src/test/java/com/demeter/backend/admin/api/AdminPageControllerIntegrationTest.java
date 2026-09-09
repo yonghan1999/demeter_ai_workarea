@@ -106,6 +106,45 @@ class AdminPageControllerIntegrationTest {
     }
 
     @Test
+    void batchDeletesBillsAtomicallyAndWritesTenantScopedAudit() throws Exception {
+        String cookie = loginCookie();
+        mockMvc.perform(post("/admin/bills/batch-delete")
+                        .cookie(adminCookie(cookie)).with(csrf())
+                        .param("billIds", "1201", "2201")
+                        .param("reason", "批量清理")
+                        .param("idempotencyKey", "admin-test-batch-delete-1"))
+                .andExpect(status().is3xxRedirection()).andExpect(redirectedUrl("/admin/bills"));
+
+        assertThat(jdbcTemplate.queryForObject(
+                "select count(*) from bills where id in (1201, 2201) and deleted_at is not null", Integer.class))
+                .isEqualTo(2);
+        assertThat(jdbcTemplate.queryForObject(
+                "select count(*) from audit_events where action='ADMIN_BILLS_BATCH_DELETED' and tenant_id=1001",
+                Integer.class)).isEqualTo(1);
+        assertThat(jdbcTemplate.queryForObject(
+                "select count(*) from audit_events where action='ADMIN_BILLS_BATCH_DELETED' and tenant_id=1002",
+                Integer.class)).isEqualTo(1);
+    }
+
+    @Test
+    void batchDeleteRollsBackWhenAnyBillIsMissing() throws Exception {
+        String cookie = loginCookie();
+        mockMvc.perform(post("/admin/bills/batch-delete")
+                        .cookie(adminCookie(cookie)).with(csrf())
+                        .param("billIds", "1201", "999999")
+                        .param("reason", "批量清理")
+                        .param("idempotencyKey", "admin-test-batch-delete-rollback"))
+                .andExpect(status().is3xxRedirection()).andExpect(redirectedUrl("/admin/bills"));
+
+        assertThat(jdbcTemplate.queryForObject(
+                "select count(*) from bills where id=1201 and deleted_at is not null", Integer.class))
+                .isZero();
+        assertThat(jdbcTemplate.queryForObject(
+                "select count(*) from audit_events where action='ADMIN_BILLS_BATCH_DELETED'", Integer.class))
+                .isZero();
+    }
+
+    @Test
     void filtersManagementListsAndRendersOperationalPages() throws Exception {
         String cookie = loginCookie();
 

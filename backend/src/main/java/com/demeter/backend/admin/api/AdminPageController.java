@@ -36,6 +36,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.PathVariable;
+import java.util.List;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 @Controller
@@ -188,6 +189,13 @@ public class AdminPageController {
     String deleteBill(@PathVariable long id, @RequestParam String reason, @RequestParam String idempotencyKey,
             RedirectAttributes redirect) {
         return change(() -> commands.deleteBill(id, reason, idempotencyKey), redirect, "/admin/bills", "账单已删除");
+    }
+
+    @PostMapping("/bills/batch-delete")
+    String deleteBills(@RequestParam(name = "billIds", required = false) List<Long> billIds,
+            @RequestParam String reason, @RequestParam String idempotencyKey, RedirectAttributes redirect) {
+        return change(() -> commands.deleteBills(billIds, reason, idempotencyKey), redirect,
+                "/admin/bills", "选中的账单已删除");
     }
 
     @PostMapping("/bills/{id}/restore")

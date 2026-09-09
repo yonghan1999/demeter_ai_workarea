@@ -30,6 +30,7 @@ import com.demeter.backend.admin.infrastructure.AdminCommandReplay;
 import com.demeter.backend.admin.infrastructure.AdminCommandReplayRepository;
 import java.time.Clock;
 import java.math.BigDecimal;
+import java.util.Collection;
 import java.util.Map;
 import java.util.List;
 import java.util.Optional;
@@ -41,7 +42,9 @@ import org.springframework.transaction.support.TransactionTemplate;
 @Service
 @ConditionalOnRuntimeRole(RuntimeRole.API)
 public class AdminCommandService {
+    private static final int MAX_BATCH_BILLS = 100;
     private static final String BILL_DELETE = "admin.bill.delete";
+    private static final String BILL_BATCH_DELETE = "admin.bill.batch-delete";
     private static final String BILL_RESTORE = "admin.bill.restore";
     private static final String OCR_RETRY = "admin.ocr.retry";
     private static final String TENANT_SUSPEND = "admin.tenant.suspend";
@@ -108,6 +111,38 @@ public class AdminCommandService {
             audit.recordSystem(bill.getTenantId(), "ADMIN_BILL_DELETED", "BILL", bill.getId(),
                     Map.of("reason", normalizedReason));
         });
+    }
+
+    public void deleteBills(Collection<Long> ids, String reason, String idempotencyKey) {
+        List<Long> normalizedIds = normalizeBillIds(ids);
+        String normalizedReason = requireReason(reason, "删除原因不能为空");
+        execute(BILL_BATCH_DELETE, idempotencyKey,
+                CanonicalValues.builder().addCollection(normalizedIds).add(normalizedReason).digest(), () -> {
+                    List<Bill> billsToDelete = bills.findAllByIdsForUpdate(normalizedIds);
+                    if (billsToDelete.size() != normalizedIds.size()) {
+                        var existingIds = billsToDelete.stream().map(Bill::getId).collect(java.util.stream.Collectors.toSet());
+                        List<Long> missing = normalizedIds.stream().filter(id -> !existingIds.contains(id)).toList();
+                        throw new ResourceNotFoundException("Bills do not exist: " + missing);
+                    }
+                    if (billsToDelete.stream().anyMatch(bill -> bill.getDeletedAt() != null)) {
+                        throw new ConflictException("One or more bills are already deleted");
+                    }
+                    var now = clock.instant();
+                    billsToDelete.forEach(bill -> bill.softDeleteBySystem(normalizedReason, now));
+                    bills.saveAllAndFlush(billsToDelete);
+                    Map<Long, List<Long>> idsByTenant = new java.util.LinkedHashMap<>();
+                    billsToDelete.forEach(bill -> idsByTenant
+                            .computeIfAbsent(bill.getTenantId(), ignored -> new java.util.ArrayList<>())
+                            .add(bill.getId()));
+                    String batchId = "batch:" + CanonicalValues.builder()
+                            .addCollection(normalizedIds).digest().substring(0, 32);
+                    idsByTenant.forEach((tenantId, tenantBillIds) -> audit.recordSystem(
+                            tenantId,
+                            "ADMIN_BILLS_BATCH_DELETED",
+                            "BILL_BATCH",
+                            batchId,
+                            Map.of("ids", tenantBillIds, "reason", normalizedReason)));
+                });
     }
 
     public void restoreBill(long id, String reason, String idempotencyKey) {
@@ -290,6 +325,24 @@ public class AdminCommandService {
             throw new BusinessRuleException(message);
         }
         return value.trim();
+    }
+
+    private static List<Long> normalizeBillIds(Collection<Long> ids) {
+        if (ids == null) {
+            throw new BusinessRuleException("至少选择一笔账单");
+        }
+        List<Long> normalized = ids.stream()
+                .filter(java.util.Objects::nonNull)
+                .distinct()
+                .sorted()
+                .toList();
+        if (normalized.isEmpty() || normalized.stream().anyMatch(id -> id < 1)) {
+            throw new BusinessRuleException("至少选择一笔有效账单");
+        }
+        if (normalized.size() > MAX_BATCH_BILLS) {
+            throw new BusinessRuleException("单次最多处理 " + MAX_BATCH_BILLS + " 笔账单");
+        }
+        return normalized;
     }
 
     private static final class CommandContext extends BusinessContext {
