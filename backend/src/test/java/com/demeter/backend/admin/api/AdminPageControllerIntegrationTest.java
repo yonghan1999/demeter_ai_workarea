@@ -296,6 +296,27 @@ class AdminPageControllerIntegrationTest {
     }
 
     @Test
+    void marksHttpsAdminSessionCookieAsHttpOnlyLaxAndSecure() throws Exception {
+        mockMvc.perform(post("/admin/login").secure(true).with(csrf())
+                        .param("accessToken", "0123456789abcdef0123456789abcdef"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(header().string("Set-Cookie", org.hamcrest.Matchers.allOf(
+                        org.hamcrest.Matchers.containsString("Path=/admin"),
+                        org.hamcrest.Matchers.containsString("HttpOnly"),
+                        org.hamcrest.Matchers.containsString("SameSite=Lax"),
+                        org.hamcrest.Matchers.containsString("Secure"))));
+    }
+
+    @Test
+    void logoutRevokesTheAdminSession() throws Exception {
+        String cookie = loginCookie();
+        mockMvc.perform(post("/admin/logout").cookie(adminCookie(cookie)).with(csrf()))
+                .andExpect(status().is3xxRedirection()).andExpect(redirectedUrl("/admin/login"));
+        mockMvc.perform(get("/admin/tenants").cookie(adminCookie(cookie)))
+                .andExpect(status().is3xxRedirection()).andExpect(redirectedUrl("/admin/login"));
+    }
+
+    @Test
     void rendersBillDetailWithPaymentsAndAuditContext() throws Exception {
         jdbcTemplate.update("update bills set deleted_at=CURRENT_TIMESTAMP, deleted_by=1101, delete_reason='重复账单核验' where id=1202");
         MvcResult result = mockMvc.perform(get("/admin/bills/1202").cookie(adminCookie(loginCookie())))
