@@ -1,6 +1,6 @@
 package com.demeter.backend.admin.api;
 
-import com.demeter.backend.admin.application.AdminCommandService;
+import com.demeter.backend.admin.application.AdminBillingCommandService;
 import com.demeter.backend.admin.application.AdminQueryFilters.BillFilter;
 import com.demeter.backend.admin.application.AdminQueryFilters.DeletionStatus;
 import com.demeter.backend.admin.application.AdminQueryFilters.PaymentFilter;
@@ -24,11 +24,11 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 @RequestMapping("/admin")
 public class AdminBillingPageController {
     private final AdminQueryService queries;
-    private final AdminCommandService commands;
+    private final AdminBillingCommandService commands;
     private final AdminPageRequestFactory pages;
     private final AdminOperationFeedback feedback;
 
-    public AdminBillingPageController(AdminQueryService queries, AdminCommandService commands,
+    public AdminBillingPageController(AdminQueryService queries, AdminBillingCommandService commands,
             AdminPageRequestFactory pages, AdminOperationFeedback feedback) {
         this.queries = queries;
         this.commands = commands;
