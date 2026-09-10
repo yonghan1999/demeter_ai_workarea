@@ -4,6 +4,8 @@ import com.demeter.backend.auth.spi.WechatCodeExchangeClient;
 import com.demeter.backend.auth.spi.WechatIdentity;
 import com.demeter.backend.common.error.ExternalServiceException;
 import com.demeter.backend.common.error.ServiceNotConfiguredException;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.net.http.HttpClient;
 import io.github.resilience4j.bulkhead.annotation.Bulkhead;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
@@ -23,9 +25,14 @@ public class WechatHttpCodeExchangeClient implements WechatCodeExchangeClient {
 
     private final WechatProperties properties;
     private final RestClient restClient;
+    private final ObjectMapper objectMapper;
 
-    public WechatHttpCodeExchangeClient(WechatProperties properties, RestClient.Builder builder) {
+    public WechatHttpCodeExchangeClient(
+            WechatProperties properties,
+            RestClient.Builder builder,
+            ObjectMapper objectMapper) {
         this.properties = properties;
+        this.objectMapper = objectMapper;
         HttpClient client = HttpClient.newBuilder()
                 .connectTimeout(properties.connectTimeout())
                 .build();
@@ -44,7 +51,7 @@ public class WechatHttpCodeExchangeClient implements WechatCodeExchangeClient {
                     "WeChat login is not configured");
         }
         try {
-            WechatCodeExchangeResponse response = restClient.get()
+            String response = restClient.get()
                     .uri(properties.codeToSessionUrl(), uri -> uri
                             .queryParam("appid", properties.appId())
                             .queryParam("secret", properties.appSecret())
@@ -52,19 +59,23 @@ public class WechatHttpCodeExchangeClient implements WechatCodeExchangeClient {
                             .queryParam("grant_type", "authorization_code")
                             .build())
                     .retrieve()
-                    .body(WechatCodeExchangeResponse.class);
-            if (response == null) {
+                    .body(String.class);
+            if (!StringUtils.hasText(response)) {
                 throw new ExternalServiceException("WECHAT_EMPTY_RESPONSE", "WeChat returned an empty response");
             }
-            if (response.errorCode() != null && response.errorCode() != 0) {
-                throw new WechatLoginRejectedException(
-                        "WeChat rejected the login code (" + response.errorCode() + ")");
+            WechatCodeExchangeResponse responseBody = parseResponse(response);
+            if (responseBody == null) {
+                throw new ExternalServiceException("WECHAT_INVALID_RESPONSE", "WeChat returned an invalid response");
             }
-            if (!StringUtils.hasText(response.openId())) {
+            if (responseBody.errorCode() != null && responseBody.errorCode() != 0) {
+                throw new WechatLoginRejectedException(
+                        "WeChat rejected the login code (" + responseBody.errorCode() + ")");
+            }
+            if (!StringUtils.hasText(responseBody.openId())) {
                 throw new ExternalServiceException("WECHAT_INVALID_RESPONSE", "WeChat did not return an openid");
             }
             try {
-                return new WechatIdentity(response.openId(), response.unionId());
+                return new WechatIdentity(responseBody.openId(), responseBody.unionId());
             } catch (IllegalArgumentException exception) {
                 throw new ExternalServiceException(
                         "WECHAT_INVALID_RESPONSE",
@@ -82,6 +93,16 @@ public class WechatHttpCodeExchangeClient implements WechatCodeExchangeClient {
             throw new ExternalServiceException(
                     "WECHAT_UNAVAILABLE",
                     "WeChat login service is temporarily unavailable");
+        }
+    }
+
+    private WechatCodeExchangeResponse parseResponse(String response) {
+        try {
+            return objectMapper.readValue(response, WechatCodeExchangeResponse.class);
+        } catch (JsonProcessingException exception) {
+            throw new ExternalServiceException(
+                    "WECHAT_INVALID_RESPONSE",
+                    "WeChat returned an invalid response");
         }
     }
 
