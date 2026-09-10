@@ -3,7 +3,7 @@ const { getLayout } = require('./utils/system');
 App({
   globalData: {
     appName: 'Demeter',
-    env: 'mock',
+    env: 'test',
     systemLayout: null
   },
 

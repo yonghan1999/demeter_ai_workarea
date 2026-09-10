@@ -245,6 +245,14 @@ Page(withSystemLayout({
 
   setStatus(event) {
     const status = event.currentTarget.dataset.status;
+    if (status === 'paid') {
+      wx.showToast({ title: '请先保存账单，再登记收款', icon: 'none' });
+      return;
+    }
+    if (this.data.mode === 'edit' && status !== this.data.form.status) {
+      wx.showToast({ title: '请在首页使用收款操作', icon: 'none' });
+      return;
+    }
     this.setData({
       'form.status': status,
       unpaidClass: status !== 'paid' ? 'active unpaid' : '',

@@ -1,228 +1,238 @@
+const api = require('./api-client');
 const {
   clone,
   getStore,
   saveStore,
   resetStore,
-  nextBillCode,
-  shipperSuggestions,
   mockOcrBills
 } = require('./mock-store');
 
-function wait(data, delay = 120) {
-  return new Promise((resolve) => {
-    setTimeout(() => resolve(clone(data)), delay);
-  });
-}
-
-function normalizeStatus(status) {
-  if (status === 'paid') return 'paid';
-  return 'unpaid';
-}
+const SEARCH_HISTORY_KEY = 'demeter:search-history:v1';
 
 function statusText(status) {
   const map = {
     unpaid: '未收款',
+    partially_paid: '部分收款',
     paid: '已收款'
   };
   return map[status] || '未收款';
 }
 
-function billViewModel(bill) {
-  const status = normalizeStatus(bill.status);
+function billViewModel(bill, etag = '') {
+  const status = bill.status || 'unpaid';
   return {
     ...bill,
+    id: Number(bill.id),
+    amount: Number(bill.amount || 0),
+    paidAmount: Number(bill.paidAmount || 0),
+    outstandingAmount: Number(bill.outstandingAmount || 0),
     status,
-    statusText: statusText(status),
-    amountLabel: '账单金额'
+    statusText: bill.statusText || statusText(status),
+    amountLabel: bill.amountLabel || '账单金额',
+    dueDate: bill.dueDate || '',
+    tags: Array.isArray(bill.tags) ? bill.tags : [],
+    _etag: etag || bill._etag || ''
   };
 }
 
-function matchKeyword(bill, keyword) {
-  if (!keyword) return true;
-  const text = [
-    bill.shipper,
-    bill.code,
-    bill.vehicleCargo,
-    bill.from,
-    bill.to,
-    `${bill.from}到${bill.to}`,
-    (bill.tags || []).join(',')
-  ].join(' ');
-  return text.toLowerCase().includes(keyword.toLowerCase());
+function responseHeader(response, name) {
+  const headers = response && response.header ? response.header : {};
+  const expected = name.toLowerCase();
+  const key = Object.keys(headers).find((item) => item.toLowerCase() === expected);
+  return key ? headers[key] : '';
 }
 
-function matchFilters(bill, filters = {}) {
-  if (filters.keyword && !matchKeyword(bill, filters.keyword)) return false;
-  if (filters.code && !bill.code.toLowerCase().includes(filters.code.toLowerCase())) return false;
-  if (filters.shipper && !bill.shipper.includes(filters.shipper)) return false;
-  if (filters.status && filters.status !== 'all' && bill.status !== filters.status) return false;
-  if (filters.startDate && bill.date < filters.startDate) return false;
-  if (filters.endDate && bill.date > filters.endDate) return false;
-  if (filters.tag && !bill.tags.includes(filters.tag)) return false;
-  return true;
-}
-
-function listBills(filters) {
-  const store = getStore();
-  const bills = store.bills
-    .filter((bill) => matchFilters(bill, filters))
-    .map(billViewModel);
-  return wait(bills);
-}
-
-function getBill(id) {
-  const store = getStore();
-  const bill = store.bills.find((item) => item.id === id);
-  return wait(bill ? billViewModel(bill) : null);
-}
-
-function createBill(payload) {
-  const store = getStore();
-  const bill = {
-    id: `bill-${Date.now()}`,
-    code: nextBillCode(store),
-    shipper: payload.shipper,
-    vehicleCargo: payload.vehicleCargo,
-    date: payload.date,
-    from: payload.from,
-    to: payload.to,
-    amount: Number(payload.amount || 0),
-    status: normalizeStatus(payload.status),
-    dueDate: payload.dueDate || '',
-    tags: payload.tags || []
+function billQuery(filters = {}) {
+  const query = {
+    page: 0,
+    size: 100,
+    sort: 'date,desc'
   };
-  store.bills.unshift(bill);
-  saveStore(store);
-  return wait(billViewModel(bill));
-}
-
-function updateBill(id, payload) {
-  const store = getStore();
-  const exists = store.bills.some((bill) => bill.id === id);
-  if (!exists) return wait(null);
-  store.bills = store.bills.map((bill) => {
-    if (bill.id !== id) return bill;
-    return {
-      ...bill,
-      ...payload,
-      amount: Number(payload.amount || 0),
-      status: normalizeStatus(payload.status)
-    };
+  const fields = ['keyword', 'code', 'shipper', 'startDate', 'endDate', 'tag'];
+  fields.forEach((field) => {
+    if (filters[field]) query[field] = filters[field];
   });
-  saveStore(store);
+  if (filters.status && filters.status !== 'all') query.status = filters.status;
+  return query;
+}
+
+async function listBills(filters = {}) {
+  const query = billQuery(filters);
+  const first = await api.request({ url: '/bills', data: query });
+  const pages = [first.data];
+  const totalPages = Number(first.data.totalPages || 1);
+  if (totalPages > 1) {
+    const requests = [];
+    for (let page = 1; page < totalPages; page += 1) {
+      requests.push(api.request({
+        url: '/bills',
+        data: { ...query, page }
+      }));
+    }
+    const responses = await Promise.all(requests);
+    responses.forEach((response) => pages.push(response.data));
+  }
+  return pages.flatMap((page) => (page.content || []).map((bill) => billViewModel(bill)));
+}
+
+async function getBill(id) {
+  const response = await api.request({ url: `/bills/${id}` });
+  return billViewModel(response.data, responseHeader(response, 'etag'));
+}
+
+function billPayload(payload, status) {
+  return {
+    shipper: String(payload.shipper || '').trim(),
+    vehicleCargo: String(payload.vehicleCargo || '').trim() || null,
+    date: payload.date,
+    from: String(payload.from || '').trim(),
+    to: String(payload.to || '').trim(),
+    amount: Number(payload.amount || 0),
+    status,
+    dueDate: payload.dueDate || null,
+    tags: Array.isArray(payload.tags) ? payload.tags : []
+  };
+}
+
+async function createBill(payload) {
+  const response = await api.request({
+    url: '/bills',
+    method: 'POST',
+    header: {
+      'Idempotency-Key': api.newIdempotencyKey('bill-create')
+    },
+    data: billPayload(payload, payload.status || 'unpaid')
+  });
+  return billViewModel(response.data, responseHeader(response, 'etag'));
+}
+
+async function updateBill(id, payload) {
+  const current = await getBill(id);
+  if (!current) return null;
+  const response = await api.request({
+    url: `/bills/${id}`,
+    method: 'PUT',
+    header: {
+      'If-Match': current._etag || `"${current.version || 0}"`,
+      'Idempotency-Key': api.newIdempotencyKey('bill-update')
+    },
+    data: billPayload({ ...current, ...payload }, current.status)
+  });
+  return billViewModel(response.data, responseHeader(response, 'etag'));
+}
+
+async function deleteBill(id) {
+  const response = await api.request({
+    url: `/bills/${id}`,
+    method: 'DELETE',
+    header: {
+      'Idempotency-Key': api.newIdempotencyKey('bill-delete')
+    },
+    data: {}
+  });
+  return response.data;
+}
+
+async function deleteBills(ids) {
+  const numericIds = ids.map((id) => Number(id));
+  if (numericIds.some((id) => !Number.isInteger(id) || id <= 0)) {
+    throw new Error('账单编号无效');
+  }
+  const response = await api.request({
+    url: '/bills/batch-delete',
+    method: 'POST',
+    header: {
+      'Idempotency-Key': api.newIdempotencyKey('bill-batch-delete')
+    },
+    data: {
+      ids: numericIds,
+      reason: '用户删除'
+    }
+  });
+  return response.data;
+}
+
+async function markPaid(id) {
+  const bill = await getBill(id);
+  if (!bill) return null;
+  const outstanding = Number(bill.outstandingAmount || 0);
+  if (outstanding <= 0 || bill.status === 'paid') return bill;
+  await api.request({
+    url: `/bills/${id}/payments`,
+    method: 'POST',
+    header: {
+      'Idempotency-Key': api.newIdempotencyKey('bill-payment')
+    },
+    data: {
+      amount: outstanding,
+      method: 'other',
+      note: '小程序标记收款'
+    }
+  });
   return getBill(id);
 }
 
-function deleteBill(id) {
-  const store = getStore();
-  const removed = store.bills.filter((bill) => bill.id === id);
-  store.bills = store.bills.filter((bill) => bill.id !== id);
-  saveStore(store);
-  return wait({ ok: removed.length > 0, count: removed.length, ids: removed.map((bill) => bill.id) });
-}
-
-function deleteBills(ids) {
-  const set = new Set(ids);
-  const store = getStore();
-  const removed = store.bills.filter((bill) => set.has(bill.id));
-  store.bills = store.bills.filter((bill) => !set.has(bill.id));
-  saveStore(store);
-  return wait({ ok: true, count: removed.length, ids: removed.map((bill) => bill.id) });
-}
-
-function markPaid(id) {
-  const store = getStore();
-  const exists = store.bills.some((bill) => bill.id === id);
-  if (!exists) return wait(null);
-  store.bills = store.bills.map((bill) => (
-    bill.id === id ? { ...bill, status: 'paid' } : bill
-  ));
-  saveStore(store);
-  return getBill(id);
+function readSearchHistory() {
+  try {
+    const history = wx.getStorageSync(SEARCH_HISTORY_KEY);
+    return Array.isArray(history) ? history : [];
+  } catch (error) {
+    return [];
+  }
 }
 
 function getSearchHistory() {
-  return wait(getStore().searchHistory);
+  return Promise.resolve(readSearchHistory());
 }
 
 function saveSearchKeyword(keyword) {
   const value = String(keyword || '').trim();
   if (!value) return getSearchHistory();
-  const store = getStore();
-  store.searchHistory = [value, ...store.searchHistory.filter((item) => item !== value)].slice(0, 8);
-  saveStore(store);
-  return wait(store.searchHistory);
+  const history = [value, ...readSearchHistory().filter((item) => item !== value)].slice(0, 8);
+  wx.setStorageSync(SEARCH_HISTORY_KEY, history);
+  return Promise.resolve(history);
 }
 
 function clearSearchHistory() {
-  const store = getStore();
-  store.searchHistory = [];
-  saveStore(store);
-  return wait([]);
+  wx.removeStorageSync(SEARCH_HISTORY_KEY);
+  return Promise.resolve([]);
 }
 
-function suggestShippers(keyword) {
+async function suggestShippers(keyword) {
+  const response = await api.request({
+    url: '/bills/shipper-suggestions',
+    data: { keyword: String(keyword || '').trim(), limit: 3 }
+  });
+  return response.data || [];
+}
+
+async function resolveShipperName(value) {
+  const response = await api.request({
+    url: '/bills/resolve-shipper',
+    method: 'POST',
+    data: { name: String(value || '').trim() }
+  });
+  return response.data;
+}
+
+async function suggestBillKeywords(keyword) {
   const value = String(keyword || '').trim();
-  const store = getStore();
-  const source = value
-    ? shipperSuggestions.filter((item) => item.includes(value) && item !== value)
-    : shipperSuggestions;
-  return wait(source.slice(0, 3).map((name, index) => {
-    const count = store.bills.filter((bill) => bill.shipper === name).length;
-    const meta = count > 0
-      ? `最近使用 · ${count}笔账单`
-      : name === '张三货运个体户' ? '上海 · 最近使用' : '最近使用';
-    return { id: `shipper-${index}-${name}`, value: name, label: name, meta };
-  }), 60);
-}
-
-function normalizeShipperName(value) {
-  return String(value || '')
-    .trim()
-    .toLowerCase()
-    .replace(/[\s·•,，.。()（）-]/g, '')
-    .replace(/有限责任公司$|股份有限公司$|有限公司$|公司$/g, '');
-}
-
-function resolveShipperName(value) {
-  const input = String(value || '').trim();
-  if (!input) return wait({ value: '', exists: false });
-  const store = getStore();
-  const names = [...shipperSuggestions, ...store.bills.map((bill) => bill.shipper)];
-  const normalized = normalizeShipperName(input);
-  const existing = names.find((name) => normalizeShipperName(name) === normalized);
-  return wait({ value: existing || input, exists: Boolean(existing) }, 60);
-}
-
-function suggestBillKeywords(keyword) {
-  const value = String(keyword || '').trim().toLowerCase();
-  if (!value) return wait([]);
-  const store = getStore();
-  const shippers = [];
-  const routes = [];
-  shipperSuggestions.forEach((shipper) => {
-    if (shipper.toLowerCase().includes(value) && !shippers.includes(shipper)) shippers.push(shipper);
+  if (!value) return [];
+  const response = await api.request({
+    url: '/bills/search-suggestions',
+    data: { keyword: value, limit: 6 }
   });
-  store.bills.forEach((bill) => {
-    if (bill.shipper.toLowerCase().includes(value) && !shippers.includes(bill.shipper)) {
-      shippers.push(bill.shipper);
-    }
-    const route = `${bill.from} → ${bill.to}`;
-    const routeMatches = `${bill.from} ${bill.to} ${route}`.toLowerCase().includes(value);
-    const shipperMatches = bill.shipper.toLowerCase().includes(value);
-    if ((routeMatches || shipperMatches) && !routes.includes(route)) {
-      routes.push(route);
-    }
-  });
-  return wait([
-    ...shippers.slice(0, 3).map((text) => ({ type: '托运人', text })),
-    ...routes.slice(0, 3).map((text) => ({ type: '路线', text }))
-  ], 60);
+  return response.data || [];
 }
 
+// OCR remains local until the client has a backend merge endpoint.
 function listOcrTasks() {
   const store = getStore();
-  return wait([...store.ocrTasks].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
+  return new Promise((resolve) => {
+    setTimeout(() => resolve(clone(
+      [...store.ocrTasks].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+    )), 120);
+  });
 }
 
 function createOcrTask(imagePath) {
@@ -248,13 +258,15 @@ function createOcrTask(imagePath) {
     saveStore(latest);
   }, 3200);
 
-  return wait(task);
+  return new Promise((resolve) => {
+    setTimeout(() => resolve(clone(task)), 120);
+  });
 }
 
 function getOcrTask(id) {
   const store = getStore();
   const task = store.ocrTasks.find((item) => item.id === id);
-  if (!task) return wait(null);
+  if (!task) return Promise.resolve(null);
   const bills = (task.bills || []).map((bill) => ({
     ...bill,
     duplicate: store.bills.some((existing) => (
@@ -268,7 +280,7 @@ function getOcrTask(id) {
       )
     ))
   }));
-  return wait({ ...task, bills });
+  return Promise.resolve({ ...clone(task), bills });
 }
 
 function retryOcrTask(id) {
@@ -280,7 +292,7 @@ function retryOcrTask(id) {
     return { ...task, status: 'processing', merged: false, bills: [] };
   });
   saveStore(store);
-  if (!found) return wait({ ok: false });
+  if (!found) return Promise.resolve({ ok: false });
 
   setTimeout(() => {
     const latest = getStore();
@@ -291,13 +303,13 @@ function retryOcrTask(id) {
     ));
     saveStore(latest);
   }, 3200);
-  return wait({ ok: true });
+  return Promise.resolve({ ok: true });
 }
 
 function mergeOcrTask(taskId, selectedIds, edits) {
   const store = getStore();
   const task = store.ocrTasks.find((item) => item.id === taskId);
-  if (!task || task.status !== 'completed' || task.merged) return wait({ ok: false });
+  if (!task || task.status !== 'completed' || task.merged) return Promise.resolve({ ok: false });
 
   const selected = new Set(selectedIds);
   const bills = task.bills
@@ -306,27 +318,27 @@ function mergeOcrTask(taskId, selectedIds, edits) {
       const edit = edits[bill.id] || {};
       return {
         id: `bill-${Date.now()}-${bill.id}`,
-        code: edit.code || bill.code || nextBillCode(store),
+        code: edit.code || bill.code,
         shipper: edit.shipper || bill.shipper,
         vehicleCargo: edit.vehicleCargo || bill.vehicleCargo,
         date: edit.date || bill.date,
         from: edit.from || bill.from,
         to: edit.to || bill.to,
         amount: Number(edit.amount || bill.amount || 0),
-        status: normalizeStatus(edit.status || bill.status),
+        status: edit.status === 'paid' ? 'paid' : 'unpaid',
         dueDate: '',
         tags: []
       };
     });
 
-  if (bills.length === 0) return wait({ ok: false });
+  if (bills.length === 0) return Promise.resolve({ ok: false });
 
   store.bills = [...bills, ...store.bills];
   store.ocrTasks = store.ocrTasks.map((item) => (
     item.id === taskId ? { ...item, merged: true } : item
   ));
   saveStore(store);
-  return wait({ ok: true, count: bills.length });
+  return Promise.resolve({ ok: true, count: bills.length });
 }
 
 module.exports = {

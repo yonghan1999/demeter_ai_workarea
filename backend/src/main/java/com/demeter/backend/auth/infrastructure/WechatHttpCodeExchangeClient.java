@@ -7,14 +7,19 @@ import com.demeter.backend.common.error.ServiceNotConfiguredException;
 import java.net.http.HttpClient;
 import io.github.resilience4j.bulkhead.annotation.Bulkhead;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestClientResponseException;
 
 @Component
 public class WechatHttpCodeExchangeClient implements WechatCodeExchangeClient {
+
+    private static final Logger log = LoggerFactory.getLogger(WechatHttpCodeExchangeClient.class);
 
     private final WechatProperties properties;
     private final RestClient restClient;
@@ -69,9 +74,26 @@ public class WechatHttpCodeExchangeClient implements WechatCodeExchangeClient {
         } catch (ExternalServiceException exception) {
             throw exception;
         } catch (RestClientException exception) {
+            log.warn(
+                    "WeChat code exchange request failed: exceptionType={}, httpStatus={}, causeType={}",
+                    exception.getClass().getSimpleName(),
+                    httpStatus(exception),
+                    causeType(exception));
             throw new ExternalServiceException(
                     "WECHAT_UNAVAILABLE",
                     "WeChat login service is temporarily unavailable");
         }
+    }
+
+    private static String httpStatus(RestClientException exception) {
+        if (exception instanceof RestClientResponseException responseException) {
+            return Integer.toString(responseException.getStatusCode().value());
+        }
+        return "none";
+    }
+
+    private static String causeType(RestClientException exception) {
+        Throwable cause = exception.getCause();
+        return cause == null ? "none" : cause.getClass().getSimpleName();
     }
 }
