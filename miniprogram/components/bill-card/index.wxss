@@ -12,6 +12,7 @@
 }
 
 .bill-card.paid { border-left-color: #27a550; }
+.bill-card.partially_paid { border-left-color: #d58a00; }
 .bill-card.unpaid,
 .bill-card.overdue { border-left-color: #e87a0a; }
 
@@ -86,6 +87,7 @@
 }
 
 .paid .amount { color: #17833e; }
+.partially_paid .amount { color: #b06a00; }
 
 .amount-label {
   margin-top: 2rpx;
@@ -130,6 +132,11 @@
 .status-pill.paid {
   background: #e8f7ee;
   color: #1a7a38;
+}
+
+.status-pill.partially_paid {
+  background: #fff7df;
+  color: #9a6500;
 }
 
 .summary-row {

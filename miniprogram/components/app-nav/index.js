@@ -30,6 +30,14 @@ Component({
     backIcon: '/assets/icons/back.svg'
   },
 
+  lifetimes: {
+    attached() {
+      this.setData({
+        backIcon: this.data.close ? '/assets/icons/close.svg' : '/assets/icons/back.svg'
+      });
+    }
+  },
+
   methods: {
     onBack() {
       this.triggerEvent('back');

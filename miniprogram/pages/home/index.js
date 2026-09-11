@@ -31,6 +31,7 @@ Page(withSystemLayout({
     filterStatusOptions: [
       { key: 'all', text: '全部', className: 'active' },
       { key: 'unpaid', text: '未收款', className: '' },
+      { key: 'partially_paid', text: '部分收款', className: '' },
       { key: 'paid', text: '已收款', className: '' }
     ],
     filterOpen: false,
@@ -52,10 +53,16 @@ Page(withSystemLayout({
     this.loadData();
   },
 
+  onUnload() {
+    this.loadSeq = (this.loadSeq || 0) + 1;
+    this.touchState = null;
+  },
+
   refreshTabs() {
     const source = [
       { key: 'all', text: '全部' },
       { key: 'unpaid', text: '未收款' },
+      { key: 'partially_paid', text: '部分收款' },
       { key: 'paid', text: '已收款' }
     ];
     const activeFilterSummary = this.getActiveFilterSummary();
@@ -72,6 +79,7 @@ Page(withSystemLayout({
   getActiveFilterSummary() {
     const labels = [];
     if (this.data.activeStatus === 'unpaid') labels.push('未收款');
+    if (this.data.activeStatus === 'partially_paid') labels.push('部分收款');
     if (this.data.activeStatus === 'paid') labels.push('已收款');
     if (this.data.appliedFilters.code) labels.push(`订单号 ${this.data.appliedFilters.code}`);
     if (this.data.appliedFilters.shipper) labels.push(this.data.appliedFilters.shipper);
@@ -131,6 +139,7 @@ Page(withSystemLayout({
     if (this.data.batchMode) return;
     const index = event.currentTarget.dataset.index;
     const touch = event.touches[0];
+    if (!this.data.bills[index] || !touch) return;
     this.touchState = {
       index,
       startX: touch.clientX,
@@ -140,6 +149,7 @@ Page(withSystemLayout({
 
   onTouchMove(event) {
     if (this.data.batchMode || !this.touchState) return;
+    if (!this.data.bills[this.touchState.index] || !event.touches[0]) return;
     const touch = event.touches[0];
     const dx = touch.clientX - this.touchState.startX;
     const offset = Math.max(-140, Math.min(0, this.touchState.base + dx));
@@ -151,6 +161,10 @@ Page(withSystemLayout({
   onTouchEnd() {
     if (this.data.batchMode || !this.touchState) return;
     const index = this.touchState.index;
+    if (!this.data.bills[index]) {
+      this.touchState = null;
+      return;
+    }
     const offset = this.data.bills[index].offset < -70 ? -140 : 0;
     this.setData({
       [`bills[${index}].offset`]: offset
@@ -226,6 +240,7 @@ Page(withSystemLayout({
     const source = [
       { key: 'all', text: '全部' },
       { key: 'unpaid', text: '未收款' },
+      { key: 'partially_paid', text: '部分收款' },
       { key: 'paid', text: '已收款' }
     ];
     this.setData({

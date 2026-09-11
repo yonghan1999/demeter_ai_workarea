@@ -18,6 +18,7 @@ function nowCode(counter) {
 
 function formatTaskTime(iso) {
   const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return '时间未知';
   const mm = date.getMonth() + 1;
   const dd = date.getDate();
   const hh = String(date.getHours()).padStart(2, '0');
