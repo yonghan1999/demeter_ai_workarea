@@ -1,6 +1,6 @@
 # Demeter
 
-货运账单微信小程序项目。小程序核心账单流程已接入测试环境后端；OCR 页面暂时保留本地 Mock 流程。后端基础服务已使用 Spring Boot 与 MySQL 实现，责任链、角色分离、迁移和测试体系都已落地。
+货运账单微信小程序项目。小程序账单和 OCR 流程均通过服务层接入后端；后端基础服务已使用 Spring Boot 与 MySQL 实现，责任链、角色分离、迁移和测试体系都已落地。
 
 ## 项目结构
 
@@ -30,7 +30,7 @@
 
 ## 数据边界
 
-核心账单通过 `miniprogram/services/bill-service.js` 和 `miniprogram/services/api-client.js` 访问后端；页面不直接依赖网络请求或存储结构。OCR 的临时 Mock 数据仍保存在 `miniprogram/services/mock-store.js`。
+账单和 OCR 通过 `miniprogram/services/bill-service.js` 与 `miniprogram/services/api-client.js` 访问后端；页面不直接依赖网络请求或持久化结构。搜索记录和 OCR 合并标记仅作为客户端 UI 状态缓存。
 
 后端运行方式、接口清单与 OCR 扩展说明见 `backend/README.md`。
 

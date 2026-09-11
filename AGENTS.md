@@ -5,7 +5,7 @@ backend. Treat these instructions as the engineering contract for Codex.
 
 ## Project map
 
-- `miniprogram/`: WeChat Mini Program. It currently uses mock data through
+- `miniprogram/`: WeChat Mini Program. It accesses backend APIs through
   `miniprogram/services/bill-service.js`.
 - `backend/`: Java 17, Spring Boot, MySQL, Flyway, JPA backend.
 - `backend/src/main/java/com/demeter/backend/common/chain/`: the business
@@ -53,7 +53,7 @@ backend. Treat these instructions as the engineering contract for Codex.
   stable failure categories and never persist vendor response bodies or secrets.
 - Keep the Mini Program UI within the Safe Area and preserve the Figma-derived
   layout. Keep page code behind the service layer and do not couple pages to
-  mock-store internals.
+  storage or network internals.
 - Prefer structured parsers, typed configuration, and existing helpers over
   string-based shortcuts. Keep comments short and explain only non-obvious
   decisions.

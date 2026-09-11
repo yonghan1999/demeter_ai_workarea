@@ -14,4 +14,4 @@
 
 ## 状态说明
 
-后端账单状态为 `unpaid`（未收款）、`partially_paid`（部分收款）、`paid`（已收款）。小程序 Mock 还展示 `overdue` 样例，接入后端时以 API 枚举为准。
+后端账单状态为 `unpaid`（未收款）、`partially_paid`（部分收款）、`paid`（已收款）。小程序以 API 返回的状态为准。
