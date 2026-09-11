@@ -17,8 +17,7 @@ Page(withSystemLayout({
     mergeDisabled: true,
     mergeText: '合并账单到列表',
     allText: '全选',
-    duplicateCount: 0,
-    hasExpanded: false
+    duplicateCount: 0
   },
 
   async onLoad(options) {
@@ -27,7 +26,7 @@ Page(withSystemLayout({
     try {
       let id = options.id || '';
       if (!id) {
-        const tasks = await billService.listOcrTasks();
+        const tasks = await billService.listOcrTasks({ includeResults: false });
         if (loadSeq !== this.reviewLoadSeq) return;
         const available = tasks.find((task) => task.status === 'completed' && !task.merged);
         id = available ? available.id : '';
@@ -74,19 +73,20 @@ Page(withSystemLayout({
       wx.showToast({ title: task && task.merged ? '该任务已合并' : '未找到可复核任务', icon: 'none' });
       return;
     }
-    const reviewBills = task.bills.map((bill) => ({
-      ...bill,
-      selected: bill.confidence >= 0.85,
-      selectedClass: bill.confidence >= 0.85 ? 'checked' : '',
-      mutedClass: '',
-      unpaidClass: bill.status !== 'paid' ? 'active unpaid' : '',
-      paidClass: bill.status === 'paid' ? 'active paid' : '',
-      confidencePercent: Math.round(bill.confidence * 100),
-      confidenceLevel: bill.confidence >= 0.85 ? '高' : bill.confidence >= 0.65 ? '中' : '低',
-      confidenceClass: bill.confidence >= 0.85 ? 'high' : bill.confidence >= 0.65 ? 'mid' : 'low',
-      borderClass: bill.status === 'paid' ? 'paid-border' : 'unpaid-border',
-      expanded: false
-    }));
+    const reviewBills = task.bills
+      .filter((bill) => !task.mergedBillIds.includes(bill.id))
+      .map((bill) => ({
+        ...bill,
+        selected: bill.confidence >= 0.85,
+        selectedClass: bill.confidence >= 0.85 ? 'checked' : '',
+        mutedClass: '',
+        unpaidClass: bill.status !== 'paid' ? 'active unpaid' : '',
+        paidClass: bill.status === 'paid' ? 'active paid' : '',
+        confidencePercent: Math.round(bill.confidence * 100),
+        confidenceLevel: bill.confidence >= 0.85 ? '高' : bill.confidence >= 0.65 ? '中' : '低',
+        confidenceClass: bill.confidence >= 0.85 ? 'high' : bill.confidence >= 0.65 ? 'mid' : 'low',
+        borderClass: bill.status === 'paid' ? 'paid-border' : 'unpaid-border',
+      }));
     this.setData({
       task: {
         ...task,
@@ -96,7 +96,7 @@ Page(withSystemLayout({
       reviewBills,
       duplicateCount: reviewBills.filter((bill) => bill.duplicate).length,
       selectedIds: reviewBills.filter((bill) => bill.selected).map((bill) => bill.id),
-      allText: reviewBills.every((bill) => bill.selected) ? '取消全选' : '全选',
+      allText: reviewBills.length > 0 && reviewBills.every((bill) => bill.selected) ? '取消全选' : '全选',
       mergeDisabled: reviewBills.every((bill) => !bill.selected),
       mergeDisabledClass: reviewBills.every((bill) => !bill.selected) ? 'disabled' : ''
     }, () => {
@@ -171,19 +171,6 @@ Page(withSystemLayout({
     this.applyReviewBills(reviewBills);
   },
 
-  toggleExpanded(event) {
-    const id = event.currentTarget.dataset.id;
-    const reviewBills = this.data.reviewBills.map((bill) => (
-      bill.id === id ? { ...bill, expanded: !bill.expanded } : { ...bill, expanded: false }
-    ));
-    this.setData({
-      reviewBills,
-      hasExpanded: reviewBills.some((bill) => bill.expanded)
-    });
-  },
-
-  stopCardTap() {},
-
   applyReviewBills(reviewBills) {
     const selectedIds = reviewBills.filter((bill) => bill.selected).map((bill) => bill.id);
     this.setData({
@@ -206,11 +193,9 @@ Page(withSystemLayout({
     if (this.data.selectedIds.length === 0 || this.data.merging) return;
     const invalid = this.data.reviewBills.find((bill) => (
       bill.selected && (
-        !String(bill.code || '').trim()
-        || !String(bill.shipper || '').trim()
+        !String(bill.shipper || '').trim()
         || !String(bill.from || '').trim()
         || !String(bill.to || '').trim()
-        || !String(bill.vehicleCargo || '').trim()
         || !/^\d{4}-\d{2}-\d{2}$/.test(String(bill.date || ''))
         || !Number.isFinite(Number(bill.amount))
         || Number(bill.amount) <= 0

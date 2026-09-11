@@ -16,7 +16,7 @@
   <view wx:if="{{duplicateCount > 0}}" class="duplicate-notice">发现 {{duplicateCount}} 笔疑似重复账单，请核对后再合并</view>
 
   <view class="review-list">
-    <view wx:for="{{reviewBills}}" wx:key="id" class="review-card card {{item.expanded ? 'expanded' : ''}} {{item.borderClass}} {{item.mutedClass}}" data-id="{{item.id}}" bindtap="toggleExpanded">
+    <view wx:for="{{reviewBills}}" wx:key="id" class="review-card card {{item.borderClass}} {{item.mutedClass}}">
       <view class="review-card-head">
         <button class="review-check-button {{item.selectedClass}}" data-id="{{item.id}}" catchtap="toggle">
           <text wx:if="{{item.selected}}">✓</text>
@@ -26,7 +26,7 @@
         </view>
       </view>
 
-      <view class="edit-grid" catchtap="stopCardTap">
+      <view class="edit-grid">
         <view class="edit-field wide">
           <view class="label">托运人</view>
           <input class="review-input" data-id="{{item.id}}" data-field="shipper" value="{{item.shipper}}" maxlength="60" bindinput="setField" />
@@ -45,7 +45,7 @@
         </view>
       </view>
 
-      <view class="review-meta-grid" catchtap="stopCardTap">
+      <view class="review-meta-grid">
         <view class="edit-field vehicle-field">
           <view class="label">车型</view>
           <input class="review-input" data-id="{{item.id}}" data-field="vehicleCargo" value="{{item.vehicleCargo}}" maxlength="40" bindinput="setField" />
@@ -56,16 +56,9 @@
         </view>
       </view>
 
-      <view class="status-pair" catchtap="stopCardTap">
+      <view class="status-pair">
         <button class="review-status-button {{item.unpaidClass}}" data-id="{{item.id}}" data-status="unpaid" bindtap="setStatus"><text>未收款</text></button>
         <button class="review-status-button {{item.paidClass}}" data-id="{{item.id}}" data-status="paid" bindtap="setStatus"><text>已收款</text></button>
-      </view>
-
-      <view wx:if="{{item.expanded}}" class="full-review-grid" catchtap="stopCardTap">
-        <view class="edit-field wide">
-          <view class="label">单号</view>
-          <input class="review-input mono" data-id="{{item.id}}" data-field="code" value="{{item.code}}" maxlength="30" bindinput="setField" />
-        </view>
       </view>
     </view>
   </view>
@@ -75,7 +68,7 @@
       <text>已选 {{selectedIds.length}} 笔</text>
       <text class="merge-total">合计 {{total}}</text>
     </view>
-    <button class="primary-button {{mergeDisabledClass}}" disabled="{{mergeDisabled}}" bindtap="merge">{{merging ? '正在合并…' : (hasExpanded ? '保存校对并合并 ' + selectedIds.length + ' 笔' : '合并 ' + selectedIds.length + ' 笔账单到列表')}}</button>
+    <button class="primary-button {{mergeDisabledClass}}" disabled="{{mergeDisabled}}" bindtap="merge">{{merging ? '正在合并…' : '合并 ' + selectedIds.length + ' 笔账单到列表'}}</button>
   </view>
 </view>
 

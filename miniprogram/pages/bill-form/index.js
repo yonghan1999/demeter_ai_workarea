@@ -1,21 +1,6 @@
 const billService = require('../../services/bill-service');
 const { withSystemLayout, safeBack } = require('../../utils/system');
 
-const CITY_SUGGESTIONS = [
-  { id: 'shanghai-jingan', value: '上海', label: '上海市', meta: '闵行区申长路 688 号' },
-  { id: 'shanghai-pudong', value: '上海', label: '上海市', meta: '浦东新区川沙路 5258 号' },
-  { id: 'shanghai-jiading', value: '上海', label: '上海市', meta: '嘉定区宝安公路 2682 号' },
-  { id: 'beijing', value: '北京', label: '北京市', meta: '北京市' },
-  { id: 'wuhan', value: '武汉', label: '武汉市', meta: '湖北省武汉市' },
-  { id: 'guangzhou', value: '广州', label: '广州市', meta: '广东省广州市' },
-  { id: 'shenzhen', value: '深圳', label: '深圳市', meta: '广东省深圳市' },
-  { id: 'hangzhou', value: '杭州', label: '杭州市', meta: '浙江省杭州市' },
-  { id: 'chengdu', value: '成都', label: '成都市', meta: '四川省成都市' },
-  { id: 'chongqing', value: '重庆', label: '重庆市', meta: '重庆市' },
-  { id: 'tianjin', value: '天津', label: '天津市', meta: '天津市' },
-  { id: 'nanjing', value: '南京', label: '南京市', meta: '江苏省南京市' }
-];
-
 Page(withSystemLayout({
   data: {
     mode: 'create',
@@ -168,7 +153,7 @@ Page(withSystemLayout({
       suggestionMode: mode,
       suggestionTitle: isShipper ? '选择托运人' : mode === 'from' ? '选择出发地' : '选择目的地',
       suggestionPlaceholder: isShipper ? '搜索托运人' : '搜索城市',
-      suggestionCaption: isShipper ? '最近使用' : '地点建议 · 保存城市',
+      suggestionCaption: isShipper ? '最近使用' : '已有账单中的路线建议',
       suggestionQuery
     }, () => this.refreshSuggestionItems());
   },
@@ -199,12 +184,36 @@ Page(withSystemLayout({
       }
       return;
     }
-    const query = value.replace(/市$/, '');
-    this.setData({
-      suggestionItems: CITY_SUGGESTIONS.filter((item) => (
-        !query || `${item.value}${item.label}${item.meta}`.includes(query)
-      )).slice(0, 6)
-    }, () => this.refreshSaveAppearance());
+    const requestId = (this.suggestionRequestId || 0) + 1;
+    this.suggestionRequestId = requestId;
+    if (!value) {
+      this.setData({ suggestionItems: [] }, () => this.refreshSaveAppearance());
+      return;
+    }
+    try {
+      const suggestions = await billService.suggestBillKeywords(value);
+      if (requestId !== this.suggestionRequestId) return;
+      const fieldIndex = mode === 'from' ? 0 : 1;
+      const items = suggestions
+        .filter((item) => item.type === '路线')
+        .map((item) => {
+          const route = String(item.text || '').split(' → ');
+          const selectedValue = route[fieldIndex];
+          if (!selectedValue) return null;
+          return {
+            id: `${mode}-${item.text}`,
+            value: selectedValue,
+            label: selectedValue,
+            meta: item.text
+          };
+        })
+        .filter(Boolean);
+      this.setData({ suggestionItems: items }, () => this.refreshSaveAppearance());
+    } catch (error) {
+      if (requestId === this.suggestionRequestId) {
+        this.setData({ suggestionItems: [] }, () => this.refreshSaveAppearance());
+      }
+    }
   },
 
   chooseFormSuggestion(event) {

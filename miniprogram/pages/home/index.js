@@ -103,14 +103,14 @@ Page(withSystemLayout({
           status: this.data.activeStatus,
           ...this.data.appliedFilters
         }),
-        billService.listOcrTasks()
+        billService.listOcrTasks({ includeResults: false })
       ]);
       if (loadSeq !== this.loadSeq) return;
       const batchMode = this.data.batchMode && bills.length > 0;
       this.setData({
         bills: bills.map((bill) => ({ ...bill, offset: 0, selected: false })),
         total: bills.length,
-        pendingOcr: tasks.filter((task) => task.status === 'processing' && !task.demo).length,
+        pendingOcr: tasks.filter((task) => task.status === 'processing').length,
         unmergedOcr: tasks.filter((task) => task.status === 'completed' && !task.merged).length,
         loading: false,
         initialLoading: false,

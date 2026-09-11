@@ -7,11 +7,9 @@ Page(withSystemLayout({
       shipper: '',
       startDate: '',
       endDate: '',
-      status: 'all',
-      tag: ''
+      status: 'all'
     },
     statusOptions: [],
-    tags: []
   },
 
   onLoad() {
@@ -25,15 +23,10 @@ Page(withSystemLayout({
       { key: 'partially_paid', text: '部分收款' },
       { key: 'unpaid', text: '未收款' }
     ];
-    const tagSource = ['本月活跃', '逾期严重', 'VIP大客户', '待核销'];
     this.setData({
       statusOptions: statusSource.map((item) => ({
         ...item,
         className: this.data.form.status === item.key ? 'active' : ''
-      })),
-      tags: tagSource.map((text) => ({
-        text,
-        className: this.data.form.tag === text ? 'active' : ''
       }))
     });
   },
@@ -47,11 +40,6 @@ Page(withSystemLayout({
     this.setData({ 'form.status': event.currentTarget.dataset.status }, () => this.refreshOptions());
   },
 
-  setTag(event) {
-    const tag = event.currentTarget.dataset.tag;
-    this.setData({ 'form.tag': this.data.form.tag === tag ? '' : tag }, () => this.refreshOptions());
-  },
-
   reset() {
     this.setData({
       form: {
@@ -59,8 +47,7 @@ Page(withSystemLayout({
         shipper: '',
         startDate: '',
         endDate: '',
-        status: 'all',
-        tag: ''
+        status: 'all'
       }
     }, () => this.refreshOptions());
   },
@@ -72,7 +59,7 @@ Page(withSystemLayout({
       shipper: this.data.form.shipper.trim()
     };
     const form = encodeURIComponent(JSON.stringify(filters));
-    const keyword = filters.shipper || filters.code || filters.tag || '';
+    const keyword = filters.shipper || filters.code || '';
     wx.navigateTo({ url: `/pages/search/index?auto=1&keyword=${encodeURIComponent(keyword)}&filters=${form}` });
   },
 

@@ -145,11 +145,6 @@
   box-shadow: none;
 }
 
-.review-card.expanded {
-  height: auto;
-  min-height: 704rpx;
-}
-
 .review-card-head {
   position: relative;
   display: flex;
@@ -340,17 +335,6 @@
 .review-meta-grid .review-picker {
   padding: 0 18rpx;
   white-space: nowrap;
-}
-
-.full-review-grid {
-  display: block;
-  margin-top: 18rpx;
-  padding-top: 18rpx;
-  border-top: 1rpx solid #e9edf4;
-}
-
-.full-review-grid .wide {
-  grid-column: 1 / -1;
 }
 
 .review-picker {

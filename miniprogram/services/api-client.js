@@ -105,6 +105,58 @@ function request(options = {}, retryAuth = true) {
   return token ? send(token) : ensureLogin().then(() => request(options, retryAuth));
 }
 
+function uploadFile(options = {}, retryAuth = true) {
+  const {
+    url,
+    filePath,
+    name = 'file',
+    formData = {},
+    header = {},
+    auth = true
+  } = options;
+
+  const send = (token) => new Promise((resolve, reject) => {
+    wx.uploadFile({
+      url: `${API_BASE_URL}${url}`,
+      filePath,
+      name,
+      formData,
+      header: {
+        ...(auth && token ? { Authorization: `Bearer ${token}` } : {}),
+        ...header
+      },
+      success: (response) => {
+        if (response.statusCode === 401 && auth && retryAuth) {
+          clearSession();
+          ensureLogin()
+            .then(() => uploadFile(options, false))
+            .then(resolve)
+            .catch(reject);
+          return;
+        }
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          resolve({
+            ...response,
+            data: parseResponseData(response.data)
+          });
+          return;
+        }
+        reject(createError(response));
+      },
+      fail: (error) => {
+        const uploadError = new Error(error.errMsg || '网络请求失败');
+        uploadError.code = 'NETWORK_ERROR';
+        uploadError.originalError = error;
+        reject(uploadError);
+      }
+    });
+  });
+
+  if (!auth) return send('');
+  const token = getAccessToken();
+  return token ? send(token) : ensureLogin().then(() => uploadFile(options, retryAuth));
+}
+
 function ensureLogin() {
   const token = getAccessToken();
   if (token) return Promise.resolve(token);
@@ -151,6 +203,7 @@ function newIdempotencyKey(prefix) {
 module.exports = {
   API_BASE_URL,
   request,
+  uploadFile,
   ensureLogin,
   clearSession,
   newIdempotencyKey

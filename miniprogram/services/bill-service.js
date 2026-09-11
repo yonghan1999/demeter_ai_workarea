@@ -1,13 +1,7 @@
 const api = require('./api-client');
-const {
-  clone,
-  getStore,
-  saveStore,
-  resetStore,
-  mockOcrBills
-} = require('./mock-store');
 
 const SEARCH_HISTORY_KEY = 'demeter:search-history:v1';
+const OCR_MERGED_TASKS_KEY = 'demeter:ocr:merged-tasks:v1';
 
 function statusText(status) {
   const map = {
@@ -100,12 +94,12 @@ function billPayload(payload, status) {
   };
 }
 
-async function createBill(payload) {
+async function createBill(payload, idempotencyKey = '') {
   const response = await api.request({
     url: '/bills',
     method: 'POST',
     header: {
-      'Idempotency-Key': api.newIdempotencyKey('bill-create')
+      'Idempotency-Key': idempotencyKey || api.newIdempotencyKey('bill-create')
     },
     data: billPayload(payload, payload.status || 'unpaid')
   });
@@ -158,7 +152,7 @@ async function deleteBills(ids) {
   return response.data;
 }
 
-async function markPaid(id) {
+async function markPaid(id, idempotencyKey = '') {
   const bill = await getBill(id);
   if (!bill) return null;
   const outstanding = Number(bill.outstandingAmount || 0);
@@ -167,7 +161,7 @@ async function markPaid(id) {
     url: `/bills/${id}/payments`,
     method: 'POST',
     header: {
-      'Idempotency-Key': api.newIdempotencyKey('bill-payment')
+      'Idempotency-Key': idempotencyKey || api.newIdempotencyKey('bill-payment')
     },
     data: {
       amount: outstanding,
@@ -231,84 +225,49 @@ async function suggestBillKeywords(keyword) {
   return response && Array.isArray(response.data) ? response.data : [];
 }
 
-// OCR remains local until the client has a backend merge endpoint.
-const OCR_PROCESSING_MS = 3200;
-
-function settleExpiredOcrTasks(store) {
-  const now = Date.now();
-  let changed = false;
-  store.ocrTasks = store.ocrTasks.map((task) => {
-    const createdAt = new Date(task.createdAt).getTime();
-    if (task.status !== 'processing' || task.demo || !Number.isFinite(createdAt) || now - createdAt < OCR_PROCESSING_MS) {
-      return task;
-    }
-    changed = true;
-    return { ...task, status: 'completed', bills: mockOcrBills };
-  });
-  if (changed) saveStore(store);
-  return store;
+function readMergedOcrTasks() {
+  try {
+    const values = wx.getStorageSync(OCR_MERGED_TASKS_KEY);
+    return Array.isArray(values) ? values : [];
+  } catch (error) {
+    return [];
+  }
 }
 
-function listOcrTasks() {
-  const store = settleExpiredOcrTasks(getStore());
-  const snapshot = clone(
-    store.ocrTasks
-      .filter((task) => !task.demo)
-      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-  );
-  return new Promise((resolve) => {
-    setTimeout(() => resolve(snapshot), 120);
-  });
+function mergedOcrBillIds(taskId, billIds) {
+  const values = readMergedOcrTasks();
+  const record = values.find((item) => item && typeof item === 'object' && item.taskId === taskId);
+  if (record) return Array.isArray(record.billIds) ? record.billIds : [];
+  // Keep tasks merged by the previous client version compatible.
+  return values.includes(taskId) ? billIds : [];
 }
 
-function createOcrTaskId() {
-  const timestamp = Date.now();
-  const random = Math.random().toString(36).slice(2, 10);
-  return `ocr-task-${timestamp}-${random}`;
+function saveMergedOcrTask(taskId, billIds) {
+  const values = readMergedOcrTasks().filter((item) => (
+    item !== taskId && !(item && typeof item === 'object' && item.taskId === taskId)
+  ));
+  values.push({ taskId, billIds: [...new Set(billIds)] });
+  const trimmed = values.slice(-200);
+  wx.setStorageSync(OCR_MERGED_TASKS_KEY, trimmed);
 }
 
-function createOcrProcessingToken() {
-  return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+function ocrStatus(status) {
+  const normalized = String(status || '').toLowerCase();
+  if (normalized === 'succeeded') return 'completed';
+  if (normalized === 'failed') return 'failed';
+  return 'processing';
 }
 
-function createOcrTask(imagePath) {
-  const store = getStore();
-  const task = {
-    id: createOcrTaskId(),
-    processingToken: createOcrProcessingToken(),
-    createdAt: new Date().toISOString(),
-    status: 'processing',
-    imagePath: imagePath || '',
-    merged: false,
-    bills: []
-  };
-  store.ocrTasks.unshift(task);
-  saveStore(store);
-
-  setTimeout(() => {
-    const latest = getStore();
-    latest.ocrTasks = latest.ocrTasks.map((item) => (
-      item.id === task.id
-        && item.status === 'processing'
-        && item.processingToken === task.processingToken
-        ? { ...item, status: 'completed', bills: mockOcrBills }
-        : item
-    ));
-    saveStore(latest);
-  }, 3200);
-
-  return new Promise((resolve) => {
-    setTimeout(() => resolve(clone(task)), 120);
-  });
-}
-
-function getOcrTask(id) {
-  const store = settleExpiredOcrTasks(getStore());
-  const task = store.ocrTasks.find((item) => item.id === id);
-  if (!task) return Promise.resolve(null);
-  const bills = (Array.isArray(task.bills) ? task.bills : []).map((bill) => ({
+function ocrBillViewModel(bill, taskId, index, existingBills = []) {
+  const id = bill.externalId || `${taskId}-${index}`;
+  const amount = bill.amount === null || bill.amount === undefined ? '' : Number(bill.amount);
+  return {
     ...bill,
-    duplicate: store.bills.some((existing) => (
+    id,
+    amount,
+    status: String(bill.status || 'unpaid').toLowerCase(),
+    confidence: Number(bill.confidence || 0),
+    duplicate: existingBills.some((existing) => (
       (bill.code && existing.code === bill.code)
       || (
         existing.shipper === bill.shipper
@@ -318,78 +277,124 @@ function getOcrTask(id) {
         && Number(existing.amount) === Number(bill.amount)
       )
     ))
-  }));
-  return Promise.resolve({ ...clone(task), bills });
+  };
 }
 
-function retryOcrTask(id) {
-  const store = getStore();
-  let found = false;
-  let processingToken = '';
-  store.ocrTasks = store.ocrTasks.map((task) => {
-    if (task.id !== id) return task;
-    found = true;
-    processingToken = createOcrProcessingToken();
-    return {
-      ...task,
-      createdAt: new Date().toISOString(),
-      processingToken,
-      status: 'processing',
-      merged: false,
-      bills: []
-    };
+async function ocrTaskViewModel(task, includeDuplicates = false) {
+  const result = task && task.result;
+  const rawBills = result && Array.isArray(result.bills) ? result.bills : [];
+  const existingBills = includeDuplicates && rawBills.length > 0 ? await listBills() : [];
+  const billIds = rawBills.map((bill, index) => bill.externalId || `${task.id}-${index}`);
+  const mergedBillIds = mergedOcrBillIds(task.id, billIds);
+  return {
+    id: task.id,
+    createdAt: task.createdAt,
+    updatedAt: task.updatedAt,
+    status: ocrStatus(task.status),
+    backendStatus: task.status,
+    merged: rawBills.length > 0
+      && billIds.every((id) => mergedBillIds.includes(id)),
+    mergedBillIds,
+    imagePath: '',
+    bills: rawBills.map((bill, index) => ocrBillViewModel(bill, task.id, index, existingBills)),
+    errorCode: task.errorCode || '',
+    errorMessage: task.errorMessage || '',
+    provider: task.provider || ''
+  };
+}
+
+async function listOcrTasks(options = {}) {
+  const includeResults = options.includeResults !== false;
+  const first = await api.request({
+    url: '/ocr/tasks',
+    data: { page: 0, size: 100 }
   });
-  saveStore(store);
-  if (!found) return Promise.resolve({ ok: false });
-
-  setTimeout(() => {
-    const latest = getStore();
-    latest.ocrTasks = latest.ocrTasks.map((task) => (
-      task.id === id
-        && task.status === 'processing'
-        && task.processingToken === processingToken
-        ? { ...task, status: 'completed', bills: mockOcrBills }
-        : task
-    ));
-    saveStore(latest);
-  }, 3200);
-  return Promise.resolve({ ok: true });
+  const firstPage = first && first.data && typeof first.data === 'object' ? first.data : {};
+  const pages = [firstPage];
+  const parsedTotalPages = Number(firstPage.totalPages || 1);
+  const totalPages = Number.isFinite(parsedTotalPages) ? Math.max(1, parsedTotalPages) : 1;
+  if (totalPages > 1) {
+    const responses = await Promise.all(Array.from({ length: totalPages - 1 }, (_, index) => (
+      api.request({ url: '/ocr/tasks', data: { page: index + 1, size: 100 } })
+    )));
+    responses.forEach((response) => pages.push(response.data || {}));
+  }
+  const summaries = pages.flatMap((page) => (
+    Array.isArray(page.content) ? page.content : []
+  ));
+  return Promise.all(summaries.map(async (task) => {
+    if (!includeResults || String(task.status || '').toLowerCase() !== 'succeeded') {
+      return ocrTaskViewModel(task);
+    }
+    const response = await api.request({ url: `/ocr/tasks/${task.id}` });
+    return ocrTaskViewModel(response.data);
+  }));
 }
 
-function mergeOcrTask(taskId, selectedIds, edits) {
-  const store = getStore();
-  const task = store.ocrTasks.find((item) => item.id === taskId);
-  if (!task || task.status !== 'completed' || task.merged) return Promise.resolve({ ok: false });
+async function createOcrTask(imagePath) {
+  const response = await api.uploadFile({
+    url: '/ocr/tasks',
+    filePath: imagePath,
+    name: 'image',
+    header: {
+      'Idempotency-Key': api.newIdempotencyKey('ocr-upload')
+    }
+  });
+  return ocrTaskViewModel(response.data);
+}
+
+async function getOcrTask(id) {
+  const response = await api.request({ url: `/ocr/tasks/${id}` });
+  return ocrTaskViewModel(response.data, true);
+}
+
+async function retryOcrTask(id) {
+  const response = await api.request({
+    url: `/ocr/tasks/${id}/retry`,
+    method: 'POST',
+    header: {
+      'Idempotency-Key': api.newIdempotencyKey('ocr-retry')
+    }
+  });
+  return { ok: true, task: ocrTaskViewModel(response.data) };
+}
+
+async function mergeOcrTask(taskId, selectedIds, edits) {
+  const task = await getOcrTask(taskId);
+  if (!task || task.status !== 'completed' || task.merged) return { ok: false };
 
   const selected = new Set(Array.isArray(selectedIds) ? selectedIds : []);
   const editValues = edits && typeof edits === 'object' ? edits : {};
-  const bills = (Array.isArray(task.bills) ? task.bills : [])
-    .filter((bill) => selected.has(bill.id))
-    .map((bill) => {
-      const edit = editValues[bill.id] || {};
-      return {
-        id: `bill-${Date.now()}-${bill.id}`,
-        code: edit.code || bill.code,
-        shipper: edit.shipper || bill.shipper,
-        vehicleCargo: edit.vehicleCargo || bill.vehicleCargo,
-        date: edit.date || bill.date,
-        from: edit.from || bill.from,
-        to: edit.to || bill.to,
-        amount: Number(edit.amount || bill.amount || 0),
-        status: edit.status === 'paid' ? 'paid' : 'unpaid',
-        dueDate: '',
-        tags: []
-      };
-    });
+  const selectedBills = task.bills.filter((bill) => selected.has(bill.id));
+  if (selectedBills.length === 0) return { ok: false };
 
-  if (bills.length === 0) return Promise.resolve({ ok: false });
-
-  store.bills = [...bills, ...store.bills];
-  store.ocrTasks = store.ocrTasks.map((item) => (
-    item.id === taskId ? { ...item, merged: true } : item
-  ));
-  saveStore(store);
-  return Promise.resolve({ ok: true, count: bills.length });
+  let count = 0;
+  for (let index = 0; index < selectedBills.length; index += 1) {
+    const bill = selectedBills[index];
+    const edit = editValues[bill.id] || {};
+    const status = edit.status === 'paid' ? 'paid' : 'unpaid';
+    const keySuffix = String(task.bills.findIndex((item) => item.id === bill.id) + 1);
+    const created = await createBill({
+      shipper: edit.shipper || bill.shipper,
+      vehicleCargo: edit.vehicleCargo || bill.vehicleCargo,
+      date: edit.date || bill.date,
+      from: edit.from || bill.from,
+      to: edit.to || bill.to,
+      amount: Number(edit.amount || bill.amount || 0),
+      status: 'unpaid',
+      dueDate: '',
+      tags: []
+    }, `ocr-merge-${taskId}-${keySuffix}`);
+    if (status === 'paid') {
+      await markPaid(created.id, `ocr-payment-${taskId}-${keySuffix}`);
+    }
+    count += 1;
+  }
+  saveMergedOcrTask(taskId, [
+    ...task.mergedBillIds,
+    ...selectedBills.map((bill) => bill.id)
+  ]);
+  return { ok: true, count };
 }
 
 module.exports = {
@@ -411,7 +416,6 @@ module.exports = {
   getOcrTask,
   retryOcrTask,
   mergeOcrTask,
-  resetStore,
   statusText,
   billViewModel
 };

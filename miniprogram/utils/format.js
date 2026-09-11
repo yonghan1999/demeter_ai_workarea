@@ -8,14 +8,6 @@ function shortDate(date) {
   return String(date).slice(5);
 }
 
-function nowCode(counter) {
-  const date = new Date();
-  const yyyy = date.getFullYear();
-  const mm = String(date.getMonth() + 1).padStart(2, '0');
-  const dd = String(date.getDate()).padStart(2, '0');
-  return `TR-${yyyy}${mm}${dd}-${String(counter).padStart(3, '0')}`;
-}
-
 function formatTaskTime(iso) {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return '时间未知';
@@ -29,6 +21,5 @@ function formatTaskTime(iso) {
 module.exports = {
   money,
   shortDate,
-  nowCode,
   formatTaskTime
 };

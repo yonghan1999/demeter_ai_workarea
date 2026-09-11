@@ -20,7 +20,7 @@
         </view>
       </block>
       <view wx:elif="{{item.isProcessing}}" class="processing"><view class="progress"><view class="progress-inner"></view></view><text>正在识别账单字段</text></view>
-      <view wx:elif="{{item.isFailed}}" class="processing failed-processing"><view class="progress"><view class="progress-inner"></view></view><text>图片不清晰，未能识别账单</text></view>
+      <view wx:elif="{{item.isFailed}}" class="processing failed-processing"><view class="progress"><view class="progress-inner"></view></view><text>{{item.failureText}}</text></view>
     </view>
     <button wx:if="{{item.isFailed}}" class="retry-task-outside" data-id="{{item.id}}" bindtap="retryTask">{{retryingId === item.id ? '正在重试' : '重新识别'}}</button>
     </view>

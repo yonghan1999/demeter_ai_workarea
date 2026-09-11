@@ -55,6 +55,7 @@ Page(withSystemLayout({
             isProcessing: task.status === 'processing',
             isCompleted: task.status === 'completed',
             isFailed: task.status === 'failed',
+            failureText: task.errorMessage || '识别失败，请检查图片后重试',
             previewTotal: money((task.bills || []).reduce((sum, bill) => sum + Number(bill.amount || 0), 0)),
             previewBills,
             moreCount: Math.max((task.bills || []).length - previewBills.length, 0)
@@ -62,7 +63,7 @@ Page(withSystemLayout({
         })
       });
       clearTimeout(this.timer);
-      if (this.active && tasks.some((task) => task.status === 'processing' && !task.demo)) {
+      if (this.active && tasks.some((task) => task.status === 'processing')) {
         this.timer = setTimeout(() => this.loadTasks(), 1200);
       }
     } catch (error) {
