@@ -16,16 +16,23 @@ Page(withSystemLayout({
   },
 
   onLoad(options) {
+    let filters = null;
     if (options.filters) {
       try {
-        this.setData({ filters: JSON.parse(decodeURIComponent(options.filters)) });
+        filters = JSON.parse(decodeURIComponent(options.filters));
       } catch (error) {
-        this.setData({ filters: null });
+        filters = null;
       }
     }
-    const keyword = options.keyword ? decodeURIComponent(options.keyword) : '';
-    this.setData({ query: keyword });
-    if (options.auto === '1' || keyword) this.search();
+    let keyword = '';
+    try {
+      keyword = options.keyword ? decodeURIComponent(options.keyword) : '';
+    } catch (error) {
+      keyword = '';
+    }
+    this.setData({ query: keyword, filters }, () => {
+      if (options.auto === '1' || keyword) this.search();
+    });
     this.loadHistory();
   },
 
@@ -40,16 +47,19 @@ Page(withSystemLayout({
 
   onInput(event) {
     const query = event.detail.value;
-    this.setData({ query }, () => {
+    this.searchSeq = (this.searchSeq || this.data.searchSeq || 0) + 1;
+    this.setData({
+      query,
+      results: [],
+      suggestions: [],
+      hasResults: false,
+      hasSearched: false,
+      loading: false,
+      loadFailed: false
+    }, () => {
       clearTimeout(this.searchTimer);
       if (query.trim()) this.searchTimer = setTimeout(() => this.loadSuggestions(query), 120);
-      else this.setData({
-        results: [],
-        suggestions: [],
-        hasResults: false,
-        hasSearched: false,
-        loadFailed: false
-      });
+      else this.setData({ suggestions: [] });
     });
   },
 
@@ -74,7 +84,8 @@ Page(withSystemLayout({
   },
 
   async search() {
-    const searchSeq = this.data.searchSeq + 1;
+    const searchSeq = (this.searchSeq || this.data.searchSeq || 0) + 1;
+    this.searchSeq = searchSeq;
     this.setData({ loading: true, loadFailed: false, suggestions: [], searchSeq });
     const query = this.data.query.trim();
     try {
@@ -82,10 +93,10 @@ Page(withSystemLayout({
         ...(this.data.filters || {}),
         keyword: query
       });
-      if (this.data.searchSeq !== searchSeq) return;
+      if (this.searchSeq !== searchSeq) return;
       this.setData({ results, hasResults: results.length > 0, hasSearched: true, loading: false });
     } catch (error) {
-      if (this.data.searchSeq !== searchSeq) return;
+      if (this.searchSeq !== searchSeq) return;
       this.setData({ loading: false, loadFailed: true, hasSearched: false, hasResults: false });
     }
   },
@@ -107,6 +118,7 @@ Page(withSystemLayout({
   clearQuery() {
     clearTimeout(this.searchTimer);
     this.suggestionSeq = (this.suggestionSeq || 0) + 1;
+    this.searchSeq = (this.searchSeq || this.data.searchSeq || 0) + 1;
     this.setData({ query: '', results: [], suggestions: [], hasResults: false, hasSearched: false, loading: false, loadFailed: false });
   },
 
@@ -150,5 +162,7 @@ Page(withSystemLayout({
 
   onUnload() {
     clearTimeout(this.searchTimer);
+    this.searchSeq = (this.searchSeq || this.data.searchSeq || 0) + 1;
+    this.suggestionSeq = (this.suggestionSeq || 0) + 1;
   }
 }));

@@ -53,7 +53,9 @@ Page(withSystemLayout({
   },
 
   async onLoad(options) {
-    const mode = options.mode || 'create';
+    const loadSeq = (this.formLoadSeq || 0) + 1;
+    this.formLoadSeq = loadSeq;
+    const mode = options.mode === 'edit' && options.id ? 'edit' : 'create';
     this.setData({
       mode,
       id: options.id || '',
@@ -66,6 +68,7 @@ Page(withSystemLayout({
       this.setData({ ready: false, loading: true, loadFailed: false });
       try {
         const bill = await billService.getBill(options.id);
+        if (loadSeq !== this.formLoadSeq) return;
         if (!bill || !bill.id) {
           wx.showToast({ title: '账单不存在或已删除', icon: 'none' });
           this.setData({ loading: false, loadFailed: true });
@@ -80,11 +83,11 @@ Page(withSystemLayout({
           billCodeDisplay: `# ${bill.code}`,
           form: {
             amount: Number(bill.amount || 0).toFixed(2),
-            shipper: bill.shipper,
-            vehicleCargo: bill.vehicleCargo,
-            date: bill.date,
-            from: bill.from,
-            to: bill.to,
+            shipper: String(bill.shipper || ''),
+            vehicleCargo: String(bill.vehicleCargo || ''),
+            date: String(bill.date || ''),
+            from: String(bill.from || ''),
+            to: String(bill.to || ''),
             status: bill.status
           },
           unpaidClass: bill.status !== 'paid' ? 'active unpaid' : '',
@@ -92,6 +95,7 @@ Page(withSystemLayout({
         });
         this.initialForm = JSON.stringify(this.data.form);
       } catch (error) {
+        if (loadSeq !== this.formLoadSeq) return;
         wx.showToast({ title: '账单加载失败', icon: 'none' });
         this.setData({ ready: false, loading: false, loadFailed: true });
       }
@@ -102,8 +106,11 @@ Page(withSystemLayout({
 
   retryLoad() {
     if (!this.data.id) return;
+    const loadSeq = (this.formLoadSeq || 0) + 1;
+    this.formLoadSeq = loadSeq;
     this.setData({ ready: false, loading: true, loadFailed: false });
     billService.getBill(this.data.id).then((bill) => {
+      if (loadSeq !== this.formLoadSeq) return;
       if (!bill) throw new Error('missing bill');
       this.setData({
         ready: true,
@@ -112,17 +119,18 @@ Page(withSystemLayout({
         billCodeDisplay: `# ${bill.code}`,
         form: {
           amount: Number(bill.amount || 0).toFixed(2),
-          shipper: bill.shipper,
-          vehicleCargo: bill.vehicleCargo,
-          date: bill.date,
-          from: bill.from,
-          to: bill.to,
+          shipper: String(bill.shipper || ''),
+          vehicleCargo: String(bill.vehicleCargo || ''),
+          date: String(bill.date || ''),
+          from: String(bill.from || ''),
+          to: String(bill.to || ''),
           status: bill.status
         },
         unpaidClass: bill.status !== 'paid' ? 'active unpaid' : '',
         paidClass: bill.status === 'paid' ? 'active paid' : ''
       }, () => { this.initialForm = JSON.stringify(this.data.form); });
     }).catch(() => {
+      if (loadSeq !== this.formLoadSeq) return;
       this.setData({ loading: false, loadFailed: true });
       wx.showToast({ title: '账单加载失败', icon: 'none' });
     });
@@ -269,10 +277,10 @@ Page(withSystemLayout({
     const form = this.data.form;
     const complete = Boolean(
       Number(form.amount) > 0
-      && form.shipper.trim()
-      && /^\d{4}-\d{2}-\d{2}$/.test(form.date)
-      && form.from.trim()
-      && form.to.trim()
+      && String(form.shipper || '').trim()
+      && /^\d{4}-\d{2}-\d{2}$/.test(String(form.date || ''))
+      && String(form.from || '').trim()
+      && String(form.to || '').trim()
     );
     this.setData({ saveDisabledClass: complete ? '' : 'incomplete' });
   },
@@ -297,10 +305,10 @@ Page(withSystemLayout({
     if (this.data.submitting) return;
     const form = {
       ...this.data.form,
-      shipper: this.data.form.shipper.trim(),
-      vehicleCargo: this.data.form.vehicleCargo.trim(),
-      from: this.data.form.from.trim(),
-      to: this.data.form.to.trim()
+      shipper: String(this.data.form.shipper || '').trim(),
+      vehicleCargo: String(this.data.form.vehicleCargo || '').trim(),
+      from: String(this.data.form.from || '').trim(),
+      to: String(this.data.form.to || '').trim()
     };
     const errors = this.validateForm(form);
     if (Object.keys(errors).length > 0) {
@@ -326,6 +334,11 @@ Page(withSystemLayout({
       });
       wx.showToast({ title: '保存失败，请重试', icon: 'none' });
     }
+  },
+
+  onUnload() {
+    this.formLoadSeq = (this.formLoadSeq || 0) + 1;
+    this.suggestionRequestId = (this.suggestionRequestId || 0) + 1;
   },
 
   back() {
