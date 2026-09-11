@@ -22,17 +22,22 @@ Page(withSystemLayout({
   },
 
   async onLoad(options) {
+    const loadSeq = (this.reviewLoadSeq || 0) + 1;
+    this.reviewLoadSeq = loadSeq;
     try {
       let id = options.id || '';
       if (!id) {
         const tasks = await billService.listOcrTasks();
+        if (loadSeq !== this.reviewLoadSeq) return;
         const available = tasks.find((task) => task.status === 'completed' && !task.merged);
         id = available ? available.id : '';
       }
+      if (loadSeq !== this.reviewLoadSeq) return;
       this.setData({ id });
-      if (id) await this.loadTask(id);
+      if (id) await this.loadTask(id, loadSeq);
       else this.setData({ loading: false });
     } catch (error) {
+      if (loadSeq !== this.reviewLoadSeq) return;
       this.setData({
         loading: false,
         loadFailed: true,
@@ -42,12 +47,14 @@ Page(withSystemLayout({
     }
   },
 
-  async loadTask(id) {
+  async loadTask(id, loadSeq = (this.reviewLoadSeq || 0)) {
     this.setData({ loading: true, loadFailed: false });
     let task;
     try {
       task = await billService.getOcrTask(id);
+      if (loadSeq !== this.reviewLoadSeq) return;
     } catch (error) {
+      if (loadSeq !== this.reviewLoadSeq) return;
       this.setData({
         loading: false,
         loadFailed: true,
@@ -99,7 +106,9 @@ Page(withSystemLayout({
   },
 
   retryLoad() {
-    if (this.data.id) this.loadTask(this.data.id);
+    if (!this.data.id) return;
+    this.reviewLoadSeq = (this.reviewLoadSeq || 0) + 1;
+    this.loadTask(this.data.id, this.reviewLoadSeq);
   },
 
   toggle(event) {
@@ -249,5 +258,9 @@ Page(withSystemLayout({
       confirmColor: '#cc1d25',
       success: (res) => { if (res.confirm) safeBack(); }
     });
+  },
+
+  onUnload() {
+    this.reviewLoadSeq = (this.reviewLoadSeq || 0) + 1;
   }
 }));

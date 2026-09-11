@@ -12,24 +12,29 @@ Page(withSystemLayout({
 
   onShow() {
     this.active = true;
+    this.loadSeq = (this.loadSeq || 0) + 1;
     this.loadTasks();
   },
 
   onHide() {
     this.active = false;
+    this.loadSeq = (this.loadSeq || 0) + 1;
     clearTimeout(this.timer);
   },
 
   onUnload() {
     this.active = false;
+    this.loadSeq = (this.loadSeq || 0) + 1;
     clearTimeout(this.timer);
   },
 
   async loadTasks() {
     if (this.loadingTasks) return;
     this.loadingTasks = true;
+    const loadSeq = this.loadSeq || 0;
     try {
       const tasks = await billService.listOcrTasks();
+      if (!this.active || loadSeq !== this.loadSeq) return;
       this.setData({
         loading: false,
         loadFailed: false,
@@ -61,10 +66,12 @@ Page(withSystemLayout({
         this.timer = setTimeout(() => this.loadTasks(), 1200);
       }
     } catch (error) {
+      if (!this.active || loadSeq !== this.loadSeq) return;
       this.setData({ loading: false, loadFailed: this.data.tasks.length === 0 });
       wx.showToast({ title: '任务加载失败', icon: 'none' });
     } finally {
       this.loadingTasks = false;
+      if (this.active && loadSeq !== this.loadSeq) this.loadTasks();
     }
   },
 

@@ -59,8 +59,10 @@ function billQuery(filters = {}) {
 async function listBills(filters = {}) {
   const query = billQuery(filters);
   const first = await api.request({ url: '/bills', data: query });
-  const pages = [first.data];
-  const totalPages = Number(first.data.totalPages || 1);
+  const firstPage = first && first.data && typeof first.data === 'object' ? first.data : {};
+  const pages = [firstPage];
+  const parsedTotalPages = Number(firstPage.totalPages || 1);
+  const totalPages = Number.isFinite(parsedTotalPages) ? Math.max(1, parsedTotalPages) : 1;
   if (totalPages > 1) {
     const requests = [];
     for (let page = 1; page < totalPages; page += 1) {
@@ -70,9 +72,13 @@ async function listBills(filters = {}) {
       }));
     }
     const responses = await Promise.all(requests);
-    responses.forEach((response) => pages.push(response.data));
+    responses.forEach((response) => {
+      pages.push(response && response.data && typeof response.data === 'object' ? response.data : {});
+    });
   }
-  return pages.flatMap((page) => (page.content || []).map((bill) => billViewModel(bill)));
+  return pages.flatMap((page) => (
+    page && Array.isArray(page.content) ? page.content.filter(Boolean) : []
+  ).map((bill) => billViewModel(bill)));
 }
 
 async function getBill(id) {
@@ -203,7 +209,7 @@ async function suggestShippers(keyword) {
     url: '/bills/shipper-suggestions',
     data: { keyword: String(keyword || '').trim(), limit: 3 }
   });
-  return response.data || [];
+  return response && Array.isArray(response.data) ? response.data : [];
 }
 
 async function resolveShipperName(value) {
@@ -212,7 +218,7 @@ async function resolveShipperName(value) {
     method: 'POST',
     data: { name: String(value || '').trim() }
   });
-  return response.data;
+  return response && response.data && typeof response.data === 'object' ? response.data : null;
 }
 
 async function suggestBillKeywords(keyword) {
@@ -222,23 +228,54 @@ async function suggestBillKeywords(keyword) {
     url: '/bills/search-suggestions',
     data: { keyword: value, limit: 6 }
   });
-  return response.data || [];
+  return response && Array.isArray(response.data) ? response.data : [];
 }
 
 // OCR remains local until the client has a backend merge endpoint.
-function listOcrTasks() {
-  const store = getStore();
-  return new Promise((resolve) => {
-    setTimeout(() => resolve(clone(
-      [...store.ocrTasks].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-    )), 120);
+const OCR_PROCESSING_MS = 3200;
+
+function settleExpiredOcrTasks(store) {
+  const now = Date.now();
+  let changed = false;
+  store.ocrTasks = store.ocrTasks.map((task) => {
+    const createdAt = new Date(task.createdAt).getTime();
+    if (task.status !== 'processing' || task.demo || !Number.isFinite(createdAt) || now - createdAt < OCR_PROCESSING_MS) {
+      return task;
+    }
+    changed = true;
+    return { ...task, status: 'completed', bills: mockOcrBills };
   });
+  if (changed) saveStore(store);
+  return store;
+}
+
+function listOcrTasks() {
+  const store = settleExpiredOcrTasks(getStore());
+  const snapshot = clone(
+    store.ocrTasks
+      .filter((task) => !task.demo)
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+  );
+  return new Promise((resolve) => {
+    setTimeout(() => resolve(snapshot), 120);
+  });
+}
+
+function createOcrTaskId() {
+  const timestamp = Date.now();
+  const random = Math.random().toString(36).slice(2, 10);
+  return `ocr-task-${timestamp}-${random}`;
+}
+
+function createOcrProcessingToken() {
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
 function createOcrTask(imagePath) {
   const store = getStore();
   const task = {
-    id: `ocr-task-${Date.now()}`,
+    id: createOcrTaskId(),
+    processingToken: createOcrProcessingToken(),
     createdAt: new Date().toISOString(),
     status: 'processing',
     imagePath: imagePath || '',
@@ -251,7 +288,9 @@ function createOcrTask(imagePath) {
   setTimeout(() => {
     const latest = getStore();
     latest.ocrTasks = latest.ocrTasks.map((item) => (
-      item.id === task.id && item.status === 'processing'
+      item.id === task.id
+        && item.status === 'processing'
+        && item.processingToken === task.processingToken
         ? { ...item, status: 'completed', bills: mockOcrBills }
         : item
     ));
@@ -264,10 +303,10 @@ function createOcrTask(imagePath) {
 }
 
 function getOcrTask(id) {
-  const store = getStore();
+  const store = settleExpiredOcrTasks(getStore());
   const task = store.ocrTasks.find((item) => item.id === id);
   if (!task) return Promise.resolve(null);
-  const bills = (task.bills || []).map((bill) => ({
+  const bills = (Array.isArray(task.bills) ? task.bills : []).map((bill) => ({
     ...bill,
     duplicate: store.bills.some((existing) => (
       (bill.code && existing.code === bill.code)
@@ -286,10 +325,19 @@ function getOcrTask(id) {
 function retryOcrTask(id) {
   const store = getStore();
   let found = false;
+  let processingToken = '';
   store.ocrTasks = store.ocrTasks.map((task) => {
     if (task.id !== id) return task;
     found = true;
-    return { ...task, status: 'processing', merged: false, bills: [] };
+    processingToken = createOcrProcessingToken();
+    return {
+      ...task,
+      createdAt: new Date().toISOString(),
+      processingToken,
+      status: 'processing',
+      merged: false,
+      bills: []
+    };
   });
   saveStore(store);
   if (!found) return Promise.resolve({ ok: false });
@@ -297,7 +345,9 @@ function retryOcrTask(id) {
   setTimeout(() => {
     const latest = getStore();
     latest.ocrTasks = latest.ocrTasks.map((task) => (
-      task.id === id && task.status === 'processing'
+      task.id === id
+        && task.status === 'processing'
+        && task.processingToken === processingToken
         ? { ...task, status: 'completed', bills: mockOcrBills }
         : task
     ));
@@ -311,11 +361,12 @@ function mergeOcrTask(taskId, selectedIds, edits) {
   const task = store.ocrTasks.find((item) => item.id === taskId);
   if (!task || task.status !== 'completed' || task.merged) return Promise.resolve({ ok: false });
 
-  const selected = new Set(selectedIds);
-  const bills = task.bills
+  const selected = new Set(Array.isArray(selectedIds) ? selectedIds : []);
+  const editValues = edits && typeof edits === 'object' ? edits : {};
+  const bills = (Array.isArray(task.bills) ? task.bills : [])
     .filter((bill) => selected.has(bill.id))
     .map((bill) => {
-      const edit = edits[bill.id] || {};
+      const edit = editValues[bill.id] || {};
       return {
         id: `bill-${Date.now()}-${bill.id}`,
         code: edit.code || bill.code,

@@ -11,7 +11,7 @@ Page(withSystemLayout({
   },
 
   chooseImage(sourceType) {
-    if (this.data.submitting) return;
+    if (this.submitting || this.data.submitting) return;
     wx.chooseMedia({
       count: 1,
       mediaType: ['image'],
@@ -37,7 +37,8 @@ Page(withSystemLayout({
   },
 
   async createTask(imagePath) {
-    if (this.data.submitting) return;
+    if (this.submitting || this.data.submitting) return;
+    this.submitting = true;
     this.setData({
       submitting: true,
       primaryText: '正在创建…',
@@ -50,6 +51,7 @@ Page(withSystemLayout({
         wx.redirectTo({ url: '/pages/ocr-tasks/index' });
       }, 350);
     } catch (error) {
+      this.submitting = false;
       this.setData({
         submitting: false,
         primaryText: imagePath ? '开始识别' : '拍摄账本',
@@ -88,7 +90,7 @@ Page(withSystemLayout({
   },
 
   back() {
-    if (this.data.submitting) return;
+    if (this.submitting || this.data.submitting) return;
     safeBack();
   }
 }));

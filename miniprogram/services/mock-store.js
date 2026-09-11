@@ -1,7 +1,7 @@
 const { nowCode } = require('../utils/format');
 
 const STORAGE_KEY = 'demeter:mock-store:v1';
-const STORE_VERSION = 6;
+const STORE_VERSION = 7;
 
 const initialSearchHistory = [
   '张三物流',
@@ -76,6 +76,7 @@ const initialOcrTasks = [
     id: 'ocr-task-demo',
     createdAt: '2024-05-19T14:32:00',
     status: 'completed',
+    demo: true,
     imagePath: '',
     merged: false,
     bills: [
@@ -104,15 +105,6 @@ const initialOcrTasks = [
         confidence: 0.81
       }
     ]
-  },
-  {
-    id: 'ocr-task-processing-demo',
-    createdAt: '2024-05-20T09:08:00',
-    status: 'processing',
-    demo: true,
-    imagePath: '',
-    merged: false,
-    bills: []
   }
 ];
 
@@ -194,7 +186,9 @@ function getStore() {
     const cached = wx.getStorageSync(STORAGE_KEY);
     if (isValidStore(cached)) {
       memory = migrateStore(cached);
-      if (cached.version !== STORE_VERSION) saveStore(memory);
+      if (cached.version !== STORE_VERSION || JSON.stringify(cached) !== JSON.stringify(memory)) {
+        saveStore(memory);
+      }
     } else {
       memory = createInitialState();
     }
@@ -207,11 +201,11 @@ function getStore() {
 function migrateStore(store) {
   const migrated = clone(store);
   const sourceVersion = Number.isFinite(migrated.version) ? migrated.version : 1;
-  if (sourceVersion < 2) {
-    const processingDemo = initialOcrTasks.find((task) => task.id === 'ocr-task-processing-demo');
-    const hasProcessingTask = migrated.ocrTasks.some((task) => task.status === 'processing');
-    if (!hasProcessingTask) migrated.ocrTasks.push(clone(processingDemo));
-  }
+  // The processing demo was only fixture data. Never re-add it during migration.
+  migrated.ocrTasks = migrated.ocrTasks.filter((task) => task.id !== 'ocr-task-processing-demo');
+  migrated.ocrTasks = migrated.ocrTasks.map((task) => (
+    task.id === 'ocr-task-demo' ? { ...task, demo: true } : task
+  ));
   if (sourceVersion < 4 && JSON.stringify(migrated.searchHistory) === JSON.stringify(legacySearchHistory)) {
     migrated.searchHistory = clone(initialSearchHistory);
   }
