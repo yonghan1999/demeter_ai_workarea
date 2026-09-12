@@ -16,7 +16,7 @@
     </view>
     <view class="filter-card">
       <view class="filter-label">支付状态</view>
-      <view class="segmented"><button wx:for="{{statusOptions}}" wx:key="key" data-status="{{item.key}}" class="status-option {{item.className}}" bindtap="setStatus">{{item.text}}</button></view>
+      <status-segmented options="{{statusOptions}}" value="{{form.status}}" bind:change="setStatus" />
     </view>
   </view>
   <view class="filter-bottom"><button class="primary-button" bindtap="submit"><image src="/assets/icons/filter.svg" mode="aspectFit" />确定筛选</button></view>

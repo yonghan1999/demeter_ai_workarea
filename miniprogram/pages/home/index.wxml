@@ -128,7 +128,7 @@
         </view>
         <view class="inline-filter-card">
           <view class="inline-filter-label">支付状态</view>
-          <view class="inline-segmented"><button wx:for="{{filterStatusOptions}}" wx:key="key" data-status="{{item.key}}" class="inline-status-option {{item.className}}" bindtap="setFilterStatus"><text>{{item.text}}</text></button></view>
+          <status-segmented variant="inline" options="{{filterStatusOptions}}" value="{{filterDraft.status}}" bind:change="setFilterStatus" />
         </view>
         <view class="inline-filter-card date-range-card">
           <view class="inline-filter-label">运输日期</view>

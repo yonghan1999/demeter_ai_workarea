@@ -37,7 +37,7 @@ Page(withSystemLayout({
   },
 
   setStatus(event) {
-    this.setData({ 'form.status': event.currentTarget.dataset.status }, () => this.refreshOptions());
+    this.setData({ 'form.status': event.detail.status }, () => this.refreshOptions());
   },
 
   reset() {

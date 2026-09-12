@@ -1,0 +1,5 @@
+.status-segmented { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14rpx; }
+.status-option { height: 78rpx; border-radius: 34rpx; background: #f3f5f9; color: #4a5568; font-size: 27rpx; font-weight: 700; line-height: 78rpx; text-align: center; }
+.status-option.active { background: #1d50bf; color: #ffffff; }
+.inline { gap: 12rpx; margin-top: 20rpx; }
+.inline .status-option { height: 76rpx; border-radius: 26rpx; font-size: 24rpx; line-height: 76rpx; }

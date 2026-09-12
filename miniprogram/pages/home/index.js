@@ -271,7 +271,7 @@ Page(withSystemLayout({
   },
 
   setFilterStatus(event) {
-    this.setData({ 'filterDraft.status': event.currentTarget.dataset.status, filterError: '' }, () => {
+    this.setData({ 'filterDraft.status': event.detail.status, filterError: '' }, () => {
       this.refreshFilterOptions();
     });
   },

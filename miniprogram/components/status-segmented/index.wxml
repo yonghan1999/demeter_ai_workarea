@@ -1,0 +1,3 @@
+<view class="status-segmented {{variant}}">
+  <button wx:for="{{options}}" wx:key="key" data-status="{{item.key}}" class="status-option {{item.key === value ? 'active' : ''}}" bindtap="onSelect">{{item.text}}</button>
+</view>
