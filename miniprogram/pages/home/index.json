@@ -3,6 +3,7 @@
     "app-nav": "/components/app-nav/index",
     "bill-card": "/components/bill-card/index",
     "bottom-sheet": "/components/bottom-sheet/index",
-    "status-segmented": "/components/status-segmented/index"
+    "status-segmented": "/components/status-segmented/index",
+    "date-range-picker": "/components/date-range-picker/index"
   }
 }

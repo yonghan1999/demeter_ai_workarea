@@ -1,0 +1,29 @@
+.date-range-picker-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 42rpx minmax(0, 1fr);
+  align-items: center;
+  gap: 8rpx;
+  margin-top: 16rpx;
+}
+
+.date-picker { min-width: 0; }
+
+.date-value {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-width: 0;
+  height: 76rpx;
+  overflow: hidden;
+  border-radius: 22rpx;
+  background: #f3f5f9;
+  padding: 0 12rpx;
+  color: #17213a;
+  font-size: 21rpx;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.date-value.placeholder { color: #a8b7cb; font-weight: 500; }
+.date-separator { color: #718198; font-size: 21rpx; text-align: center; }

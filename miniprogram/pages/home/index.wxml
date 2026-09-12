@@ -132,15 +132,7 @@
         </view>
         <view class="inline-filter-card date-range-card">
           <view class="inline-filter-label">运输日期</view>
-          <view class="date-range-row">
-            <picker class="date-range-picker" mode="date" value="{{filterDraft.startDate}}" data-field="startDate" end="{{filterDraft.endDate || '2100-12-31'}}" bindchange="setFilterDate">
-              <view class="date-range-value {{filterDraft.startDate ? '' : 'placeholder'}}"><text>{{filterDraft.startDate || '开始日期'}}</text></view>
-            </picker>
-            <text class="date-range-separator">至</text>
-            <picker class="date-range-picker" mode="date" value="{{filterDraft.endDate}}" data-field="endDate" start="{{filterDraft.startDate || '2000-01-01'}}" bindchange="setFilterDate">
-              <view class="date-range-value {{filterDraft.endDate ? '' : 'placeholder'}}"><text>{{filterDraft.endDate || '结束日期'}}</text></view>
-            </picker>
-          </view>
+          <date-range-picker start-date="{{filterDraft.startDate}}" end-date="{{filterDraft.endDate}}" bind:change="setFilterDate" />
           <view wx:if="{{filterError}}" class="filter-error">{{filterError}}</view>
         </view>
       </view>

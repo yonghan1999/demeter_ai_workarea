@@ -1,0 +1,9 @@
+<view class="date-range-picker-row">
+  <picker class="date-picker" mode="date" value="{{startDate}}" end="{{endDate || '2100-12-31'}}" data-field="startDate" bindchange="onChange">
+    <view class="date-value {{startDate ? '' : 'placeholder'}}">{{startDate || '开始日期'}}</view>
+  </picker>
+  <text class="date-separator">至</text>
+  <picker class="date-picker" mode="date" value="{{endDate}}" start="{{startDate || '2000-01-01'}}" data-field="endDate" bindchange="onChange">
+    <view class="date-value {{endDate ? '' : 'placeholder'}}">{{endDate || '结束日期'}}</view>
+  </picker>
+</view>

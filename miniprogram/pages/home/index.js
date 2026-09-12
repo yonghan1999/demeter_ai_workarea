@@ -261,7 +261,7 @@ Page(withSystemLayout({
   },
 
   setFilterField(event) {
-    const field = event.currentTarget.dataset.field;
+    const field = event.detail.field;
     this.setData({ [`filterDraft.${field}`]: event.detail.value, filterError: '' });
   },
 
