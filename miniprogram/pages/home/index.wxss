@@ -574,6 +574,15 @@
   box-sizing: border-box;
 }
 
+.filter-sheet-handle {
+  align-self: center;
+  width: 54rpx;
+  height: 6rpx;
+  margin: 14rpx 0 4rpx;
+  border-radius: 3rpx;
+  background: #d5dce7;
+}
+
 .filter-sheet-header {
   position: relative;
   display: flex;
@@ -640,17 +649,27 @@
 }
 
 .inline-filter-reset {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 104rpx;
   min-width: 104rpx;
   max-width: 104rpx;
   height: 52rpx;
-  border-radius: 20rpx;
-  background: #ffffff;
-  padding: 0 22rpx;
-  color: #64748b;
+  margin: 0;
+  border: 1rpx solid #d7e1f4;
+  border-radius: 16rpx;
+  background: #f7f9fd;
+  padding: 0;
+  color: #315bbd;
   font-size: 22rpx;
   font-weight: 700;
+  line-height: 52rpx;
+  text-align: center;
+  box-sizing: border-box;
 }
+
+.inline-filter-reset::after { border: 0; }
 
 .inline-filter-card {
   width: 100%;

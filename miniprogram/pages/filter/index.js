@@ -3,8 +3,9 @@
 Page(withSystemLayout({
   data: {
     form: {
-      code: '',
       shipper: '',
+      from: '',
+      to: '',
       startDate: '',
       endDate: '',
       status: 'all'
@@ -42,8 +43,9 @@ Page(withSystemLayout({
   reset() {
     this.setData({
       form: {
-        code: '',
         shipper: '',
+        from: '',
+        to: '',
         startDate: '',
         endDate: '',
         status: 'all'
@@ -54,11 +56,14 @@ Page(withSystemLayout({
   submit() {
     const filters = {
       ...this.data.form,
-      code: this.data.form.code.trim(),
-      shipper: this.data.form.shipper.trim()
+      shipper: this.data.form.shipper.trim(),
+      from: this.data.form.from.trim(),
+      to: this.data.form.to.trim()
     };
     const form = encodeURIComponent(JSON.stringify(filters));
-    const keyword = filters.shipper || filters.code || '';
+    const keyword = filters.from && filters.to
+      ? `${filters.from} → ${filters.to}`
+      : filters.from || filters.to || filters.shipper || '';
     wx.navigateTo({ url: `/pages/search/index?auto=1&keyword=${encodeURIComponent(keyword)}&filters=${form}` });
   },
 

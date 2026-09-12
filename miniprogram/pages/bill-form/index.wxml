@@ -68,13 +68,7 @@
     </view>
   </view>
 
-  <view wx:if="{{suggestionOpen}}" class="form-sheet-mask" bindtap="closeSuggestionSheet">
-    <view class="form-sheet" style="{{systemLayout.bottomSafeStyle}}" catchtap="stopPropagation">
-      <view class="form-sheet-handle"></view>
-      <view class="form-sheet-header">
-        <view class="form-sheet-title">{{suggestionTitle}}</view>
-        <button class="form-sheet-close" bindtap="closeSuggestionSheet"><image src="/assets/icons/close.svg" mode="aspectFit" /></button>
-      </view>
+  <bottom-sheet visible="{{suggestionOpen}}" title="{{suggestionTitle}}" subtitle="{{suggestionMode === 'shipper' ? '选择或输入托运人' : '选择运输城市'}}" safe-style="{{systemLayout.bottomSafeStyle}}" bind:close="closeSuggestionSheet">
       <view class="form-sheet-search">
         <image src="/assets/icons/search.svg" mode="aspectFit" />
         <input class="form-sheet-search-input" value="{{suggestionQuery}}" focus placeholder="{{suggestionPlaceholder}}" bindinput="setSuggestionQuery" bindconfirm="onSuggestionConfirm" confirm-type="done" />
@@ -88,8 +82,7 @@
         </button>
         <view wx:if="{{suggestionItems.length === 0 && !suggestionQuery}}" class="form-sheet-empty">暂无匹配项</view>
       </scroll-view>
-    </view>
-  </view>
+  </bottom-sheet>
 
   <view wx:if="{{loading}}" class="form-state"><view class="state-spinner"></view><text>正在加载账单</text></view>
   <view wx:if="{{loadFailed}}" class="form-state"><view class="form-state-title">账单加载失败</view><text>请检查后重试</text><view class="form-state-actions"><button bindtap="retryLoad">重试</button><button class="secondary" bindtap="back">返回</button></view></view>

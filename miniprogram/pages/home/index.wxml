@@ -116,15 +116,7 @@
     </view>
   </view>
 
-  <view wx:if="{{filterOpen}}" class="filter-overlay" bindtap="closeFilter">
-    <view class="filter-sheet" style="{{systemLayout.bottomSafeStyle}}" catchtap="stopPropagation">
-      <view class="filter-sheet-header">
-        <view>
-          <view class="filter-sheet-title">高级筛选</view>
-          <text class="filter-sheet-subtitle">筛选当前账单列表</text>
-        </view>
-        <button class="filter-close" bindtap="closeFilter"><image class="filter-close-icon" src="/assets/icons/close.svg" mode="aspectFit" /></button>
-      </view>
+  <bottom-sheet visible="{{filterOpen}}" title="高级筛选" subtitle="筛选当前账单列表" safe-style="{{systemLayout.bottomSafeStyle}}" bind:close="closeFilter">
 
       <view class="filter-sheet-body">
         <view class="inline-filter-toolbar"><text>筛选条件</text><button class="inline-filter-reset" bindtap="resetFilterDraft">重置</button></view>
@@ -154,6 +146,5 @@
       </view>
 
       <button class="apply-filter" bindtap="applyFilter"><image class="apply-filter-icon" src="/assets/icons/filter.svg" mode="aspectFit" /><text>查看筛选结果</text></button>
-    </view>
-  </view>
+  </bottom-sheet>
 </view>

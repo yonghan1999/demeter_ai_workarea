@@ -52,6 +52,18 @@ Page(withSystemLayout({
     this.loadData();
   },
 
+  onBackPress() {
+    if (this.data.filterOpen) {
+      this.closeFilter();
+      return true;
+    }
+    if (this.data.dialOpen || this.data.batchMode) {
+      this.closeOverlays();
+      return true;
+    }
+    return false;
+  },
+
   onUnload() {
     this.loadSeq = (this.loadSeq || 0) + 1;
     this.touchState = null;

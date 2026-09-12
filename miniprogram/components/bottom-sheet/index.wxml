@@ -1,0 +1,15 @@
+<view wx:if="{{visible}}" class="bottom-sheet-mask" bindtap="onMaskTap">
+  <view class="bottom-sheet" style="{{safeStyle}}" catchtap="stopPropagation">
+    <view class="bottom-sheet-handle"></view>
+    <view class="bottom-sheet-header">
+      <view>
+        <view class="bottom-sheet-title">{{title}}</view>
+        <text wx:if="{{subtitle}}" class="bottom-sheet-subtitle">{{subtitle}}</text>
+      </view>
+      <button class="bottom-sheet-close" bindtap="onClose">
+        <image src="/assets/icons/close.svg" mode="aspectFit" />
+      </button>
+    </view>
+    <slot />
+  </view>
+</view>
