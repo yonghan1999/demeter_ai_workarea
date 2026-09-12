@@ -1,5 +1,6 @@
 {
   "usingComponents": {
-    "bill-card": "/components/bill-card/index"
+    "bill-card": "/components/bill-card/index",
+    "bottom-action-bar": "/components/bottom-action-bar/index"
   }
 }

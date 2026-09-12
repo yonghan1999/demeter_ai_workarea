@@ -1,0 +1,30 @@
+.bottom-action-bar {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 30;
+  padding: 20rpx 32rpx calc(20rpx + env(safe-area-inset-bottom));
+  border-top: 1rpx solid #e9edf4;
+  background: #ffffff;
+  box-sizing: border-box;
+}
+
+.select-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 112rpx;
+  padding: 24rpx 32rpx calc(24rpx + env(safe-area-inset-bottom));
+}
+
+.tasks-bottom {
+  padding: 24rpx 32rpx calc(24rpx + env(safe-area-inset-bottom));
+}
+
+.review-bottom {
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+  padding: 24rpx 32rpx calc(46rpx + env(safe-area-inset-bottom));
+}

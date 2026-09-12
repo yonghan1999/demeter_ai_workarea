@@ -63,13 +63,13 @@
     </view>
   </view>
 
-  <view class="bottom-bar review-bottom">
+  <bottom-action-bar variant="review" safe-style="{{systemLayout.bottomSafeStyle}}">
     <view class="merge-meta">
       <text>已选 {{selectedIds.length}} 笔</text>
       <text class="merge-total">合计 {{total}}</text>
     </view>
     <button class="primary-button {{mergeDisabledClass}}" disabled="{{mergeDisabled}}" bindtap="merge">{{merging ? '正在合并…' : '合并 ' + selectedIds.length + ' 笔账单到列表'}}</button>
-  </view>
+  </bottom-action-bar>
 </view>
 
 <view wx:elif="{{loading}}" class="review-state"><view class="review-spinner"></view><text>正在加载识别结果</text></view>

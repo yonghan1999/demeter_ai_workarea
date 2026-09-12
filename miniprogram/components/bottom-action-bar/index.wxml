@@ -1,0 +1,1 @@
+<view class="bottom-action-bar {{variant}} {{variant}}-bottom" style="{{safeStyle}}"><slot /></view>

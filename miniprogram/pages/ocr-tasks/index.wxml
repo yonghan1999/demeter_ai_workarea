@@ -27,5 +27,5 @@
     <view wx:if="{{!loading && tasks.length === 0}}" class="tasks-empty"><view>还没有识别任务</view><text>拍摄手写账本即可开始识别</text><button bindtap="newCapture">拍照识别</button></view>
     </block>
   </view>
-  <view class="tasks-bottom"><button class="primary-button" bindtap="newCapture">拍照新建识别任务</button></view>
+  <bottom-action-bar variant="tasks" safe-style="{{systemLayout.bottomSafeStyle}}"><button class="primary-button" bindtap="newCapture">拍照新建识别任务</button></bottom-action-bar>
 </view>

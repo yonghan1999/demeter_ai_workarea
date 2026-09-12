@@ -26,11 +26,11 @@
     <view wx:if="{{!loading && !loadFailed && bills.length === 0}}" class="select-empty"><view>暂无可管理账单</view><text>新增账单后可在这里批量操作</text></view>
   </view>
 
-  <view wx:if="{{!loading && !loadFailed}}" class="bottom-bar select-bottom">
+  <bottom-action-bar wx:if="{{!loading && !loadFailed}}" variant="select" safe-style="{{systemLayout.bottomSafeStyle}}">
     <view>
       <view class="bottom-title">已选 {{selectedIds.length}} 笔合计</view>
       <view class="bottom-total mono">{{totalAmount}}</view>
     </view>
     <button class="delete-confirm {{deleteDisabledClass}}" disabled="{{deleteDisabled}}" bindtap="deleteSelected"><image class="trash-icon" src="/assets/icons/trash.svg" mode="aspectFit" />{{deleteText}}</button>
-  </view>
+  </bottom-action-bar>
 </view>
