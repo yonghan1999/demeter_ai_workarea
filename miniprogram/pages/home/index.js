@@ -1,4 +1,4 @@
-const billService = require('../../services/bill-service');
+﻿const billService = require('../../services/bill-service');
 const { money } = require('../../utils/format');
 const { withSystemLayout } = require('../../utils/system');
 
@@ -31,7 +31,6 @@ Page(withSystemLayout({
     filterStatusOptions: [
       { key: 'all', text: '全部', className: 'active' },
       { key: 'unpaid', text: '未收款', className: '' },
-      { key: 'partially_paid', text: '部分收款', className: '' },
       { key: 'paid', text: '已收款', className: '' }
     ],
     filterOpen: false,
@@ -62,7 +61,6 @@ Page(withSystemLayout({
     const source = [
       { key: 'all', text: '全部' },
       { key: 'unpaid', text: '未收款' },
-      { key: 'partially_paid', text: '部分收款' },
       { key: 'paid', text: '已收款' }
     ];
     const activeFilterSummary = this.getActiveFilterSummary();
@@ -240,7 +238,6 @@ Page(withSystemLayout({
     const source = [
       { key: 'all', text: '全部' },
       { key: 'unpaid', text: '未收款' },
-      { key: 'partially_paid', text: '部分收款' },
       { key: 'paid', text: '已收款' }
     ];
     this.setData({
@@ -426,3 +423,5 @@ Page(withSystemLayout({
     this.setData({ deleteConfirmation: { ids: [id], count: 1 } });
   }
 }));
+
+\r\n

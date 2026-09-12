@@ -4,8 +4,9 @@
 .filter-back image { width:48rpx; height:48rpx; }
 .filter-title { position:absolute;bottom:18rpx;left:50%;max-width:360rpx;overflow:hidden;color:#17213a;font-size:32rpx;font-weight:700;text-align:center;text-overflow:ellipsis;transform:translateX(-50%);white-space:nowrap; }
 .filter-content { display: flex; flex-direction: column; gap: 30rpx; padding: 32rpx; }
-.filter-toolbar { display:flex; align-items:center; justify-content:space-between; min-height:58rpx; color:#17213a; font-size:29rpx; font-weight:800; }
-.filter-reset { height:58rpx; border-radius:22rpx; background:#fff; padding:0 25rpx; color:#64748b; font-size:24rpx; font-weight:700; box-shadow:0 2rpx 8rpx rgba(17,32,80,.05); }
+.filter-toolbar { display:flex; align-items:center; justify-content:space-between; min-height:64rpx; color:#17213a; font-size:29rpx; font-weight:800; }
+.filter-reset { display:flex; align-items:center; justify-content:center; width:112rpx; height:52rpx; margin:0; padding:0; border:1rpx solid #e2e7f0; border-radius:26rpx; background:#fff; color:#64748b; font-size:24rpx; font-weight:700; line-height:1; box-shadow:0 2rpx 8rpx rgba(17,32,80,.05); }
+.filter-reset::after { border:0; }
 .filter-card { border-radius: 30rpx; background: #fff; padding: 28rpx; box-shadow: 0 2rpx 8rpx rgba(17,32,80,.04); }
 .filter-label { color: #8c9bae; font-size: 22rpx; font-weight: 600; }
 .section-label { margin-bottom: 26rpx; }

@@ -169,6 +169,24 @@ Page(withSystemLayout({
     this.setData({ suggestionQuery: event.detail.value }, () => this.refreshSuggestionItems());
   },
 
+  onSuggestionConfirm() {
+    if (!this.data.suggestionQuery.trim()) return;
+    this.applySuggestionInput();
+  },
+
+  chooseSuggestionInput() {
+    if (!this.data.suggestionQuery.trim()) return;
+    this.applySuggestionInput();
+  },
+
+  applySuggestionInput() {
+    if (this.data.suggestionMode === 'shipper') {
+      this.useCustomShipper();
+    } else {
+      this.useCustomLocation();
+    }
+  },
+
   async refreshSuggestionItems() {
     const mode = this.data.suggestionMode;
     const value = this.data.suggestionQuery.trim();

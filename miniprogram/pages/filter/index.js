@@ -1,4 +1,4 @@
-const { withSystemLayout, safeBack } = require('../../utils/system');
+﻿const { withSystemLayout, safeBack } = require('../../utils/system');
 
 Page(withSystemLayout({
   data: {
@@ -20,7 +20,6 @@ Page(withSystemLayout({
     const statusSource = [
       { key: 'all', text: '全部' },
       { key: 'paid', text: '已收款' },
-      { key: 'partially_paid', text: '部分收款' },
       { key: 'unpaid', text: '未收款' }
     ];
     this.setData({
@@ -67,3 +66,5 @@ Page(withSystemLayout({
     safeBack();
   }
 }));
+
+\r\n

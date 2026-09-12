@@ -77,18 +77,20 @@
       </view>
       <view class="form-sheet-search">
         <image src="/assets/icons/search.svg" mode="aspectFit" />
-        <input value="{{suggestionQuery}}" focus placeholder="{{suggestionPlaceholder}}" bindinput="setSuggestionQuery" />
+        <input value="{{suggestionQuery}}" focus placeholder="{{suggestionPlaceholder}}" bindinput="setSuggestionQuery" bindconfirm="onSuggestionConfirm" confirm-type="done" />
       </view>
       <view class="form-sheet-caption">{{suggestionCaption}}</view>
       <scroll-view class="form-sheet-list" scroll-y>
+        <view wx:if="{{suggestionQuery}}" class="form-sheet-item form-sheet-custom-item" data-value="{{suggestionQuery}}" bindtap="chooseSuggestionInput">
+          <view>{{suggestionQuery}}</view>
+          <text>{{suggestionMode === 'shipper' ? '使用此名称作为托运人' : (suggestionMode === 'from' ? '使用此作为出发地' : '使用此作为目的地')}}</text>
+        </view>
         <button wx:for="{{suggestionItems}}" wx:key="id" class="form-sheet-item" data-value="{{item.value}}" bindtap="chooseFormSuggestion">
           <view>{{item.label}}</view>
           <text>{{item.meta}}</text>
         </button>
-        <view wx:if="{{suggestionItems.length === 0}}" class="form-sheet-empty">暂无匹配项</view>
+        <view wx:if="{{suggestionItems.length === 0 && !suggestionQuery}}" class="form-sheet-empty">暂无匹配项</view>
       </scroll-view>
-      <button wx:if="{{suggestionMode === 'shipper' && suggestionQuery}}" class="form-sheet-custom" bindtap="useCustomShipper">使用“{{suggestionQuery}}”作为托运人</button>
-      <button wx:elif="{{suggestionMode !== 'shipper' && suggestionQuery}}" class="form-sheet-custom" bindtap="useCustomLocation">使用“{{suggestionQuery}}”作为{{suggestionMode === 'from' ? '出发地' : '目的地'}}</button>
     </view>
   </view>
 
