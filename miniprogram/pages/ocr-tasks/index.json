@@ -1,6 +1,7 @@
 {
   "usingComponents": {
     "app-nav": "/components/app-nav/index",
-    "bottom-action-bar": "/components/bottom-action-bar/index"
+    "bottom-action-bar": "/components/bottom-action-bar/index",
+    "state-panel": "/components/state-panel/index"
   }
 }

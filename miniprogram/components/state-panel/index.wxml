@@ -1,0 +1,5 @@
+<view class="state-panel">
+  <view class="state-panel-title">{{title}}</view>
+  <text wx:if="{{subtitle}}" class="state-panel-subtitle">{{subtitle}}</text>
+  <button wx:if="{{actionText}}" class="state-panel-action" bindtap="onAction">{{actionText}}</button>
+</view>

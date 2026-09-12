@@ -3,7 +3,7 @@
   <view class="tasks-list">
     <view class="tasks-section-title">最近任务</view>
     <view wx:if="{{loading}}" class="tasks-skeleton"><view class="task-card skeleton-card"><view class="skeleton-thumb"></view><view class="skeleton-copy"><view></view><view></view><view></view></view></view></view>
-    <view wx:elif="{{loadFailed}}" class="tasks-empty"><view>任务加载失败</view><text>请检查网络后重试</text><button bindtap="retryLoad">重新加载</button></view>
+    <state-panel wx:elif="{{loadFailed}}" title="任务加载失败" subtitle="请检查网络后重试" action-text="重新加载" bind:action="retryLoad" />
     <block wx:else>
     <view wx:for="{{tasks}}" wx:key="id" class="task-entry task-entry-{{item.status}}">
     <view class="task-card task-{{item.status}}" data-id="{{item.id}}" bindtap="review">
@@ -24,7 +24,7 @@
     </view>
     <button wx:if="{{item.isFailed}}" class="retry-task-outside" data-id="{{item.id}}" bindtap="retryTask">{{retryingId === item.id ? '正在重试' : '重新识别'}}</button>
     </view>
-    <view wx:if="{{!loading && tasks.length === 0}}" class="tasks-empty"><view>还没有识别任务</view><text>拍摄手写账本即可开始识别</text><button bindtap="newCapture">拍照识别</button></view>
+    <state-panel wx:if="{{!loading && tasks.length === 0}}" title="还没有识别任务" subtitle="拍摄手写账本即可开始识别" action-text="拍照识别" bind:action="newCapture" />
     </block>
   </view>
   <bottom-action-bar variant="tasks" safe-style="{{systemLayout.bottomSafeStyle}}"><button class="primary-button" bindtap="newCapture">拍照新建识别任务</button></bottom-action-bar>

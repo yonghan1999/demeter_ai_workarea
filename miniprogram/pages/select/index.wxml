@@ -12,7 +12,7 @@
     <view wx:if="{{loading}}" class="select-skeleton" aria-label="正在加载账单">
       <view wx:for="{{[1,2,3]}}" wx:key="*this" class="select-skeleton-card"><view class="skeleton-line wide"></view><view class="skeleton-line medium"></view><view class="skeleton-divider"></view><view class="skeleton-line short"></view></view>
     </view>
-    <view wx:elif="{{loadFailed}}" class="select-empty"><view>账单加载失败</view><text>请检查网络后重试</text><button class="retry-button" bindtap="retryLoad">重新加载</button></view>
+    <state-panel wx:elif="{{loadFailed}}" title="账单加载失败" subtitle="请检查网络后重试" action-text="重新加载" bind:action="retryLoad" />
     <view wx:else class="select-list">
       <bill-card
         wx:for="{{bills}}"
@@ -23,7 +23,7 @@
         bind:tapbill="toggle"
       />
     </view>
-    <view wx:if="{{!loading && !loadFailed && bills.length === 0}}" class="select-empty"><view>暂无可管理账单</view><text>新增账单后可在这里批量操作</text></view>
+    <state-panel wx:if="{{!loading && !loadFailed && bills.length === 0}}" title="暂无可管理账单" subtitle="新增账单后可在这里批量操作" />
   </view>
 
   <bottom-action-bar wx:if="{{!loading && !loadFailed}}" variant="select" safe-style="{{systemLayout.bottomSafeStyle}}">
