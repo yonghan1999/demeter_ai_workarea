@@ -66,5 +66,3 @@ Page(withSystemLayout({
     safeBack();
   }
 }));
-
-\r\n

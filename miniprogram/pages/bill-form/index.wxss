@@ -271,13 +271,15 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 88rpx;
-  height: 88rpx;
+  width: 56rpx;
+  height: 56rpx;
+  margin-right: -8rpx;
+  padding: 0;
 }
 
 .form-sheet-close image {
-  width: 32rpx;
-  height: 32rpx;
+  width: 28rpx;
+  height: 28rpx;
 }
 
 .form-sheet-search {
@@ -458,5 +460,5 @@
 
 
 .form-sheet-search-input { flex: 1; min-width: 0; }
-.form-sheet-confirm { flex: none; width: 88rpx; height: 52rpx; margin: 0; border-radius: 14rpx; background: #174fc4; padding: 0; color: #ffffff; font-size: 22rpx; font-weight: 700; line-height: 52rpx; }
+.form-sheet-confirm { flex: 0 0 96rpx; width: 96rpx; max-width: 96rpx; height: 52rpx; margin: 0; border-radius: 14rpx; background: #174fc4; padding: 0; color: #ffffff; font-size: 22rpx; font-weight: 700; line-height: 52rpx; }
 .form-sheet-confirm[disabled] { background: #b8c7e5; color: #ffffff; }
