@@ -1,4 +1,4 @@
-<view class="page form-page">
+﻿<view class="page form-page">
   <app-nav title="{{title}}" nav-style="{{systemLayout.navStyle || ''}}" bind:back="back" />
 
   <view wx:if="{{ready}}" class="form-content">
@@ -77,7 +77,8 @@
       </view>
       <view class="form-sheet-search">
         <image src="/assets/icons/search.svg" mode="aspectFit" />
-        <input value="{{suggestionQuery}}" focus placeholder="{{suggestionPlaceholder}}" bindinput="setSuggestionQuery" bindconfirm="onSuggestionConfirm" confirm-type="done" />
+        <input class="form-sheet-search-input" value="{{suggestionQuery}}" focus placeholder="{{suggestionPlaceholder}}" bindinput="setSuggestionQuery" bindconfirm="onSuggestionConfirm" confirm-type="done" />
+        <button class="form-sheet-confirm" bindtap="onSuggestionConfirm" disabled="{{!suggestionQuery}}">确认</button>
       </view>
       <view class="form-sheet-caption">{{suggestionCaption}}</view>
       <scroll-view class="form-sheet-list" scroll-y>
@@ -99,3 +100,4 @@
 
   <view wx:if="{{ready}}" class="form-bottom"><button class="primary-button {{saveDisabledClass}}" disabled="{{submitting}}" bindtap="save">{{saveText}}</button></view>
 </view>
+

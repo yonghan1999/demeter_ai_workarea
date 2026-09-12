@@ -455,3 +455,8 @@
 @keyframes form-spin {
   to { transform: rotate(360deg); }
 }
+
+
+.form-sheet-search-input { flex: 1; min-width: 0; }
+.form-sheet-confirm { flex: none; width: 88rpx; height: 52rpx; margin: 0; border-radius: 14rpx; background: #174fc4; padding: 0; color: #ffffff; font-size: 22rpx; font-weight: 700; line-height: 52rpx; }
+.form-sheet-confirm[disabled] { background: #b8c7e5; color: #ffffff; }

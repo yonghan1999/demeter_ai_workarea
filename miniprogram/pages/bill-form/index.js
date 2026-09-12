@@ -242,7 +242,7 @@ Page(withSystemLayout({
       errorSummary: '',
       suggestionOpen: false,
       suggestionItems: []
-    });
+    }, () => this.refreshSaveAppearance());
   },
 
   async useCustomShipper() {
