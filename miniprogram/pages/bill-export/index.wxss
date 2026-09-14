@@ -1,0 +1,126 @@
+.bill-export-page {
+  min-height: 100vh;
+  padding-bottom: 176rpx;
+  background: #edf0f6;
+}
+
+.preview-scroll {
+  height: calc(100vh - 176rpx);
+  padding: 24rpx 24rpx 40rpx;
+  box-sizing: border-box;
+}
+
+.preview-intro {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 58rpx;
+  color: #718198;
+  font-size: 22rpx;
+  font-weight: 700;
+}
+
+.preview-page {
+  margin-bottom: 24rpx;
+  border-radius: 10rpx;
+  background: #ffffff;
+  padding: 8rpx;
+  box-shadow: 0 5rpx 18rpx rgba(17, 32, 80, 0.1);
+}
+
+.preview-page image {
+  display: block;
+  width: 100%;
+}
+
+.preview-page text {
+  display: block;
+  padding: 10rpx 8rpx 4rpx;
+  color: #8c9bae;
+  font-size: 19rpx;
+  text-align: right;
+}
+
+.preview-bottom {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 20;
+  border-top: 1rpx solid #e2e7ef;
+  background: rgba(255, 255, 255, 0.97);
+  padding: 18rpx 32rpx;
+  box-shadow: 0 -8rpx 28rpx rgba(17, 32, 80, 0.08);
+}
+
+.share-button {
+  width: 100%;
+  height: 84rpx;
+  border-radius: 26rpx;
+  background: #174fc4;
+  color: #ffffff;
+  font-size: 27rpx;
+  font-weight: 800;
+  line-height: 84rpx;
+}
+
+.share-button[disabled] {
+  background: #9aadd8;
+}
+
+.export-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 160rpx);
+  padding: 40rpx;
+  color: #8c9bae;
+  font-size: 23rpx;
+  text-align: center;
+}
+
+.export-state-title {
+  margin-bottom: 14rpx;
+  color: #17213a;
+  font-size: 31rpx;
+  font-weight: 800;
+}
+
+.state-spinner {
+  width: 52rpx;
+  height: 52rpx;
+  margin-bottom: 26rpx;
+  border: 6rpx solid #dce3ee;
+  border-top-color: #174fc4;
+  border-radius: 50%;
+  animation: bill-export-spin 0.8s linear infinite;
+}
+
+.secondary-button {
+  height: 76rpx;
+  margin-top: 32rpx;
+  border-radius: 24rpx;
+  background: #ffffff;
+  padding: 0 36rpx;
+  color: #315aaf;
+  font-size: 24rpx;
+  font-weight: 700;
+  line-height: 76rpx;
+}
+
+.render-canvas {
+  position: fixed;
+  top: -2000px;
+  left: -2000px;
+  width: 1684px;
+  height: 1190px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+@keyframes bill-export-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

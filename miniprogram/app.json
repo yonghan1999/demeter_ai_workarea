@@ -3,6 +3,7 @@
     "pages/home/index",
     "pages/search/index",
     "pages/bill-form/index",
+    "pages/bill-export/index",
     "pages/ocr-camera/index",
     "pages/ocr-tasks/index",
     "pages/ocr-review/index"

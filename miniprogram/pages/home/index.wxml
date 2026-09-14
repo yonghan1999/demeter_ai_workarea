@@ -32,7 +32,11 @@
       <view class="select-all" role="button" bindtap="toggleAll">{{allSelected ? '取消全选' : '全选'}}</view>
     </block>
     <block wx:else>
-      <view class="result-count"><text>{{total}} 条账单</text><button wx:if="{{filterCount > 0}}" class="filter-summary" bindtap="clearAdvancedFilters">已筛选 · 清除</button></view>
+      <view class="result-count">
+        <text>{{total}} 条账单</text>
+        <button wx:if="{{filterCount > 0}}" class="filter-summary" bindtap="clearAdvancedFilters">已筛选 · 清除</button>
+        <button wx:if="{{total > 0}}" class="export-list-button" bindtap="exportCurrentBills" disabled="{{loading}}">导出对账单</button>
+      </view>
       <text class="swipe-hint">← 左滑标记 / 删除</text>
     </block>
   </view>
@@ -99,6 +103,7 @@
       <text>已选 {{selectedIds.length}} 笔合计</text>
       <view class="mono">{{selectedAmount}}</view>
     </view>
+    <button class="batch-export {{selectedIds.length === 0 || deleting ? 'disabled' : ''}}" disabled="{{selectedIds.length === 0 || deleting}}" bindtap="exportSelectedBills">导出并分享</button>
     <button class="batch-delete {{selectedIds.length === 0 || deleting ? 'disabled' : ''}}" disabled="{{selectedIds.length === 0 || deleting}}" bindtap="deleteSelected">
       <image class="batch-delete-icon" src="/assets/icons/trash.svg" mode="aspectFit" />
       <text>{{deleteText}}</text>

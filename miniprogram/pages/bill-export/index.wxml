@@ -1,0 +1,34 @@
+<view class="page bill-export-page">
+  <app-nav title="对账单预览" nav-style="{{systemLayout.navStyle || ''}}" bind:back="back" />
+
+  <view wx:if="{{state === 'rendering'}}" class="export-state">
+    <view class="state-spinner"></view>
+    <view class="export-state-title">正在生成对账单</view>
+    <text>{{progressText}}</text>
+  </view>
+
+  <view wx:elif="{{state === 'failed'}}" class="export-state">
+    <view class="export-state-title">对账单生成失败</view>
+    <text>{{errorMessage}}</text>
+    <button class="secondary-button" bindtap="back">返回账单</button>
+  </view>
+
+  <scroll-view wx:elif="{{state === 'ready'}}" class="preview-scroll" scroll-y enhanced>
+    <view class="preview-intro">
+      <text>{{totalCount}} 笔账单</text>
+      <text>待支付 {{outstandingLabel}}</text>
+    </view>
+    <view wx:for="{{imagePaths}}" wx:key="*this" class="preview-page">
+      <image src="{{item}}" mode="widthFix" />
+      <text>第 {{index + 1}} / {{imagePaths.length}} 页</text>
+    </view>
+  </scroll-view>
+
+  <view wx:if="{{state === 'ready'}}" class="preview-bottom" style="{{systemLayout.bottomSafeStyle}}">
+    <button class="share-button" disabled="{{sharing}}" bindtap="share">
+      {{sharing ? '正在打开分享' : '确认并分享'}}
+    </button>
+  </view>
+
+  <canvas id="bill-export-canvas" type="2d" class="render-canvas" />
+</view>

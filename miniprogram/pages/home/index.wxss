@@ -230,6 +230,7 @@
   display: flex;
   align-items: center;
   gap: 14rpx;
+  min-width: 0;
 }
 
 .filter-summary {
@@ -240,6 +241,23 @@
   color: #315aaf;
   font-size: 19rpx;
   font-weight: 700;
+}
+
+.export-list-button {
+  flex: none;
+  height: 44rpx;
+  margin: 0;
+  border-radius: 18rpx;
+  background: #e7edfb;
+  padding: 0 16rpx;
+  color: #315aaf;
+  font-size: 19rpx;
+  font-weight: 700;
+  line-height: 44rpx;
+}
+
+.export-list-button[disabled] {
+  opacity: 0.5;
 }
 
 .swipe-hint {
@@ -317,6 +335,25 @@
   font-size: 25rpx;
   font-weight: 800;
   box-shadow: 0 8rpx 20rpx rgba(204, 29, 37, 0.22);
+}
+
+.batch-export {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 190rpx;
+  height: 82rpx;
+  border-radius: 28rpx;
+  background: #174fc4;
+  color: #ffffff;
+  font-size: 23rpx;
+  font-weight: 800;
+}
+
+.batch-export.disabled {
+  background: #dfe3ea;
+  color: #9ba5b5;
 }
 
 .batch-delete-icon {

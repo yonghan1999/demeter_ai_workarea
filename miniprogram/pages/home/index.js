@@ -2,6 +2,10 @@
 const { money } = require('../../utils/format');
 const { withSystemLayout } = require('../../utils/system');
 
+function getBillExportService() {
+  return require('../../services/bill-export-service');
+}
+
 Page(withSystemLayout({
   data: {
     bills: [],
@@ -196,6 +200,41 @@ Page(withSystemLayout({
   openSearch() {
     if (this.data.batchMode) return;
     wx.navigateTo({ url: '/pages/search/index' });
+  },
+
+  exportCurrentBills() {
+    if (this.data.loading || this.data.bills.length === 0) return;
+    try {
+      const billExportService = getBillExportService();
+      const sessionId = billExportService.createSession({
+        mode: 'current',
+        filters: {
+          status: this.data.activeStatus,
+          ...this.data.appliedFilters
+        }
+      });
+      wx.navigateTo({ url: `/pages/bill-export/index?sessionId=${sessionId}` });
+    } catch (error) {
+      wx.showToast({ title: '无法准备导出任务，请重试', icon: 'none' });
+    }
+  },
+
+  exportSelectedBills() {
+    if (this.data.deleting || this.data.selectedIds.length === 0) return;
+    try {
+      const billExportService = getBillExportService();
+      const selectedIds = new Set(this.data.selectedIds);
+      const bills = this.data.bills
+        .filter((bill) => selectedIds.has(bill.id))
+        .map((bill) => {
+          const { offset, selected, ...snapshot } = bill;
+          return snapshot;
+        });
+      const sessionId = billExportService.createSession({ mode: 'selected', bills });
+      wx.navigateTo({ url: `/pages/bill-export/index?sessionId=${sessionId}` });
+    } catch (error) {
+      wx.showToast({ title: '无法准备导出任务，请重试', icon: 'none' });
+    }
   },
 
   closeOverlays() {

@@ -51,28 +51,33 @@ function billQuery(filters = {}) {
 }
 
 async function listBills(filters = {}) {
-  const query = billQuery(filters);
-  const first = await api.request({ url: '/bills', data: query });
-  const firstPage = first && first.data && typeof first.data === 'object' ? first.data : {};
-  const pages = [firstPage];
-  const parsedTotalPages = Number(firstPage.totalPages || 1);
-  const totalPages = Number.isFinite(parsedTotalPages) ? Math.max(1, parsedTotalPages) : 1;
+  const first = await listBillsPage(filters, 0, 100);
+  const pages = [first];
+  const totalPages = Math.max(1, Number(first.totalPages || 1));
   if (totalPages > 1) {
-    const requests = [];
-    for (let page = 1; page < totalPages; page += 1) {
-      requests.push(api.request({
-        url: '/bills',
-        data: { ...query, page }
-      }));
-    }
-    const responses = await Promise.all(requests);
-    responses.forEach((response) => {
-      pages.push(response && response.data && typeof response.data === 'object' ? response.data : {});
-    });
+    const responses = await Promise.all(Array.from({ length: totalPages - 1 }, (_, index) => (
+      listBillsPage(filters, index + 1, 100)
+    )));
+    pages.push(...responses);
   }
-  return pages.flatMap((page) => (
-    page && Array.isArray(page.content) ? page.content.filter(Boolean) : []
-  ).map((bill) => billViewModel(bill)));
+  return pages.flatMap((page) => page.content);
+}
+
+async function listBillsPage(filters = {}, page = 0, size = 100) {
+  const response = await api.request({
+    url: '/bills',
+    data: { ...billQuery(filters), page, size }
+  });
+  const raw = response && response.data && typeof response.data === 'object'
+    ? response.data
+    : {};
+  return {
+    content: Array.isArray(raw.content)
+      ? raw.content.filter(Boolean).map((bill) => billViewModel(bill))
+      : [],
+    totalPages: Number(raw.totalPages || 1),
+    totalElements: Number(raw.totalElements || 0)
+  };
 }
 
 async function getBill(id) {
@@ -399,6 +404,7 @@ async function mergeOcrTask(taskId, selectedIds, edits) {
 
 module.exports = {
   listBills,
+  listBillsPage,
   getBill,
   createBill,
   updateBill,
