@@ -25,7 +25,10 @@ replacement for target-environment verification.
       the database DNS name.
 - [ ] Database accounts are role-specific:
       `demeter_api`, `demeter_worker`, `demeter_maintenance`,
-      `demeter_migrator`.
+      `demeter_migrator` (or a separately provisioned dedicated migration account).
+- [ ] A custom migration account is not shared with runtime processes and has
+      privileges limited to the target application database; username validation
+      alone does not verify database grants.
 - [ ] API, Worker, Maintenance, and Migrator use separate credentials.
 - [ ] API, Worker, and Maintenance have `FLYWAY_ENABLED=false`.
 - [ ] Migrator is the only process allowed to run Flyway.

@@ -1,10 +1,15 @@
 package com.demeter.backend.migration;
 
 import java.util.Locale;
+import java.util.Set;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.core.api.output.MigrateResult;
 
 public final class DatabaseMigrationMain {
+
+    private static final Set<String> RESERVED_DATABASE_USERS = Set.of(
+            "root", "mysql", "admin", "administrator",
+            "demeter_api", "demeter_worker", "demeter_maintenance");
 
     private DatabaseMigrationMain() {
     }
@@ -45,9 +50,9 @@ public final class DatabaseMigrationMain {
         void validate() {
             String databaseUrl = requireText(url, "MIGRATION_DB_URL is required");
             String databaseUsername = requireText(username, "MIGRATION_DB_USERNAME is required");
-            if (!"demeter_migrator".equals(databaseUsername)) {
+            if (RESERVED_DATABASE_USERS.contains(databaseUsername.toLowerCase(Locale.ROOT))) {
                 throw new IllegalStateException(
-                        "MIGRATION_DB_USERNAME must be the dedicated demeter_migrator account");
+                        "MIGRATION_DB_USERNAME must use a dedicated migration account, not a privileged or runtime account");
             }
             String databasePassword = requireText(password, "MIGRATION_DB_PASSWORD is required");
             if (isPlaceholder(databasePassword)) {

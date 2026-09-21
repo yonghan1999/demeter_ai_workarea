@@ -4,14 +4,18 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 class DatabaseMigrationMainTest {
 
-    @Test
-    void acceptsAProductionMySqlConnectionWithIdentityVerification() {
+    @ParameterizedTest
+    @ValueSource(strings = {"demeter_migrator", "production_schema_migrator"})
+    void acceptsAProductionMySqlConnectionWithIdentityVerification(String username) {
         var settings = new DatabaseMigrationMain.MigrationSettings(
                 "jdbc:mysql://mysql:3306/demeter?sslMode=VERIFY_IDENTITY&connectionTimeZone=UTC",
-                "demeter_migrator",
+                username,
                 "a-strong-migration-password",
                 false);
 
@@ -59,14 +63,29 @@ class DatabaseMigrationMainTest {
                 .hasMessageContaining("sslMode=DISABLED");
     }
 
-    @Test
-    void requiresTheDedicatedMigrationAccount() {
+    @ParameterizedTest
+    @ValueSource(strings = {"root", "mysql", "admin", "administrator", "demeter_api",
+            "demeter_worker", "demeter_maintenance", "ROOT", " Demeter_API "})
+    void rejectsPrivilegedAndRuntimeAccounts(String username) {
         assertThatThrownBy(() -> new DatabaseMigrationMain.MigrationSettings(
                         "jdbc:mysql://mysql:3306/demeter?sslMode=VERIFY_IDENTITY&connectionTimeZone=UTC",
-                        "demeter_api",
+                        username,
                         "a-strong-migration-password",
                         false)
                 .validate())
-                .hasMessageContaining("dedicated demeter_migrator");
+                .hasMessageContaining("dedicated migration account");
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = {" ", "\t"})
+    void rejectsMissingMigrationUsername(String username) {
+        assertThatThrownBy(() -> new DatabaseMigrationMain.MigrationSettings(
+                        "jdbc:mysql://mysql:3306/demeter?sslMode=VERIFY_IDENTITY&connectionTimeZone=UTC",
+                        username,
+                        "a-strong-migration-password",
+                        false)
+                .validate())
+                .hasMessageContaining("MIGRATION_DB_USERNAME is required");
     }
 }

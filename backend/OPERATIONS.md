@@ -49,6 +49,8 @@ docker build -t demeter-backend:<version> .
 
 Flyway 不应由 API、Worker 或 Maintenance 进程在生产启动时自动执行。一次只能发布向后兼容的 expand/contract 迁移；破坏性字段删除必须跨版本完成。生产迁移前先做快照，并在影子库执行同一版本迁移。数据库 schema 最低版本必须在发布前验证通过。
 
+Migrator 通过 `MIGRATION_DB_USERNAME` 指定专用迁移账号，推荐使用 `demeter_migrator`，也支持自定义用户名。禁止使用 `root`、`mysql`、`admin`、`administrator` 以及业务运行账号 `demeter_api`、`demeter_worker`、`demeter_maintenance`（忽略大小写）。用户名校验不能证明实际数据库权限：运维必须确认自定义账号独立于业务账号，权限仅限目标业务库，并通过 `MIGRATION_DB_PASSWORD` 注入对应密码。现有数据库初始化和授权脚本仍使用默认账号名；自定义账号需要单独创建和授权。TLS、UTC 时区和 Flyway 迁移校验要求保持不变。
+
 ## 上线门禁
 
 CI 必须通过以下门禁后才允许发布：
