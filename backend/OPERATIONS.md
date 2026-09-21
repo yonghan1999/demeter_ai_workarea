@@ -14,6 +14,8 @@
 
 常用可选变量：
 
+Hikari 连接池的 `DB_CONNECTION_TIMEOUT`、`DB_VALIDATION_TIMEOUT`、`DB_IDLE_TIMEOUT`、`DB_MAX_LIFETIME`、`DB_KEEPALIVE_TIME` 均使用毫秒整数，默认分别为 `10000`、`3000`、`600000`、`1800000`、`120000`。不要使用 `10s` 或 `10m` 等带单位的值；已有部署覆盖值也必须使用毫秒整数。
+
 - `SERVER_PORT=8080`、`MANAGEMENT_PORT=9090`
 - `AUTH_SESSION_TTL=30d`
 - `OCR_STORAGE_PATH=/var/lib/demeter/ocr`
