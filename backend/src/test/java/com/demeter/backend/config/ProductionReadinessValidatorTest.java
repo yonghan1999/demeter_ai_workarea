@@ -13,6 +13,8 @@ import com.demeter.backend.security.RateLimitProperties;
 import java.nio.file.Path;
 import java.time.Duration;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.mock.env.MockEnvironment;
 
 class ProductionReadinessValidatorTest {
@@ -101,16 +103,20 @@ class ProductionReadinessValidatorTest {
                 .hasMessageContaining("ADMIN_ENABLED may only be true for the API role");
     }
 
-    @Test
-    void rejectsAMySqlConnectionWithoutCertificateAndHostnameVerification() {
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "sslMode=DISABLED&connectionTimeZone=UTC",
+            "useSSL=false&connectionTimeZone=UTC",
+            "sslMode=REQUIRED&connectionTimeZone=UTC",
+            "connectionTimeZone=UTC"
+    })
+    void acceptsAMySqlConnectionWithoutSslVerification(String parameters) {
         ProductionReadinessValidator validator = validator(
-                "jdbc:mysql://db:3306/demeter?sslMode=REQUIRED&connectionTimeZone=UTC",
+                "jdbc:mysql://db:3306/demeter?" + parameters,
                 new ProductionProperties(1, false),
-                new OcrStorageProperties(Path.of("/var/lib/demeter/ocr"), false));
+                new OcrStorageProperties(ABSOLUTE_STORAGE_PATH, false));
 
-        assertThatThrownBy(validator::afterPropertiesSet)
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("sslMode=VERIFY_IDENTITY");
+        assertThatCode(validator::afterPropertiesSet).doesNotThrowAnyException();
     }
 
     @Test

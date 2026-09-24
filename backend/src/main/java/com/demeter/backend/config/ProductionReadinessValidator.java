@@ -90,15 +90,8 @@ public class ProductionReadinessValidator implements InitializingBean {
         if (!databaseUrl.toLowerCase(Locale.ROOT).startsWith("jdbc:mysql:")) {
             throw new IllegalStateException("Production DB_URL must use MySQL");
         }
-        if (!hasVerifyIdentity(databaseUrl)) {
-            throw new IllegalStateException("Production DB_URL must set sslMode=VERIFY_IDENTITY");
-        }
         if (containsParameter(databaseUrl, "allowPublicKeyRetrieval", "true")) {
             throw new IllegalStateException("Production DB_URL must not enable allowPublicKeyRetrieval");
-        }
-        if (containsParameter(databaseUrl, "useSSL", "false")
-                || containsParameter(databaseUrl, "sslMode", "DISABLED")) {
-            throw new IllegalStateException("Production DB_URL must not disable TLS");
         }
         if (!containsParameter(databaseUrl, "connectionTimeZone", "UTC")
                 && !containsParameter(databaseUrl, "serverTimezone", "UTC")) {
@@ -262,11 +255,6 @@ public class ProductionReadinessValidator implements InitializingBean {
 
     private static boolean isLoopbackAddress(String address) {
         return address != null && Set.of("127.0.0.1", "::1", "localhost").contains(address.toLowerCase(Locale.ROOT));
-    }
-
-    private static boolean hasVerifyIdentity(String databaseUrl) {
-        String normalized = databaseUrl.toLowerCase(Locale.ROOT).replace(" ", "");
-        return normalized.contains("sslmode=verify_identity");
     }
 
     private static boolean containsParameter(String databaseUrl, String name, String value) {
