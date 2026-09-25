@@ -14,6 +14,13 @@ backend. Treat these instructions as the engineering contract for Codex.
 - `backend/src/main/java/com/demeter/backend/ocr/spi/`: OCR provider boundary.
   The Alibaba Cloud handwritten-bill adapter is intentionally not implemented.
 
+## Design reference
+
+- The canonical Demeter design file is [Figma](https://www.figma.com/design/SuhDOAvOrAdB0GfVs639cf/demeter?node-id=0-1&p=f&t=a4XZQuVcag2x5VCX-0).
+- When a request mentions the design稿, design, visual specification, or Figma
+  reference, inspect this file first and use its relevant node as the source of
+  truth before changing the Mini Program UI.
+
 ## Working agreement
 
 - Inspect the relevant files and current Git status before editing.
