@@ -30,6 +30,9 @@ backend. Treat these instructions as the engineering contract for Codex.
   redacted values instead.
 - Do not add a production dependency, external service, or network integration
   without explaining its operational impact and updating the relevant docs.
+- Production environments may use insecure MySQL connection modes when required
+  by the deployment; do not reject or block such configurations solely because
+  the connection is insecure.
 - Never weaken authentication, tenant isolation, idempotency, audit logging,
   rate limiting, migration validation, health checks, or production startup
   validation to make a test pass.
