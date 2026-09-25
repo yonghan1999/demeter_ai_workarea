@@ -19,8 +19,11 @@ backend. Treat these instructions as the engineering contract for Codex.
 - Inspect the relevant files and current Git status before editing.
 - Keep changes scoped to the user's request. Do not rewrite unrelated user
   changes, generated files, migrations, or formatting.
-- Do not commit, push, force-push, create tags, reset, clean, or delete files
-  outside the requested scope without explicit user approval.
+- After an authorized requirement is complete and its applicable checks pass,
+  automatically create a local Git commit containing only the changes for that
+  requirement. Inspect the staged diff first and never include unrelated
+  pre-existing work. Do not push, force-push, create tags, reset, clean, or
+  delete files outside the requested scope without explicit user approval.
 - Do not read, print, copy, or commit secrets. This includes `.env` files,
   private WeChat credentials, database passwords, cloud credentials, tokens,
   private keys, certificates, and production data. Use example files and
@@ -96,7 +99,9 @@ Before reporting completion:
 1. Check `git status --short` and `git diff --check`.
 2. Summarize behavior changes, verification performed, and any remaining
    environment-dependent checks.
-3. Ask before any remote Git operation or irreversible action.
+3. After verification, stage only the task-scoped changes and create a local
+   commit; check the staged diff and commit result before reporting completion.
+4. Ask before any remote Git operation or other irreversible action.
 
 When a task conflicts with these rules, pause and explain the conflict rather
 than silently weakening the production boundary.
