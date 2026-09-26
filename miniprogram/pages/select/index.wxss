@@ -17,7 +17,7 @@
   background: #ffffff;
 }
 
-.select-nav-button {
+.ui-button.select-nav-button {
   display: flex;
   align-items: center;
   justify-content: flex-start;
@@ -27,7 +27,7 @@
   max-width: 64rpx;
   height: 64rpx;
 }
-.select-nav-button image { width:48rpx; height:48rpx; }
+.ui-button.select-nav-button image { width:48rpx; height:48rpx; }
 
 .select-nav-title {
   position: absolute;
@@ -96,7 +96,7 @@
 
 .select-empty { padding:120rpx 24rpx; color:#8c9bae; font-size:24rpx; text-align:center; }
 .select-empty view { margin-bottom:10rpx; color:#17213a; font-size:30rpx; font-weight:800; }
-.select-empty .retry-button { height:68rpx;margin:28rpx auto 0;border-radius:26rpx;background:#1143b4;padding:0 34rpx;color:#fff;font-size:24rpx;font-weight:700; }
+.select-empty .ui-button.retry-button { height:68rpx;margin:28rpx auto 0;border-radius:26rpx;background:#1143b4;padding:0 34rpx;color:#fff;font-size:24rpx;font-weight:700; }
 
 .select-bottom {
   display: flex;
@@ -120,7 +120,7 @@
   line-height: 52rpx;
 }
 
-.delete-confirm {
+.ui-button.delete-confirm {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -135,7 +135,7 @@
   box-shadow: 0 8rpx 12rpx rgba(204, 29, 37, 0.28);
 }
 
-.delete-confirm.disabled {
+.ui-button.delete-confirm.disabled {
   background: #ee8e94;
   opacity: 0.75;
   box-shadow: 0 8rpx 12rpx rgba(204, 29, 37, 0.16);

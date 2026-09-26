@@ -16,11 +16,14 @@
     </view>
 
     <view class="status-row">
-      <view class="status-pill {{bill.status}}">
-        <view class="status-dot"></view>
-        <text>{{bill.statusText}}</text>
+      <view class="status-details">
+        <view class="status-pill {{bill.status}}">
+          <view class="status-dot"></view>
+          <text>{{bill.statusText}}</text>
+        </view>
+        <text wx:if="{{bill.status === 'partially_paid'}}" class="partial-balance mono">已收 {{paidAmount}} · 待收 {{outstandingAmount}}</text>
       </view>
-      <text wx:if="{{bill.status === 'partially_paid'}}" class="partial-balance mono">已收 {{paidAmount}} · 待收 {{outstandingAmount}}</text>
+      <button class="ui-button payment-button" wx:if="{{showPayment && !selectable && bill.status !== 'paid' && bill.outstandingAmount > 0}}" catchtap="onPaymentTap">登记收款</button>
     </view>
 
     <view class="summary-row">

@@ -1,6 +1,12 @@
 ﻿<view class="page form-page">
   <app-nav title="{{title}}" nav-style="{{systemLayout.navStyle || ''}}" bind:back="back" />
-  <view wx:if="{{pendingSave}}" class="form-recovery-wrap"><button class="form-recovery-button" disabled="{{submitting}}" bindtap="recoverPendingSave">确认上次保存（可能属于另一笔账单）</button></view>
+  <view wx:if="{{pendingSave}}" class="form-recovery-wrap">
+    <view class="form-recovery-notice">
+      <view class="form-recovery-title">上次保存结果尚未确认</view>
+      <text>可能属于另一笔账单。请先确认上次提交，再继续保存当前表单。</text>
+      <button class="ui-button form-recovery-button" disabled="{{submitting}}" bindtap="recoverPendingSave">{{submitting ? '正在确认…' : '确认上次保存'}}</button>
+    </view>
+  </view>
 
   <view wx:if="{{ready}}" class="form-content">
     <view wx:if="{{errorSummary}}" class="form-error-summary">{{errorSummary}}</view>
@@ -15,10 +21,10 @@
         <view wx:else class="conflict-latest-text">{{conflictLatestText || '点击下方按钮加载最新账单'}}</view>
         <view wx:if="{{conflictDraftText}}" class="conflict-draft-text">{{conflictDraftText}}</view>
       </view>
-      <button class="conflict-primary" disabled="{{submitting || conflictLatestLoading}}" bindtap="conflictPrimaryAction">{{conflictPrimaryText}}</button>
-      <button class="conflict-secondary" disabled="{{submitting}}" bindtap="keepDraftAndReturn">保留草稿，返回核对</button>
+      <button class="ui-button conflict-primary" disabled="{{submitting || conflictLatestLoading}}" bindtap="conflictPrimaryAction">{{conflictPrimaryText}}</button>
+      <button class="ui-button conflict-secondary" disabled="{{submitting}}" bindtap="keepDraftAndReturn">保留草稿，返回核对</button>
     </view>
-    <button wx:if="{{recoveredCreate}}" class="form-recovery-button" disabled="{{submitting}}" bindtap="startAnotherBill">开始另一笔账单</button>
+    <button class="ui-button form-recovery-button" wx:if="{{recoveredCreate}}" disabled="{{submitting}}" bindtap="startAnotherBill">开始另一笔账单</button>
     <view class="bill-code mono">{{billCodeDisplay}}</view>
 
     <view class="form-card amount-card {{errors.amount ? 'field-error-card' : ''}}" bindtap="focusAmount">
@@ -51,8 +57,8 @@
       <view class="form-label">支付状态</view>
       <view wx:if="{{form.status === 'partially_paid'}}" class="partial-payment-state">部分收款 · 请在首页登记剩余收款</view>
       <view wx:else class="status-toggle">
-        <button class="status-button {{unpaidClass}}" data-status="unpaid" bindtap="setStatus"><text>未收款</text></button>
-        <button class="status-button {{paidClass}}" data-status="paid" bindtap="setStatus"><text>已收款</text></button>
+        <button class="ui-button status-button {{unpaidClass}}" data-status="unpaid" bindtap="setStatus"><text>未收款</text></button>
+        <button class="ui-button status-button {{paidClass}}" data-status="paid" bindtap="setStatus"><text>已收款</text></button>
       </view>
     </view>
 
@@ -90,11 +96,11 @@
       <view class="form-sheet-search">
         <image src="/assets/icons/search.svg" mode="aspectFit" />
         <input class="form-sheet-search-input" value="{{suggestionQuery}}" focus placeholder="{{suggestionPlaceholder}}" bindinput="setSuggestionQuery" bindconfirm="onSuggestionConfirm" confirm-type="done" />
-        <button class="form-sheet-confirm" bindtap="onSuggestionConfirm" disabled="{{!suggestionQuery}}">确认</button>
+        <button class="ui-button form-sheet-confirm" bindtap="onSuggestionConfirm" disabled="{{!suggestionQuery}}">确认</button>
       </view>
       <view class="form-sheet-caption">{{suggestionCaption}}</view>
       <scroll-view class="form-sheet-list" scroll-y>
-        <button wx:for="{{suggestionItems}}" wx:key="id" class="form-sheet-item" data-value="{{item.value}}" bindtap="chooseFormSuggestion">
+        <button class="ui-button form-sheet-item" wx:for="{{suggestionItems}}" wx:key="id" data-value="{{item.value}}" bindtap="chooseFormSuggestion">
           <view>{{item.label}}</view>
           <text>{{item.meta}}</text>
         </button>
@@ -103,17 +109,17 @@
   </bottom-sheet>
 
   <view wx:if="{{loading}}" class="form-state"><view class="state-spinner"></view><text>正在加载账单</text></view>
-  <view wx:if="{{loadFailed}}" class="form-state"><view class="form-state-title">页面加载失败</view><text>{{errorSummary || '请检查后重试'}}</text><view class="form-state-actions"><button bindtap="retryLoad">重试</button><button class="secondary" bindtap="back">返回</button></view></view>
+  <view wx:if="{{loadFailed}}" class="form-state"><view class="form-state-title">页面加载失败</view><text>{{errorSummary || '请检查后重试'}}</text><view class="form-state-actions"><button class="ui-button" bindtap="retryLoad">重试</button><button class="ui-button secondary" bindtap="back">返回</button></view></view>
 
-  <view wx:if="{{ready}}" class="form-bottom"><button class="primary-button {{saveDisabledClass}}" disabled="{{submitting}}" bindtap="save">{{saveText}}</button></view>
+  <view wx:if="{{ready}}" class="form-bottom"><button class="ui-button primary-button {{saveDisabledClass}}" disabled="{{submitting}}" bindtap="save">{{saveText}}</button></view>
 
   <view wx:if="{{leaveConfirmOpen}}" class="leave-mask" catchtap="stayEditing">
     <view class="leave-sheet" catchtap="stopPropagation">
       <view class="leave-title">放弃更改？</view>
       <view class="leave-copy">可以继续编辑，或确认返回账单列表。</view>
       <view class="leave-actions">
-        <button class="leave-stay" bindtap="stayEditing">继续编辑</button>
-        <button class="leave-discard" bindtap="discardAndLeave">放弃离开</button>
+        <button class="ui-button leave-stay" bindtap="stayEditing">继续编辑</button>
+        <button class="ui-button leave-discard" bindtap="discardAndLeave">放弃离开</button>
       </view>
     </view>
   </view>

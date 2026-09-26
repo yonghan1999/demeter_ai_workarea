@@ -1,6 +1,7 @@
-<view class="page review-page" wx:if="{{task}}">
+<view class="page review-page {{task ? 'has-task' : ''}}">
   <app-nav title="识别结果" nav-style="{{systemLayout.navStyle || ''}}" bind:back="back" />
 
+  <block wx:if="{{task}}">
   <view class="summary-card card">
     <view class="summary-image">
       <image wx:if="{{task.imagePath}}" class="summary-photo" src="{{task.imagePath}}" mode="aspectFill"></image>
@@ -10,7 +11,7 @@
       <view class="summary-title">共识别 {{recognizedCount}} 笔 · 待合并 {{reviewBills.length}} 笔</view>
       <text class="summary-copy">{{task.timeText}} 拍摄 · 点击字段可校对</text>
     </view>
-    <button class="review-select-all" disabled="{{merging}}" bindtap="toggleAll">{{allText}}</button>
+    <button class="ui-button review-select-all" disabled="{{merging}}" bindtap="toggleAll">{{allText}}</button>
   </view>
 
   <view wx:if="{{duplicateCount > 0}}" class="duplicate-notice">发现 {{duplicateCount}} 笔疑似重复账单，请核对后再合并</view>
@@ -19,7 +20,7 @@
   <view class="review-list">
     <view wx:for="{{reviewBills}}" wx:key="id" class="review-card card {{item.borderClass}} {{item.mutedClass}}">
       <view class="review-card-head">
-        <button class="review-check-button {{item.selectedClass}}" disabled="{{merging}}" data-id="{{item.id}}" catchtap="toggle">
+        <button class="ui-button review-check-button {{item.selectedClass}}" disabled="{{merging}}" data-id="{{item.id}}" catchtap="toggle">
           <text wx:if="{{item.selected}}">✓</text>
         </button>
         <view wx:if="{{item.duplicate}}" class="duplicate-badge">疑似重复 · 默认未选</view>
@@ -59,8 +60,8 @@
       </view>
 
       <view class="status-pair">
-        <button class="review-status-button {{item.unpaidClass}}" disabled="{{merging}}" data-id="{{item.id}}" data-status="unpaid" bindtap="setStatus"><text>未收款</text></button>
-        <button class="review-status-button {{item.paidClass}}" disabled="{{merging}}" data-id="{{item.id}}" data-status="paid" bindtap="setStatus"><text>已收款</text></button>
+        <button class="ui-button review-status-button {{item.unpaidClass}}" disabled="{{merging}}" data-id="{{item.id}}" data-status="unpaid" bindtap="setStatus"><text>未收款</text></button>
+        <button class="ui-button review-status-button {{item.paidClass}}" disabled="{{merging}}" data-id="{{item.id}}" data-status="paid" bindtap="setStatus"><text>已收款</text></button>
       </view>
     </view>
   </view>
@@ -70,9 +71,16 @@
       <text>已选 {{selectedIds.length}} 笔</text>
       <text class="merge-total">合计 {{total}}</text>
     </view>
-    <button class="primary-button {{mergeDisabledClass}}" disabled="{{mergeDisabled}}" bindtap="merge">{{merging ? mergeText : '合并 ' + selectedIds.length + ' 笔账单到列表'}}</button>
+    <button class="ui-button primary-button {{mergeDisabledClass}}" disabled="{{mergeDisabled}}" bindtap="merge">{{merging ? mergeText : '合并 ' + selectedIds.length + ' 笔账单到列表'}}</button>
   </bottom-action-bar>
-</view>
+  </block>
 
-<view wx:elif="{{loading}}" class="review-state"><view class="review-spinner"></view><text>正在加载识别结果</text></view>
-<view wx:else class="review-state"><view>{{stateTitle}}</view><text>{{stateText}}</text><view class="review-state-actions"><button wx:if="{{loadFailed}}" bindtap="retryLoad">重新加载</button><button class="secondary" bindtap="back">返回</button></view></view>
+  <view wx:else class="review-state" style="min-height: calc(100vh - {{systemLayout.navHeight || 88}}px); padding-bottom: calc(48rpx + {{systemLayout.bottomSafe || 0}}px);">
+    <block wx:if="{{loading}}"><view class="review-spinner"></view><text>正在加载识别结果</text></block>
+    <block wx:else>
+      <view class="review-state-title">{{stateTitle}}</view>
+      <text>{{stateText}}</text>
+      <view class="review-state-actions"><button class="ui-button" wx:if="{{loadFailed}}" bindtap="retryLoad">重新加载</button><button class="ui-button secondary" bindtap="back">返回</button></view>
+    </block>
+  </view>
+</view>

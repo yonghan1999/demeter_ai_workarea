@@ -6,8 +6,8 @@
         <view class="bottom-sheet-title">{{title}}</view>
         <text wx:if="{{subtitle}}" class="bottom-sheet-subtitle">{{subtitle}}</text>
       </view>
-      <button class="bottom-sheet-close" bindtap="onClose">
-        <image src="/assets/icons/close.svg" mode="aspectFit" />
+      <button class="ui-button bottom-sheet-close" bindtap="onClose">
+        <image class="bottom-sheet-close-icon" src="/assets/icons/close.svg" mode="aspectFit" />
       </button>
     </view>
     <slot />

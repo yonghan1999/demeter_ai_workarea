@@ -1,3 +1,5 @@
+@import "../../styles/button.wxss";
+
 .bill-card {
   position: relative;
   display: flex;
@@ -5,7 +7,7 @@
   overflow: hidden;
   border: 0;
   border-left: 5rpx solid transparent;
-  height: 296rpx;
+  min-height: 296rpx;
   border-radius: 34rpx;
   background: #ffffff;
   box-shadow: 0 2rpx 12rpx rgba(17, 32, 80, 0.07);
@@ -98,13 +100,38 @@
 
 .status-row {
   display: flex;
-  align-items: flex-start;
-  flex-wrap: wrap;
-  gap: 10rpx 16rpx;
+  align-items: center;
+  gap: 16rpx;
   margin-top: 8rpx;
 }
 
-.partial-balance { color: #9a6500; font-size: 20rpx; font-weight: 700; line-height: 46rpx; }
+.status-details {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+  flex-wrap: wrap;
+  gap: 10rpx 16rpx;
+}
+
+.partial-balance { color: #9a6500; font-size: 20rpx; font-weight: 700; line-height: 1.5; }
+
+.ui-button.payment-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 232rpx;
+  height: 88rpx;
+  min-height: 44px;
+  border-radius: 24rpx;
+  background: #eef3ff;
+  padding: 0 16rpx;
+  color: #174fc4;
+  font-size: 24rpx;
+  font-weight: 700;
+  line-height: 1.4;
+}
 
 .status-pill {
   display: flex;
@@ -215,4 +242,8 @@
   margin-left: -26rpx;
   padding-right: 26rpx;
   padding-left: 26rpx;
+}
+
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }

@@ -10,7 +10,7 @@
   <view wx:elif="{{state === 'failed'}}" class="export-state">
     <view class="export-state-title">对账单生成失败</view>
     <text>{{errorMessage}}</text>
-    <button class="secondary-button" bindtap="back">返回账单</button>
+    <button class="ui-button secondary-button" bindtap="back">返回账单</button>
   </view>
 
   <scroll-view wx:elif="{{state === 'ready'}}" class="preview-scroll" scroll-y enhanced>
@@ -18,7 +18,7 @@
       <view><text>按当前筛选生成 · {{totalCount}} 笔账单</text><text class="preview-note">生成期间账单变化会提示重试</text></view>
       <text>待支付 {{outstandingLabel}}</text>
     </view>
-    <button class="preview-zoom" bindtap="toggleZoom">{{zoomed ? '适合屏幕' : '放大查看'}}</button>
+    <button class="ui-button preview-zoom" bindtap="toggleZoom">{{zoomed ? '适合屏幕' : '放大查看'}}</button>
     <view wx:for="{{imagePaths}}" wx:key="*this" class="preview-page">
       <scroll-view class="preview-page-scroll {{zoomed ? 'zoomed' : ''}}" scroll-x="{{zoomed}}"><image src="{{item}}" mode="widthFix" /></scroll-view>
       <text>第 {{index + 1}} / {{imagePaths.length}} 页</text>
@@ -29,14 +29,14 @@
     <view class="share-failure-card">
       <view class="share-failure-title">分享失败</view>
       <text>文件已生成，但未能打开微信分享。对账单仍保留在当前页面，可再次尝试。</text>
-      <button class="share-retry" bindtap="share">重新分享</button>
-      <button class="share-return" bindtap="dismissShareMessage">返回预览</button>
+      <button class="ui-button share-retry" bindtap="share">重新分享</button>
+      <button class="ui-button share-return" bindtap="dismissShareMessage">返回预览</button>
     </view>
   </view>
 
   <view wx:if="{{state === 'ready'}}" class="preview-bottom" style="{{systemLayout.bottomSafeStyle}}">
     <text wx:if="{{shareMessage}}" class="share-message">{{shareMessage}}</text>
-    <button class="share-button" disabled="{{sharing}}" bindtap="share">
+    <button class="ui-button share-button" disabled="{{sharing}}" bindtap="share">
       {{sharing ? '正在打开分享' : '确认并分享'}}
     </button>
   </view>

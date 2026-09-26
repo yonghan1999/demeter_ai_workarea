@@ -186,7 +186,10 @@
 
 .list-meta {
   display: flex;
+  align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8rpx 12rpx;
   min-height: 56rpx;
   margin: 10rpx 32rpx 4rpx;
   color: #8da0ba;
@@ -226,11 +229,17 @@
 .result-count {
   display: flex;
   align-items: center;
-  gap: 14rpx;
+  flex-wrap: wrap;
+  gap: 8rpx;
   min-width: 0;
+  white-space: nowrap;
 }
 
-.filter-summary {
+.ui-button.filter-summary {
+  display: flex;
+  align-items: center;
+  flex: none;
+  width: auto;
   height: 44rpx;
   border-radius: 18rpx;
   background: #e7edfb;
@@ -240,8 +249,9 @@
   font-weight: 700;
 }
 
-.export-list-button {
+.ui-button.export-list-button {
   flex: none;
+  width: auto;
   height: 44rpx;
   margin: 0;
   border-radius: 18rpx;
@@ -253,13 +263,16 @@
   line-height: 44rpx;
 }
 
-.export-list-button[disabled] {
+.ui-button.export-list-button[disabled] {
   opacity: 0.5;
 }
 
 .swipe-hint {
+  margin-left: auto;
   color: #b2bfd1;
+  font-size: 20rpx;
   font-weight: 500;
+  white-space: nowrap;
 }
 
 .bill-list {
@@ -302,14 +315,23 @@
   align-items: center;
   justify-content: space-between;
   flex: none;
-  height: 68rpx;
+  gap: 20rpx;
+  min-height: 68rpx;
   border-radius: 24rpx;
   background: #e7edfb;
-  padding: 0 26rpx;
+  padding: 16rpx 26rpx;
   color: #315aaf;
   font-size: 21rpx;
   font-weight: 700;
 }
+
+.applied-filter-summary > text:first-child {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.applied-filter-summary > text:last-child { flex: none; }
 
 .batch-bottom {
   position: fixed;
@@ -317,10 +339,10 @@
   bottom: 0;
   left: 0;
   z-index: 50;
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   align-items: center;
-  justify-content: space-between;
-  gap: 24rpx;
+  gap: 16rpx 24rpx;
   min-height: 122rpx;
   border-top: 1rpx solid #e2e7ef;
   background: rgba(255, 255, 255, 0.97);
@@ -329,31 +351,32 @@
 }
 
 .batch-total {
-  flex: 1;
+  grid-column: 1 / -1;
   min-width: 0;
   color: #8796aa;
   font-size: 20rpx;
   font-weight: 600;
+  white-space: nowrap;
 }
 
 .batch-total .mono {
   margin-top: 4rpx;
-  overflow: hidden;
   color: #17213a;
   font-size: 31rpx;
   font-weight: 800;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 
-.batch-delete {
+.ui-button.batch-delete {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 12rpx;
-  flex: none;
-  width: 252rpx;
-  height: 82rpx;
+  width: 100%;
+  min-width: 0;
+  height: 104rpx;
+  min-height: 48px;
   border-radius: 28rpx;
   background: #cc1d25;
   color: #ffffff;
@@ -362,21 +385,22 @@
   box-shadow: 0 8rpx 20rpx rgba(204, 29, 37, 0.22);
 }
 
-.batch-export {
+.ui-button.batch-export {
   display: flex;
   align-items: center;
   justify-content: center;
-  flex: none;
-  width: 190rpx;
-  height: 82rpx;
-  border-radius: 28rpx;
-  background: #174fc4;
-  color: #ffffff;
+  width: 100%;
+  min-width: 0;
+  height: 96rpx;
+  min-height: 48px;
+  border-radius: 24rpx;
+  background: #eef3ff;
+  color: #174fc4;
   font-size: 23rpx;
   font-weight: 800;
 }
 
-.batch-export.disabled {
+.ui-button.batch-export.disabled {
   background: #dfe3ea;
   color: #9ba5b5;
 }
@@ -386,7 +410,7 @@
   height: 32rpx;
 }
 
-.batch-delete.disabled {
+.ui-button.batch-delete.disabled {
   background: #dfe3ea;
   color: #9ba5b5;
   box-shadow: none;
@@ -431,7 +455,7 @@
   margin-top: 96rpx;
 }
 
-.delete-confirm-actions button {
+.delete-confirm-actions .ui-button {
   width: 100%;
   min-width: 0;
   max-width: 100%;
@@ -443,7 +467,7 @@
   font-weight: 700;
 }
 
-.delete-confirm-actions .danger {
+.delete-confirm-actions .ui-button.danger {
   background: #cc1d25;
   color: #ffffff;
 }
@@ -464,7 +488,7 @@
   width: 280rpx;
 }
 
-.action {
+.ui-button.action {
   flex-direction: column;
   gap: 12rpx;
   display: flex;
@@ -481,13 +505,13 @@
   height: 40rpx;
 }
 
-.paid-action {
+.ui-button.paid-action {
   background: #1d8a4e;
 }
 
-.paid-action.disabled { background: #8fa39a; }
+.ui-button.paid-action.disabled { background: #8fa39a; }
 
-.delete-action {
+.ui-button.delete-action {
   background: #cc1d25;
 }
 
@@ -516,7 +540,7 @@
   font-weight: 700;
 }
 
-.home-state-button {
+.ui-button.home-state-button {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -531,12 +555,43 @@
   font-weight: 700;
 }
 
-.home-state-button.secondary {
+.ui-button.home-state-button.secondary {
   margin-top: 20rpx;
   background: #ffffff;
   color: #174fc4;
   box-shadow: inset 0 0 0 2rpx #b9caf4;
 }
+
+.home-state.filtered-empty {
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 24rpx;
+  min-height: 0;
+  padding: 16rpx 32rpx 180rpx;
+  color: #3d5275;
+  font-size: 26rpx;
+  line-height: 1.6;
+  text-align: left;
+}
+
+.empty-filter-summary,
+.empty-filter-content {
+  border-radius: 24rpx;
+  background: #ffffff;
+  padding: 32rpx;
+  overflow-wrap: anywhere;
+}
+
+.empty-filter-heading {
+  margin-bottom: 16rpx;
+  color: #17213a;
+  font-size: 30rpx;
+  font-weight: 700;
+}
+
+.filtered-empty .home-state-title { margin-bottom: 20rpx; }
+.filtered-empty .ui-button.home-state-button { width: 100%; min-height: 48px; margin-top: 24rpx; }
+.filtered-empty .ui-button.home-state-button.secondary { background: #eef3ff; box-shadow: none; }
 
 .payment-sheet-body {
   flex: 1;
@@ -586,14 +641,14 @@
 .payment-amount-field.locked { background: #f9f8f2; }
 .payment-amount-field input { flex: 1; height: 100%; font-size: 32rpx; font-weight: 800; }
 .payment-methods { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12rpx; }
-.payment-method { width: 100%; min-width: 0; max-width: 100%; height: 76rpx; border-radius: 22rpx; background: #ffffff; padding: 0 8rpx; color: #3d5275; font-size: 22rpx; font-weight: 700; line-height: 76rpx; }
-.payment-method.active { background: #174fc4; color: #ffffff; }
+.ui-button.payment-method { display: flex; align-items: center; justify-content: center; width: 100%; min-width: 0; max-width: 100%; height: 88rpx; min-height: 44px; border-radius: 22rpx; background: #eef3ff; padding: 0 8rpx; color: #174fc4; font-size: 24rpx; font-weight: 700; line-height: 1.4; }
+.ui-button.payment-method.active { background: #174fc4; color: #ffffff; }
 .payment-note { box-sizing: border-box; width: 100%; height: 148rpx; border-radius: 24rpx; background: #ffffff; padding: 20rpx 24rpx; color: #17213a; font-size: 24rpx; }
 .payment-actions { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr); gap: 16rpx; margin-top: 26rpx; padding-bottom: 20rpx; }
-.payment-actions button { width: 100%; min-width: 0; max-width: 100%; height: 88rpx; border-radius: 24rpx; font-size: 24rpx; font-weight: 800; line-height: 88rpx; }
-.payment-cancel { background: #ffffff; color: #3d5275; }
-.payment-confirm { background: #174fc4; color: #ffffff; }
-.payment-confirm[disabled] { background: #b9c8e7; color: #ffffff; }
+.payment-actions .ui-button { width: 100%; min-width: 0; max-width: 100%; height: 88rpx; border-radius: 24rpx; font-size: 24rpx; font-weight: 800; line-height: 88rpx; }
+.ui-button.payment-cancel { background: #ffffff; color: #3d5275; }
+.ui-button.payment-confirm { background: #174fc4; color: #ffffff; }
+.ui-button.payment-confirm[disabled] { background: #b9c8e7; color: #ffffff; }
 
 .fab-group {
   position: fixed;
@@ -619,7 +674,7 @@
   background: rgba(0, 0, 0, 0.2);
 }
 
-.fab {
+.ui-button.fab {
   position: absolute;
   right: 0;
   bottom: 0;
@@ -640,7 +695,7 @@
   box-shadow: 0 16rpx 30rpx rgba(23, 79, 196, 0.26);
 }
 
-.fab-option {
+.ui-button.fab-option {
   display: flex;
   align-items: center;
   gap: 20rpx;
@@ -776,7 +831,7 @@
   font-weight: 800;
 }
 
-.inline-filter-reset {
+.ui-button.inline-filter-reset {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -797,7 +852,7 @@
   box-sizing: border-box;
 }
 
-.inline-filter-reset::after { border: 0; }
+.ui-button.inline-filter-reset::after { border: 0; }
 
 .inline-filter-card {
   width: 100%;
@@ -933,7 +988,7 @@
   line-height: 28rpx;
 }
 
-.delete-confirm-actions button {
+.delete-confirm-actions .ui-button {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -947,7 +1002,7 @@
   text-align: center;
 }
 
-.apply-filter {
+.ui-button.apply-filter {
   display: flex;
   align-items: center;
   justify-content: center;

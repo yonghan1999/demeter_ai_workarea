@@ -63,19 +63,39 @@
   line-height: 28rpx;
 }
 
-.form-recovery-button {
-  height: 72rpx;
+.ui-button.form-recovery-button {
+  width: 100%;
+  min-height: 88rpx;
   border: 2rpx solid #174fc4;
   border-radius: 16rpx;
   background: #ffffff;
   color: #174fc4;
   font-size: 24rpx;
   font-weight: 700;
-  line-height: 68rpx;
+  padding: 18rpx 24rpx;
+  line-height: 36rpx;
 }
 
 .form-recovery-wrap {
   padding: 24rpx 32rpx 0;
+}
+
+.form-recovery-notice {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+  border-radius: 24rpx;
+  background: #fff4ec;
+  padding: 28rpx;
+  color: #3d5275;
+  font-size: 26rpx;
+  line-height: 42rpx;
+}
+
+.form-recovery-title {
+  color: #b55800;
+  font-size: 30rpx;
+  font-weight: 700;
 }
 
 .conflict-panel { display: flex; flex-direction: column; gap: 16rpx; }
@@ -87,17 +107,17 @@
 .conflict-latest-text { margin-top: 10rpx; color: #17213a; font-size: 30rpx; font-weight: 700; line-height: 40rpx; }
 .conflict-draft-text { margin-top: 8rpx; color: #61738f; font-size: 21rpx; line-height: 30rpx; }
 .conflict-loading { margin-top: 12rpx; color: #61738f; font-size: 22rpx; }
-.conflict-primary, .conflict-secondary { height: 104rpx; border-radius: 24rpx; font-size: 26rpx; font-weight: 700; line-height: 104rpx; }
-.conflict-primary { background: #174fc4; color: #ffffff; }
-.conflict-secondary { border: 2rpx solid #174fc4; background: #ffffff; color: #174fc4; }
+.ui-button.conflict-primary, .ui-button.conflict-secondary { height: 104rpx; border-radius: 24rpx; font-size: 26rpx; font-weight: 700; line-height: 104rpx; }
+.ui-button.conflict-primary { background: #174fc4; color: #ffffff; }
+.ui-button.conflict-secondary { border: 2rpx solid #174fc4; background: #ffffff; color: #174fc4; }
 .leave-mask { position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center; background: rgba(14, 24, 42, .42); }
 .leave-sheet { width: 650rpx; border-radius: 32rpx; background: #ffffff; padding: 36rpx 40rpx 28rpx; box-sizing: border-box; }
 .leave-title { color: #17213a; font-size: 31rpx; font-weight: 700; line-height: 42rpx; }
 .leave-copy { margin-top: 12rpx; color: #61738f; font-size: 22rpx; line-height: 34rpx; }
 .leave-actions { display: flex; gap: 20rpx; margin-top: 34rpx; }
-.leave-actions button { flex: 1; height: 96rpx; border-radius: 28rpx; font-size: 25rpx; font-weight: 700; line-height: 96rpx; }
-.leave-stay { background: #f5f7fb; color: #3d5275; }
-.leave-discard { background: #cc1c26; color: #ffffff; }
+.leave-actions .ui-button { flex: 1; height: 96rpx; border-radius: 28rpx; font-size: 25rpx; font-weight: 700; line-height: 96rpx; }
+.ui-button.leave-stay { background: #f5f7fb; color: #3d5275; }
+.ui-button.leave-discard { background: #cc1c26; color: #ffffff; }
 
 .field-error-card {
   border: 2rpx solid #cc1d25;
@@ -160,7 +180,7 @@
   margin-top: 20rpx;
 }
 
-.status-button {
+.ui-button.status-button {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -179,7 +199,7 @@
   text-align: center;
 }
 
-.status-button text {
+.ui-button.status-button text {
   display: block;
   width: 100%;
   line-height: 32rpx;
@@ -389,7 +409,7 @@
   overflow-y: auto;
 }
 
-.form-sheet-item {
+.ui-button.form-sheet-item {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -412,13 +432,13 @@
   font-weight: 700;
 }
 
-.form-sheet-item > view,
-.form-sheet-item > text {
+.ui-button.form-sheet-item > view,
+.ui-button.form-sheet-item > text {
   width: 100%;
   text-align: left;
 }
 
-.form-sheet-item text {
+.ui-button.form-sheet-item text {
   display: block;
   margin-top: 4rpx;
   color: #9aabc2;
@@ -460,7 +480,7 @@
   background: #ffffff;
 }
 
-.form-bottom .primary-button {
+.form-bottom .ui-button.primary-button {
   width: 100%;
   height: 104rpx;
   border-radius: 24rpx;
@@ -469,7 +489,7 @@
   font-size: 28rpx;
 }
 
-.form-bottom .primary-button.incomplete {
+.form-bottom .ui-button.primary-button.incomplete {
   background: #7899dc;
   opacity: 1;
 }
@@ -509,7 +529,7 @@
   margin-top: 28rpx;
 }
 
-.form-state-actions button {
+.form-state-actions .ui-button {
   height: 68rpx;
   border-radius: 24rpx;
   background: #174fc4;
@@ -519,7 +539,7 @@
   font-weight: 700;
 }
 
-.form-state-actions .secondary {
+.form-state-actions .ui-button.secondary {
   background: #ffffff;
   color: #3d5275;
 }
@@ -530,5 +550,5 @@
 
 
 .form-sheet-search-input { flex: 1; min-width: 0; }
-.form-sheet-confirm { flex: 0 0 96rpx; width: 96rpx; max-width: 96rpx; height: 52rpx; margin: 0; border-radius: 14rpx; background: #174fc4; padding: 0; color: #ffffff; font-size: 22rpx; font-weight: 700; line-height: 52rpx; }
-.form-sheet-confirm[disabled] { background: #b8c7e5; color: #ffffff; }
+.ui-button.form-sheet-confirm { flex: 0 0 96rpx; width: 96rpx; max-width: 96rpx; height: 52rpx; margin: 0; border-radius: 14rpx; background: #174fc4; padding: 0; color: #ffffff; font-size: 22rpx; font-weight: 700; line-height: 52rpx; }
+.ui-button.form-sheet-confirm[disabled] { background: #b8c7e5; color: #ffffff; }

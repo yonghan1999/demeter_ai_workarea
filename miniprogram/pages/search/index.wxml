@@ -12,9 +12,9 @@
         bindinput="onInput"
         bindconfirm="confirmSearch"
       />
-      <button wx:if="{{query}}" class="search-clear" bindtap="clearQuery"><image class="search-clear-icon" src="/assets/icons/clear.svg" mode="aspectFit" /></button>
+      <button class="ui-button search-clear" wx:if="{{query}}" bindtap="clearQuery"><image class="search-clear-icon" src="/assets/icons/clear.svg" mode="aspectFit" /></button>
     </view>
-    <button class="search-confirm-button" bindtap="confirmSearch">搜索</button>
+    <button class="ui-button search-confirm-button" bindtap="confirmSearch">搜索</button>
   </view>
 
   <view wx:if="{{loading}}" class="search-state"><view class="loading-dot"></view><view class="search-state-title">正在搜索账单</view><text>正在匹配托运人、单号和路线</text></view>
@@ -22,7 +22,7 @@
   <view wx:elif="{{loadFailed}}" class="search-state">
     <view class="search-state-title">搜索失败</view>
     <text>网络异常，请检查后重试</text>
-    <button class="search-retry" bindtap="confirmSearch">重新搜索</button>
+    <button class="ui-button search-retry" bindtap="confirmSearch">重新搜索</button>
   </view>
 
   <view wx:elif="{{hasResults}}" class="result-list">
@@ -40,8 +40,8 @@
     <view class="empty-title">未找到相关账单</view>
     <text>换个托运人、单号或路线试试</text>
     <view class="empty-actions">
-      <button class="empty-action primary" bindtap="clearSearchFilters">清空条件</button>
-      <button class="empty-action" bindtap="createBill">新增账单</button>
+      <button class="ui-button empty-action primary" bindtap="clearSearchFilters">清空条件</button>
+      <button class="ui-button empty-action" bindtap="createBill">新增账单</button>
     </view>
   </view>
 
@@ -65,10 +65,10 @@
       <view wx:for="{{history}}" wx:key="*this" class="history-item" data-keyword="{{item}}" bindtap="useHistory">
         <image class="history-icon" src="/assets/icons/history.svg" mode="aspectFit" />
         <text class="history-keyword">{{item}}</text>
-        <button class="history-remove" data-keyword="{{item}}" catchtap="deleteHistoryItem" aria-label="删除搜索记录">×</button>
+        <button class="ui-button history-remove" data-keyword="{{item}}" catchtap="deleteHistoryItem" aria-label="删除搜索记录">×</button>
       </view>
     </view>
-    <button wx:if="{{history.length > 0}}" class="clear-button" bindtap="clearHistory">清除历史</button>
+    <button class="ui-button clear-button" wx:if="{{history.length > 0}}" bindtap="clearHistory">清除历史</button>
 
   </view>
 </view>

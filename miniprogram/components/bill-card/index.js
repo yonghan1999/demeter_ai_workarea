@@ -17,6 +17,10 @@ Component({
     compact: {
       type: Boolean,
       value: false
+    },
+    showPayment: {
+      type: Boolean,
+      value: false
     }
   },
 
@@ -58,6 +62,11 @@ Component({
   methods: {
     onTap() {
       this.triggerEvent('tapbill', { id: this.data.bill.id });
+    },
+    onPaymentTap() {
+      const { bill, showPayment, selectable } = this.data;
+      if (!showPayment || selectable || bill.status === 'paid' || Number(bill.outstandingAmount) <= 0) return;
+      this.triggerEvent('paybill', { id: bill.id });
     }
   }
 });

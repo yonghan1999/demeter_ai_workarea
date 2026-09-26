@@ -174,9 +174,9 @@ Page(withSystemLayout({
     if (this.data.activeStatus === 'partially_paid') labels.push('部分收款');
     if (this.data.activeStatus === 'paid') labels.push('已收款');
     if (this.data.appliedFilters.code) labels.push(`订单号 ${this.data.appliedFilters.code}`);
-    if (this.data.appliedFilters.shipper) labels.push(this.data.appliedFilters.shipper);
+    if (this.data.appliedFilters.shipper) labels.push(`托运人 ${this.data.appliedFilters.shipper}`);
     if (this.data.appliedFilters.startDate || this.data.appliedFilters.endDate) {
-      labels.push(`${this.data.appliedFilters.startDate || '最早'} 至 ${this.data.appliedFilters.endDate || '今天'}`);
+      labels.push(`运输日期 ${this.data.appliedFilters.startDate || '最早'} 至 ${this.data.appliedFilters.endDate || '今天'}`);
     }
     return labels.join(' · ');
   },
@@ -414,12 +414,12 @@ Page(withSystemLayout({
   },
 
   setFilterField(event) {
-    const field = event.detail.field;
+    const field = event.currentTarget.dataset.field;
     this.setData({ [`filterDraft.${field}`]: event.detail.value, filterError: '' });
   },
 
   setFilterDate(event) {
-    const field = event.currentTarget.dataset.field;
+    const field = event.detail.field;
     this.setData({ [`filterDraft.${field}`]: event.detail.value, filterError: '' });
   },
 
@@ -606,8 +606,10 @@ Page(withSystemLayout({
   },
 
   async openPayment(event) {
+    if (this.data.batchMode) return;
     if (!this.hasCurrentAccountData()) return;
-    const id = Number(event.currentTarget.dataset.id);
+    const detail = event.detail || {};
+    const id = Number(detail.id == null ? event.currentTarget.dataset.id : detail.id);
     if (this.data.paymentOpen || this.data.operatingId) return;
     const bill = this.data.bills.find((entry) => entry.id === id);
     if (!bill || bill.status === 'paid' || Number(bill.outstandingAmount) <= 0) {

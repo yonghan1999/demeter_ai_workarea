@@ -14,7 +14,7 @@
       <block wx:if="{{item.isCompleted}}">
         <view class="task-divider"></view>
         <view class="task-result">
-          <view class="result-summary"><view><view>识别到 <text class="result-count">{{item.bills.length}}</text> 笔账单</view><text class="result-total">合计 {{item.previewTotal}}</text></view><button class="view-button"><text>{{item.merged ? '查看账单' : '查看结果'}}</text><text class="view-button-arrow">›</text></button></view>
+          <view class="result-summary"><view class="result-summary-copy"><view>识别到 <text class="result-count">{{item.bills.length}}</text> 笔账单</view><text class="result-total">合计 {{item.previewTotal}}</text></view><button class="ui-button view-button"><text>{{item.merged ? '查看账单' : '查看结果'}}</text><text class="view-button-arrow">›</text></button></view>
           <view wx:for="{{item.previewBills}}" wx:key="id" class="preview-row"><text class="preview-shipper">{{item.shipper}}</text><text class="confidence {{item.confidenceClass}}">可信度{{item.confidenceLevel}} {{item.confidencePercent}}%</text><text class="preview-amount mono">{{item.amountText}}</text></view>
           <view wx:if="{{item.moreCount > 0}}" class="more-count">+ {{item.moreCount}} 笔更多</view>
         </view>
@@ -22,10 +22,10 @@
       <view wx:elif="{{item.isProcessing}}" class="processing"><view class="progress"><view class="progress-inner"></view></view><text>正在识别账单字段，可稍后返回查看</text></view>
       <view wx:elif="{{item.isFailed}}" class="processing failed-processing"><text>{{item.failureText}}</text><text class="task-inline-action">点击重新识别，或拍照创建新任务</text></view>
     </view>
-    <button wx:if="{{item.isFailed}}" class="retry-task-outside" data-id="{{item.id}}" bindtap="retryTask">{{retryingId === item.id ? '正在重试' : '重新识别'}}</button>
+    <button class="ui-button retry-task-outside" wx:if="{{item.isFailed}}" data-id="{{item.id}}" bindtap="retryTask">{{retryingId === item.id ? '正在重试' : '重新识别'}}</button>
     </view>
     <state-panel wx:if="{{!loading && tasks.length === 0}}" title="还没有识别任务" subtitle="拍摄手写账本即可开始识别" action-text="拍照识别" bind:action="newCapture" />
     </block>
   </view>
-  <bottom-action-bar variant="tasks" safe-style="{{systemLayout.bottomSafeStyle}}"><button class="primary-button" bindtap="newCapture">拍照新建识别任务</button></bottom-action-bar>
+  <bottom-action-bar variant="tasks" safe-style="{{systemLayout.bottomSafeStyle}}"><button class="ui-button primary-button" bindtap="newCapture">拍照新建识别任务</button></bottom-action-bar>
 </view>

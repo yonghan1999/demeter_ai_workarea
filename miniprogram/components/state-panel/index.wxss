@@ -1,3 +1,5 @@
+@import "../../styles/button.wxss";
+
 .state-panel {
   padding: 120rpx 24rpx;
   color: #8c9bae;
@@ -16,7 +18,7 @@
   display: block;
 }
 
-.state-panel-action {
+.ui-button.state-panel-action {
   height: 68rpx;
   margin: 28rpx auto 0;
   border-radius: 26rpx;
