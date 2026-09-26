@@ -34,7 +34,6 @@ Page(withSystemLayout({
     bills: [],
     activeStatus: 'all',
     tabs: [],
-    dialOpen: false,
     unmergedOcr: 0,
     pendingOcr: 0,
     total: 0,
@@ -102,9 +101,8 @@ Page(withSystemLayout({
       this.closeFilter();
       return true;
     }
-    if (this.data.dialOpen || this.data.batchMode) {
-      if (this.data.batchMode) this.exitBatchMode();
-      else this.closeOverlays();
+    if (this.data.batchMode) {
+      this.exitBatchMode();
       return true;
     }
     return false;
@@ -131,7 +129,7 @@ Page(withSystemLayout({
     this.setData({
       bills: [], total: 0, pendingOcr: 0, unmergedOcr: 0,
       batchMode: false, selectedIds: [], selectedAmount: '¥0.00',
-      allSelected: false, selectionLimitMessage: '', deleteConfirmation: null, dialOpen: false,
+      allSelected: false, selectionLimitMessage: '', deleteConfirmation: null,
       filterOpen: false, operatingId: '', paymentOpen: false,
       paymentLoading: false, paymentSubmitting: false, paymentBill: null,
       paymentError: ''
@@ -348,12 +346,7 @@ Page(withSystemLayout({
     this.openBillExport({ mode: 'selected', ids: [...this.data.selectedIds] });
   },
 
-  closeOverlays() {
-    this.setData({ dialOpen: false });
-  },
-
   goFilter() {
-    this.closeOverlays();
     if (this.data.batchMode) return;
     this.setData({
       filterOpen: true,
@@ -366,7 +359,6 @@ Page(withSystemLayout({
   },
 
   goSelect() {
-    this.closeOverlays();
     if (!this.hasCurrentAccountData()) return;
     if (this.data.loading || this.data.deleting) return;
     if (this.data.batchMode) {
@@ -489,24 +481,16 @@ Page(withSystemLayout({
   },
 
   goOcrTasks() {
-    this.closeOverlays();
     if (this.data.batchMode) return;
     wx.navigateTo({ url: '/pages/ocr-tasks/index' });
   },
 
-  toggleDial() {
-    if (this.data.batchMode) return;
-    this.setData({ dialOpen: !this.data.dialOpen });
-  },
-
   goCreate() {
-    this.closeOverlays();
     if (this.data.batchMode) return;
     wx.navigateTo({ url: '/pages/bill-form/index?mode=create' });
   },
 
   goCamera() {
-    this.closeOverlays();
     if (this.data.batchMode) return;
     wx.navigateTo({ url: '/pages/ocr-camera/index' });
   },
