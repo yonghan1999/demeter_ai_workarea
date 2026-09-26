@@ -87,19 +87,43 @@
   white-space: nowrap;
 }
 
+.ui-button.quick-tool {
+  display: flex;
+  flex: 0 0 148rpx;
+  align-items: center;
+  justify-content: center;
+  gap: 9rpx;
+  width: 148rpx;
+  min-width: 148rpx;
+  height: 80rpx;
+  min-height: 80rpx;
+  max-height: 80rpx;
+  border: 0;
+  border-radius: 999rpx;
+  background: #ffffff;
+  padding: 0 16rpx;
+  color: #3d5275;
+  font: inherit;
+  font-size: 21rpx;
+  font-weight: 700;
+  line-height: normal;
+  box-shadow: 0 3rpx 8rpx rgba(17, 32, 80, 0.07);
+  white-space: nowrap;
+}
+
 .quick-tool.primary {
   background: #1143b4;
   color: #ffffff;
   box-shadow: 0 5rpx 10rpx rgba(17, 67, 180, 0.3);
 }
 
-.quick-tool.export-quick-tool {
+.ui-button.quick-tool.export-quick-tool {
   border: 0;
   background: #ffffff;
   color: #315aaf;
 }
 
-.quick-tool.export-quick-tool[disabled] {
+.ui-button.quick-tool.export-quick-tool[disabled] {
   background: #ffffff;
   color: #9aabc2;
 }
