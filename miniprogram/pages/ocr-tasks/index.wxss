@@ -88,10 +88,6 @@
   margin-top: 32rpx;
 }
 
-.task-entry-processing + .task-entry-completed {
-  margin-top: 272rpx;
-}
-
 .task-completed {
   height: 464rpx;
 }
@@ -309,10 +305,11 @@
 }
 
 .progress-inner {
-  width: 60%;
+  width: 34%;
   height: 100%;
   border-radius: 6rpx;
   background: #174fc4;
+  animation: task-indeterminate 1.4s ease-in-out infinite alternate;
 }
 
 .processing text {
@@ -323,6 +320,16 @@
 
 .failed-processing .progress-inner {
   background: #cc1d25;
+}
+
+.task-inline-action {
+  color: #174fc4;
+  font-weight: 700;
+}
+
+@keyframes task-indeterminate {
+  from { transform: translateX(0); }
+  to { transform: translateX(195%); }
 }
 
 .retry-task-outside {

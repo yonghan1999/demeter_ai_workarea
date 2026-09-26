@@ -4,7 +4,7 @@ import com.demeter.backend.ocr.domain.OcrRecognitionResult;
 
 /**
  * Provider boundary for handwritten freight-bill recognition.
- * The Alibaba Cloud adapter will implement this interface in a later phase.
+ * The optional Qwen adapter implements this boundary when enabled.
  */
 public interface HandwrittenBillOcrProvider {
 

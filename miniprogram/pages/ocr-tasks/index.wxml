@@ -19,8 +19,8 @@
           <view wx:if="{{item.moreCount > 0}}" class="more-count">+ {{item.moreCount}} 笔更多</view>
         </view>
       </block>
-      <view wx:elif="{{item.isProcessing}}" class="processing"><view class="progress"><view class="progress-inner"></view></view><text>正在识别账单字段</text></view>
-      <view wx:elif="{{item.isFailed}}" class="processing failed-processing"><view class="progress"><view class="progress-inner"></view></view><text>{{item.failureText}}</text></view>
+      <view wx:elif="{{item.isProcessing}}" class="processing"><view class="progress"><view class="progress-inner"></view></view><text>正在识别账单字段，可稍后返回查看</text></view>
+      <view wx:elif="{{item.isFailed}}" class="processing failed-processing"><text>{{item.failureText}}</text><text class="task-inline-action">点击重新识别，或拍照创建新任务</text></view>
     </view>
     <button wx:if="{{item.isFailed}}" class="retry-task-outside" data-id="{{item.id}}" bindtap="retryTask">{{retryingId === item.id ? '正在重试' : '重新识别'}}</button>
     </view>

@@ -63,6 +63,42 @@
   line-height: 28rpx;
 }
 
+.form-recovery-button {
+  height: 72rpx;
+  border: 2rpx solid #174fc4;
+  border-radius: 16rpx;
+  background: #ffffff;
+  color: #174fc4;
+  font-size: 24rpx;
+  font-weight: 700;
+  line-height: 68rpx;
+}
+
+.form-recovery-wrap {
+  padding: 24rpx 32rpx 0;
+}
+
+.conflict-panel { display: flex; flex-direction: column; gap: 16rpx; }
+.conflict-banner { border: 2rpx solid #c4590d; border-radius: 14rpx; background: #fff2e8; padding: 18rpx 28rpx; }
+.conflict-title { color: #b24005; font-size: 26rpx; font-weight: 700; line-height: 34rpx; }
+.conflict-copy { margin-top: 6rpx; color: #b24005; font-size: 21rpx; line-height: 30rpx; }
+.conflict-latest-card { min-height: 132rpx; border-radius: 18rpx; background: #ffffff; padding: 18rpx 28rpx; }
+.conflict-label { color: #61738f; font-size: 21rpx; line-height: 30rpx; }
+.conflict-latest-text { margin-top: 10rpx; color: #17213a; font-size: 30rpx; font-weight: 700; line-height: 40rpx; }
+.conflict-draft-text { margin-top: 8rpx; color: #61738f; font-size: 21rpx; line-height: 30rpx; }
+.conflict-loading { margin-top: 12rpx; color: #61738f; font-size: 22rpx; }
+.conflict-primary, .conflict-secondary { height: 104rpx; border-radius: 24rpx; font-size: 26rpx; font-weight: 700; line-height: 104rpx; }
+.conflict-primary { background: #174fc4; color: #ffffff; }
+.conflict-secondary { border: 2rpx solid #174fc4; background: #ffffff; color: #174fc4; }
+.leave-mask { position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center; background: rgba(14, 24, 42, .42); }
+.leave-sheet { width: 650rpx; border-radius: 32rpx; background: #ffffff; padding: 36rpx 40rpx 28rpx; box-sizing: border-box; }
+.leave-title { color: #17213a; font-size: 31rpx; font-weight: 700; line-height: 42rpx; }
+.leave-copy { margin-top: 12rpx; color: #61738f; font-size: 22rpx; line-height: 34rpx; }
+.leave-actions { display: flex; gap: 20rpx; margin-top: 34rpx; }
+.leave-actions button { flex: 1; height: 96rpx; border-radius: 28rpx; font-size: 25rpx; font-weight: 700; line-height: 96rpx; }
+.leave-stay { background: #f5f7fb; color: #3d5275; }
+.leave-discard { background: #cc1c26; color: #ffffff; }
+
 .field-error-card {
   border: 2rpx solid #cc1d25;
 }
@@ -158,6 +194,16 @@
 .status-toggle .active.paid {
   background: #17833e;
   color: #ffffff;
+}
+
+.partial-payment-state {
+  margin-top: 20rpx;
+  border-radius: 20rpx;
+  background: #fff2e8;
+  padding: 16rpx 20rpx;
+  color: #9a4807;
+  font-size: 23rpx;
+  font-weight: 700;
 }
 
 .form-section {

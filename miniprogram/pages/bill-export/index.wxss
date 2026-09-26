@@ -1,11 +1,15 @@
 .bill-export-page {
-  min-height: 100vh;
-  padding-bottom: 176rpx;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  min-height: 0;
+  padding-bottom: 0;
   background: #edf0f6;
 }
 
 .preview-scroll {
-  height: calc(100vh - 176rpx);
+  flex: 1;
+  min-height: 0;
   padding: 24rpx 24rpx 40rpx;
   box-sizing: border-box;
 }
@@ -20,6 +24,28 @@
   font-weight: 700;
 }
 
+.preview-intro > view {
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+
+.preview-note {
+  color: #8c9bae;
+  font-size: 18rpx;
+  font-weight: 500;
+}
+
+.preview-zoom {
+  height: 64rpx;
+  margin: 4rpx 0 18rpx;
+  border-radius: 20rpx;
+  background: #ffffff;
+  color: #315aaf;
+  font-size: 22rpx;
+  line-height: 64rpx;
+}
+
 .preview-page {
   margin-bottom: 24rpx;
   border-radius: 10rpx;
@@ -28,9 +54,17 @@
   box-shadow: 0 5rpx 18rpx rgba(17, 32, 80, 0.1);
 }
 
-.preview-page image {
+.preview-page-scroll {
+  width: 100%;
+}
+
+.preview-page-scroll image {
   display: block;
   width: 100%;
+}
+
+.preview-page-scroll.zoomed image {
+  width: 160%;
 }
 
 .preview-page text {
@@ -42,15 +76,76 @@
 }
 
 .preview-bottom {
-  position: fixed;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  z-index: 20;
+  flex: none;
   border-top: 1rpx solid #e2e7ef;
   background: rgba(255, 255, 255, 0.97);
   padding: 18rpx 32rpx;
   box-shadow: 0 -8rpx 28rpx rgba(17, 32, 80, 0.08);
+}
+
+.share-message {
+  display: block;
+  margin-bottom: 12rpx;
+  color: #315aaf;
+  font-size: 21rpx;
+  text-align: center;
+}
+
+.share-failure-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(23, 33, 58, 0.42);
+  padding: 32rpx;
+}
+
+.share-failure-card {
+  width: 100%;
+  border-radius: 28rpx;
+  background: #ffffff;
+  padding: 40rpx 32rpx 32rpx;
+  box-sizing: border-box;
+}
+
+.share-failure-title {
+  color: #17213a;
+  font-size: 31rpx;
+  font-weight: 800;
+}
+
+.share-failure-card > text {
+  display: block;
+  margin-top: 20rpx;
+  color: #61738f;
+  font-size: 22rpx;
+  line-height: 34rpx;
+}
+
+.share-retry,
+.share-return {
+  width: 100%;
+  height: 84rpx;
+  margin-top: 28rpx;
+  border-radius: 24rpx;
+  font-size: 25rpx;
+  font-weight: 800;
+  line-height: 84rpx;
+}
+
+.share-retry {
+  background: #174fc4;
+  color: #ffffff;
+}
+
+.share-return {
+  margin-top: 16rpx;
+  border: 2rpx solid #174fc4;
+  background: #ffffff;
+  color: #174fc4;
+  line-height: 80rpx;
 }
 
 .share-button {

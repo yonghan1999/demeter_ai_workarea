@@ -60,6 +60,38 @@
   padding: 32rpx 32rpx calc(32rpx + env(safe-area-inset-bottom));
 }
 
+.camera-error {
+  display: flex;
+  align-items: center;
+  gap: 14rpx;
+  margin-bottom: 20rpx;
+  border: 2rpx solid #8d302b;
+  border-radius: 20rpx;
+  background: #3a1e29;
+  padding: 18rpx 20rpx;
+  color: #ffd9d5;
+  font-size: 22rpx;
+  line-height: 32rpx;
+}
+
+.camera-error > text {
+  flex: 1;
+  min-width: 0;
+}
+
+.camera-error button {
+  flex: none;
+  height: 56rpx;
+  margin: 0;
+  border-radius: 16rpx;
+  background: #ffffff;
+  padding: 0 14rpx;
+  color: #8d302b;
+  font-size: 20rpx;
+  font-weight: 700;
+  line-height: 56rpx;
+}
+
 .capture-card {
   height: 840rpx;
   overflow: hidden;
@@ -186,6 +218,47 @@
 .capture-primary image {
   width: 32rpx;
   height: 32rpx;
+}
+
+.upload-progress-wrap {
+  margin-top: 24rpx;
+  border-radius: 24rpx;
+  background: #1c2946;
+  padding: 22rpx 24rpx;
+  color: #ffffff;
+  font-size: 22rpx;
+}
+
+.upload-progress-head {
+  display: flex;
+  justify-content: space-between;
+}
+
+.upload-progress-track {
+  height: 12rpx;
+  overflow: hidden;
+  margin-top: 14rpx;
+  border-radius: 6rpx;
+  background: #334363;
+}
+
+.upload-progress-value {
+  height: 100%;
+  border-radius: 6rpx;
+  background: #6e9cff;
+  transition: width 0.18s ease-out;
+}
+
+.upload-cancel {
+  width: 180rpx;
+  height: 60rpx;
+  margin: 18rpx auto 0;
+  border-radius: 18rpx;
+  background: #ffffff;
+  color: #174fc4;
+  font-size: 21rpx;
+  font-weight: 700;
+  line-height: 60rpx;
 }
 
 .capture-skip {

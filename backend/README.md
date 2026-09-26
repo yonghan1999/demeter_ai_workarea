@@ -10,7 +10,7 @@ Demeter 微信小程序后端服务，使用 Java 17、Spring Boot、Spring Data
 - 托运人建议、名称归一化和搜索建议
 - RFC 9457 风格统一错误响应与 `X-Request-Id` 请求追踪
 - Actuator 健康检查与本地开发 OpenAPI/Swagger 文档
-- OCR 上传契约和厂商适配接口；识别实现暂未接入
+- 异步 OCR 任务和可选的阿里云百炼 `qwen3-vl-plus` 识别适配器
 - 统一责任链驱动的业务编排、幂等控制和并发控制
 
 ## 技术要求
@@ -69,14 +69,18 @@ OpenAPI/Swagger 仅用于本地和非生产调试。生产 Profile 默认关闭�
 | `GET` | `/api/v1/bills/{id}` | 获取账单详情 |
 | `POST` | `/api/v1/bills` | 新增账单 |
 | `PUT` | `/api/v1/bills/{id}` | 编辑账单 |
-| `PATCH` | `/api/v1/bills/{id}/status` | 更新收款状态 |
+| `POST` | `/api/v1/bills/{billId}/payments` | 记录收款流水并更新账单汇总状态 |
+| `GET` | `/api/v1/bills/{billId}/payments` | 查询收款流水 |
+| `POST` | `/api/v1/bills/{billId}/payments/{paymentId}/reversal` | 冲正收款流水 |
 | `DELETE` | `/api/v1/bills/{id}` | 软删除单笔账单 |
 | `POST` | `/api/v1/bills/batch-delete` | 事务化批量软删除 |
 | `POST` | `/api/v1/bills/{id}/restore` | 恢复软删除账单 |
 | `GET` | `/api/v1/bills/shipper-suggestions` | 托运人建议 |
 | `POST` | `/api/v1/bills/resolve-shipper` | 托运人名称归一化 |
 | `GET` | `/api/v1/bills/search-suggestions` | 搜索建议 |
-| `POST` | `/api/v1/ocr/recognitions` | 上传手写账单图片进行识别 |
+| `POST` | `/api/v1/ocr/tasks` | 上传手写账单图片并创建异步识别任务 |
+| `GET` | `/api/v1/ocr/tasks/{id}` | 查询任务状态与识别结果 |
+| `POST` | `/api/v1/ocr/tasks/{id}/retry` | 重试失败任务 |
 
 账单列表支持以下查询参数：
 
@@ -107,6 +111,10 @@ API Key 与 Endpoint 必须属于同一阿里云地域。原始账单图片会�
 数据合规评审、费用额度与告警配置。适配器只保留经过字段校验的结构化结果，不持久化厂商原始
 响应体或 API Key。公开协议参见阿里云[OpenAI Chat 兼容文档](https://help.aliyun.com/zh/model-studio/compatibility-of-openai-with-dashscope)。
 
+当前内置 OCR 原图存储实现为文件系统；本地 Compose 的共享卷只覆盖单机环境。目标环境必须按
+`OPERATIONS.md` 和 `RELEASE_CHECKLIST.md` 验证跨角色访问、持久性、加密、备份与恢复；多节点
+部署还需先实现并验证共享存储适配器。
+
 ## 数据库迁移
 
 生产运行时不自动执行 Flyway。数据库 schema 由独立迁移进程 `DatabaseMigrationMain` 或容器中的 migrator 角色预先应用，运行时进程只做 schema 校验和健康检查。
@@ -124,4 +132,4 @@ API Key 与 Endpoint 必须属于同一阿里云地域。原始账单图片会�
 
 ## 上线前事项
 
-后端已具备微信登录、Bearer Token、租户隔离、生产角色划分和真实 MySQL 8.4 CI 门禁。正式发布前仍需完成目标环境的 Docker/MySQL 现场验证、密钥托管、备份恢复演练、前后端联调和阿里云 OCR 适配实现；发布执行项见 `RELEASE_CHECKLIST.md`。
+后端已具备微信登录、Bearer Token、租户隔离、生产角色划分、阿里云百炼 OCR 适配器和真实 MySQL 8.4 CI 门禁。正式发布前仍需完成目标环境的 Docker/MySQL 现场验证、密钥托管、OCR 存储与备份恢复验证、前后端联调；启用 OCR 前还需完成供应商配置及调用验证。发布执行项见 `RELEASE_CHECKLIST.md`。

@@ -2,6 +2,29 @@
 const { money } = require('../../utils/format');
 const { withSystemLayout } = require('../../utils/system');
 
+const PAYMENT_METHODS = [
+  { key: 'wechat', text: '微信' },
+  { key: 'bank_transfer', text: '银行转账' },
+  { key: 'cash', text: '现金' },
+  { key: 'alipay', text: '支付宝' },
+  { key: 'other', text: '其他' }
+];
+
+// Keep these limits aligned with the API validation and export renderer.
+const MAX_DELETE_BILLS = 100;
+const MAX_EXPORT_BILLS = 120;
+
+function paymentAmountError(value, outstanding) {
+  const text = String(value || '').trim();
+  if (!/^(?:0|[1-9]\d{0,7})(?:\.\d{1,2})?$/.test(text) || Number(text) <= 0) {
+    return '请输入大于 0 的金额，最多保留两位小数';
+  }
+  if (Math.round(Number(text) * 100) > Math.round(Number(outstanding) * 100)) {
+    return '收款金额不能超过待收金额';
+  }
+  return '';
+}
+
 function getBillExportService() {
   return require('../../services/bill-export-service');
 }
@@ -19,6 +42,16 @@ Page(withSystemLayout({
     initialLoading: true,
     loadFailed: false,
     operatingId: '',
+    paymentOpen: false,
+    paymentLoading: false,
+    paymentSubmitting: false,
+    paymentPending: false,
+    paymentBill: null,
+    paymentAmount: '',
+    paymentMethod: 'wechat',
+    paymentMethods: PAYMENT_METHODS,
+    paymentNote: '',
+    paymentError: '',
     appliedFilters: {
       code: '',
       shipper: '',
@@ -35,6 +68,7 @@ Page(withSystemLayout({
     filterStatusOptions: [
       { key: 'all', text: '全部', className: 'active' },
       { key: 'unpaid', text: '未收款', className: '' },
+      { key: 'partially_paid', text: '部分收款', className: '' },
       { key: 'paid', text: '已收款', className: '' }
     ],
     filterOpen: false,
@@ -45,24 +79,32 @@ Page(withSystemLayout({
     selectedIds: [],
     selectedAmount: '¥0.00',
     allSelected: false,
+    selectionLimitMessage: '',
     deleting: false,
     deleteText: '删除账单',
     deleteConfirmation: null,
     filterError: ''
   },
 
-  onShow() {
+  async onShow() {
+    this.clearPreviousAccountData();
+    getBillExportService().cleanupStaleFiles();
     this.refreshTabs();
-    this.loadData();
+    await this.loadData();
   },
 
   onBackPress() {
+    if (this.data.paymentOpen) {
+      this.closePayment();
+      return true;
+    }
     if (this.data.filterOpen) {
       this.closeFilter();
       return true;
     }
     if (this.data.dialOpen || this.data.batchMode) {
-      this.closeOverlays();
+      if (this.data.batchMode) this.exitBatchMode();
+      else this.closeOverlays();
       return true;
     }
     return false;
@@ -70,13 +112,49 @@ Page(withSystemLayout({
 
   onUnload() {
     this.loadSeq = (this.loadSeq || 0) + 1;
+    this.paymentSeq = (this.paymentSeq || 0) + 1;
     this.touchState = null;
+  },
+
+  clearPreviousAccountData() {
+    if (!this.loadedActor || this.loadedActor === billService.currentActorId()) return false;
+    this.clearAccountData();
+    return true;
+  },
+
+  clearAccountData() {
+    this.loadSeq = (this.loadSeq || 0) + 1;
+    this.paymentSeq = (this.paymentSeq || 0) + 1;
+    this.paymentCommand = null;
+    this.loadedActor = '';
+    this.touchState = null;
+    this.setData({
+      bills: [], total: 0, pendingOcr: 0, unmergedOcr: 0,
+      batchMode: false, selectedIds: [], selectedAmount: '¥0.00',
+      allSelected: false, selectionLimitMessage: '', deleteConfirmation: null, dialOpen: false,
+      filterOpen: false, operatingId: '', paymentOpen: false,
+      paymentLoading: false, paymentSubmitting: false, paymentBill: null,
+      paymentError: ''
+    });
+  },
+
+  hasCurrentAccountData() {
+    if (!this.loadedActor) {
+      wx.showToast({ title: '请等待账单加载', icon: 'none' });
+      return false;
+    }
+    if (this.loadedActor === billService.currentActorId()) return true;
+    this.clearAccountData();
+    this.loadData();
+    wx.showToast({ title: '登录账号已变化，请稍后重试', icon: 'none' });
+    return false;
   },
 
   refreshTabs() {
     const source = [
       { key: 'all', text: '全部' },
       { key: 'unpaid', text: '未收款' },
+      { key: 'partially_paid', text: '部分收款' },
       { key: 'paid', text: '已收款' }
     ];
     const activeFilterSummary = this.getActiveFilterSummary();
@@ -104,6 +182,8 @@ Page(withSystemLayout({
   },
 
   async loadData() {
+    this.clearPreviousAccountData();
+    const requestActor = billService.currentActorId();
     const loadSeq = (this.loadSeq || 0) + 1;
     this.loadSeq = loadSeq;
     this.setData({
@@ -112,15 +192,27 @@ Page(withSystemLayout({
       loadFailed: false
     });
     try {
-      const [bills, tasks] = await Promise.all([
-        billService.listBills({
-          status: this.data.activeStatus,
-          ...this.data.appliedFilters
-        }),
-        billService.listOcrTasks({ includeResults: false })
-      ]);
+      const bills = await billService.listBills({
+        status: this.data.activeStatus,
+        ...this.data.appliedFilters
+      });
       if (loadSeq !== this.loadSeq) return;
+      const actorAfterBills = billService.currentActorId();
+      if (!actorAfterBills || (requestActor && requestActor !== actorAfterBills)) {
+        this.clearAccountData();
+        this.setData({ loading: false, initialLoading: false, loadFailed: true });
+        return;
+      }
+      const tasks = await billService.listOcrTasks();
+      if (loadSeq !== this.loadSeq) return;
+      const currentActor = billService.currentActorId();
+      if (!currentActor || currentActor !== actorAfterBills) {
+        this.clearAccountData();
+        this.setData({ loading: false, initialLoading: false, loadFailed: true });
+        return;
+      }
       const batchMode = this.data.batchMode && bills.length > 0;
+      this.loadedActor = currentActor;
       this.setData({
         bills: bills.map((bill) => ({ ...bill, offset: 0, selected: false })),
         total: bills.length,
@@ -132,14 +224,16 @@ Page(withSystemLayout({
         batchMode,
         selectedIds: [],
         selectedAmount: '¥0.00',
-        allSelected: false
+        allSelected: false,
+        selectionLimitMessage: ''
       });
     } catch (error) {
       if (loadSeq !== this.loadSeq) return;
+      this.clearAccountData();
       this.setData({
         loading: false,
         initialLoading: false,
-        loadFailed: this.data.bills.length === 0
+        loadFailed: true
       });
       wx.showToast({ title: '账单加载失败，请重试', icon: 'none' });
     }
@@ -202,39 +296,56 @@ Page(withSystemLayout({
     wx.navigateTo({ url: '/pages/search/index' });
   },
 
-  exportCurrentBills() {
-    if (this.data.loading || this.data.bills.length === 0) return;
-    try {
-      const billExportService = getBillExportService();
-      const sessionId = billExportService.createSession({
-        mode: 'current',
-        filters: {
-          status: this.data.activeStatus,
-          ...this.data.appliedFilters
-        }
+  openBillExport(payload) {
+    if (!this.hasCurrentAccountData()) return;
+    const billExportService = getBillExportService();
+    let sessionId = '';
+    const showFailure = (error) => {
+      if (sessionId) billExportService.cleanup(null, sessionId);
+      wx.showToast({
+        title: error && error.message ? error.message : '无法准备导出任务，请重试',
+        icon: 'none'
       });
-      wx.navigateTo({ url: `/pages/bill-export/index?sessionId=${sessionId}` });
+    };
+    try {
+      sessionId = billExportService.createSession(payload);
+      wx.navigateTo({
+        url: `/pages/bill-export/index?sessionId=${sessionId}`,
+        fail: showFailure
+      });
     } catch (error) {
-      wx.showToast({ title: '无法准备导出任务，请重试', icon: 'none' });
+      showFailure(error);
     }
   },
 
-  exportSelectedBills() {
-    if (this.data.deleting || this.data.selectedIds.length === 0) return;
-    try {
-      const billExportService = getBillExportService();
-      const selectedIds = new Set(this.data.selectedIds);
-      const bills = this.data.bills
-        .filter((bill) => selectedIds.has(bill.id))
-        .map((bill) => {
-          const { offset, selected, ...snapshot } = bill;
-          return snapshot;
-        });
-      const sessionId = billExportService.createSession({ mode: 'selected', bills });
-      wx.navigateTo({ url: `/pages/bill-export/index?sessionId=${sessionId}` });
-    } catch (error) {
-      wx.showToast({ title: '无法准备导出任务，请重试', icon: 'none' });
+  exportCurrentBills() {
+    if (this.data.loading || this.data.bills.length === 0) return;
+    if (this.data.bills.length > MAX_EXPORT_BILLS) {
+      wx.showToast({
+        title: `当前筛选有 ${this.data.bills.length} 笔，最多导出 ${MAX_EXPORT_BILLS} 笔`,
+        icon: 'none'
+      });
+      return;
     }
+    this.openBillExport({
+      mode: 'current',
+      filters: {
+        status: this.data.activeStatus,
+        ...this.data.appliedFilters
+      }
+    });
+  },
+
+  exportSelectedBills() {
+    if (this.data.loading || this.data.deleting || this.data.selectedIds.length === 0) return;
+    if (this.data.selectedIds.length > MAX_EXPORT_BILLS) {
+      wx.showToast({
+        title: `最多导出 ${MAX_EXPORT_BILLS} 笔，请取消选择后重试`,
+        icon: 'none'
+      });
+      return;
+    }
+    this.openBillExport({ mode: 'selected', ids: [...this.data.selectedIds] });
   },
 
   closeOverlays() {
@@ -256,6 +367,7 @@ Page(withSystemLayout({
 
   goSelect() {
     this.closeOverlays();
+    if (!this.hasCurrentAccountData()) return;
     if (this.data.loading || this.data.deleting) return;
     if (this.data.batchMode) {
       this.exitBatchMode();
@@ -270,7 +382,8 @@ Page(withSystemLayout({
       bills: this.data.bills.map((bill) => ({ ...bill, offset: 0, selected: false })),
       selectedIds: [],
       selectedAmount: '¥0.00',
-      allSelected: false
+      allSelected: false,
+      selectionLimitMessage: ''
     });
   },
 
@@ -289,6 +402,7 @@ Page(withSystemLayout({
     const source = [
       { key: 'all', text: '全部' },
       { key: 'unpaid', text: '未收款' },
+      { key: 'partially_paid', text: '部分收款' },
       { key: 'paid', text: '已收款' }
     ];
     this.setData({
@@ -361,6 +475,19 @@ Page(withSystemLayout({
     });
   },
 
+  clearAllFilters() {
+    this.setData({
+      activeStatus: 'all',
+      appliedFilters: { code: '', shipper: '', startDate: '', endDate: '' },
+      filterDraft: { code: '', shipper: '', startDate: '', endDate: '', status: 'all' },
+      filterCount: 0,
+      filterError: ''
+    }, () => {
+      this.refreshTabs();
+      this.loadData();
+    });
+  },
+
   goOcrTasks() {
     this.closeOverlays();
     if (this.data.batchMode) return;
@@ -385,6 +512,7 @@ Page(withSystemLayout({
   },
 
   handleBillTap(event) {
+    if (!this.hasCurrentAccountData()) return;
     const id = event.detail.id;
     if (this.data.batchMode) {
       this.toggleBillSelection(id);
@@ -409,17 +537,32 @@ Page(withSystemLayout({
   applySelection(bills) {
     const selectedBills = bills.filter((bill) => bill.selected);
     const selectedAmount = selectedBills.reduce((sum, bill) => sum + Number(bill.amount || 0), 0);
+    const selectedCount = selectedBills.length;
+    const selectionLimitMessage = selectedCount > MAX_EXPORT_BILLS
+      ? `已选 ${selectedCount} 笔，超过导出上限 ${MAX_EXPORT_BILLS} 笔；删除上限为 ${MAX_DELETE_BILLS} 笔`
+      : selectedCount > MAX_DELETE_BILLS
+        ? `已选 ${selectedCount} 笔，删除最多 ${MAX_DELETE_BILLS} 笔；导出最多 ${MAX_EXPORT_BILLS} 笔`
+        : '';
     this.setData({
       bills,
       selectedIds: selectedBills.map((bill) => bill.id),
       selectedAmount: money(selectedAmount),
-      allSelected: bills.length > 0 && selectedBills.length === bills.length
+      allSelected: bills.length > 0 && selectedBills.length === bills.length,
+      selectionLimitMessage
     });
   },
 
   deleteSelected() {
+    if (!this.hasCurrentAccountData()) return;
     if (this.data.selectedIds.length === 0 || this.data.deleting) return;
     const ids = [...this.data.selectedIds];
+    if (ids.length > MAX_DELETE_BILLS) {
+      wx.showToast({
+        title: `最多删除 ${MAX_DELETE_BILLS} 笔，请取消选择后重试`,
+        icon: 'none'
+      });
+      return;
+    }
     this.setData({
       deleteConfirmation: { ids, count: ids.length }
     });
@@ -431,9 +574,18 @@ Page(withSystemLayout({
   },
 
   async confirmDelete() {
+    if (!this.hasCurrentAccountData()) return;
     const confirmation = this.data.deleteConfirmation;
     if (!confirmation || this.data.deleting) return;
     const ids = [...confirmation.ids];
+    if (ids.length > MAX_DELETE_BILLS) {
+      this.setData({ deleteConfirmation: null });
+      wx.showToast({
+        title: `最多删除 ${MAX_DELETE_BILLS} 笔，请取消选择后重试`,
+        icon: 'none'
+      });
+      return;
+    }
     this.setData({ deleting: true, deleteText: '正在删除' });
     try {
       const result = await billService.deleteBills(ids);
@@ -453,27 +605,141 @@ Page(withSystemLayout({
     }
   },
 
-  async markPaid(event) {
-    const id = event.currentTarget.dataset.id;
-    if (this.data.operatingId) return;
-    this.setData({ operatingId: id });
+  async openPayment(event) {
+    if (!this.hasCurrentAccountData()) return;
+    const id = Number(event.currentTarget.dataset.id);
+    if (this.data.paymentOpen || this.data.operatingId) return;
+    const bill = this.data.bills.find((entry) => entry.id === id);
+    if (!bill || bill.status === 'paid' || Number(bill.outstandingAmount) <= 0) {
+      wx.showToast({ title: '这笔账单已结清', icon: 'none' });
+      return;
+    }
+    const sequence = (this.paymentSeq || 0) + 1;
+    this.paymentSeq = sequence;
+    this.setData({ paymentOpen: true, paymentLoading: true, paymentError: '',
+      paymentBill: bill, paymentAmount: '', paymentNote: '', paymentMethod: 'wechat',
+      bills: this.data.bills.map((entry) => ({ ...entry, offset: 0 })) });
     try {
-      const result = await billService.markPaid(id);
-      if (!result) throw new Error('bill missing');
-      wx.showToast({ title: '已标记收款', icon: 'success' });
+      const prepared = await billService.preparePayment(id);
+      if (sequence !== this.paymentSeq || !this.data.paymentOpen) return;
+      if (!prepared || !prepared.command) {
+        this.closePayment();
+        wx.showToast({ title: '账单不存在或已删除', icon: 'none' });
+        return;
+      }
+      const resolvedBill = prepared.bill || bill;
+      if (!prepared.pending && (prepared.command.alreadyPaid
+          || Number(resolvedBill.outstandingAmount) <= 0)) {
+        this.closePayment();
+        wx.showToast({ title: '这笔账单已结清，请刷新列表', icon: 'none' });
+        return;
+      }
+      this.paymentCommand = prepared.command;
+      const payload = prepared.command.payload;
+      this.setData({
+        paymentLoading: false,
+        paymentPending: prepared.pending,
+        paymentBill: {
+          ...resolvedBill,
+          amountDisplay: money(resolvedBill.amount),
+          paidDisplay: money(resolvedBill.paidAmount),
+          outstandingDisplay: money(resolvedBill.outstandingAmount)
+        },
+        paymentAmount: Number(payload.amount).toFixed(2),
+        paymentMethod: payload.method || 'other',
+        paymentNote: prepared.pending ? (payload.note || '') : ''
+      });
+    } catch (error) {
+      if (sequence !== this.paymentSeq || !this.data.paymentOpen) return;
+      this.paymentCommand = null;
+      this.setData({ paymentLoading: false, paymentBill: null,
+        paymentError: error.code === 'AUTH_IDENTITY_CHANGED'
+          ? '登录账号已变化，请重新打开页面'
+          : '无法加载最新待收金额，请稍后重试' });
+    }
+  },
+
+  closePayment() {
+    if (this.data.paymentSubmitting) return;
+    this.paymentSeq = (this.paymentSeq || 0) + 1;
+    this.paymentCommand = null;
+    this.setData({ paymentOpen: false, paymentLoading: false, paymentBill: null,
+      paymentPending: false, paymentError: '' });
+  },
+
+  setPaymentAmount(event) {
+    if (this.data.paymentPending) return;
+    this.setData({ paymentAmount: event.detail.value, paymentError: '' });
+  },
+
+  setPaymentMethod(event) {
+    if (this.data.paymentPending) return;
+    this.setData({ paymentMethod: event.currentTarget.dataset.method, paymentError: '' });
+  },
+
+  setPaymentNote(event) {
+    if (this.data.paymentPending) return;
+    this.setData({ paymentNote: event.detail.value, paymentError: '' });
+  },
+
+  async confirmPayment() {
+    if (!this.hasCurrentAccountData() || this.data.paymentLoading || this.data.paymentSubmitting) return;
+    const command = this.paymentCommand;
+    const bill = this.data.paymentBill;
+    if (!command || !bill || Number(command.billId) !== Number(bill.id)) return;
+    let submission = command;
+    if (!this.data.paymentPending) {
+      const error = paymentAmountError(this.data.paymentAmount, bill.outstandingAmount);
+      if (error) {
+        this.setData({ paymentError: error });
+        return;
+      }
+      const note = String(this.data.paymentNote || '').trim();
+      if (note.length > 240) {
+        this.setData({ paymentError: '备注不能超过 240 个字' });
+        return;
+      }
+      if (!PAYMENT_METHODS.some((method) => method.key === this.data.paymentMethod)) {
+        this.setData({ paymentError: '请选择收款方式' });
+        return;
+      }
+      const amount = Number(Number(this.data.paymentAmount).toFixed(2));
+      submission = { ...command, amount, payload: {
+        amount, method: this.data.paymentMethod, note: note || null
+      } };
+    }
+    this.setData({ paymentSubmitting: true, paymentError: '' });
+    const sequence = this.paymentSeq;
+    try {
+      await billService.markPaid(bill.id, submission);
+      if (sequence !== this.paymentSeq || !this.data.paymentOpen) return;
+      this.paymentCommand = null;
+      this.setData({ paymentOpen: false, paymentPending: false, paymentBill: null });
+      wx.showToast({ title: '收款已登记', icon: 'success' });
       await this.loadData();
     } catch (error) {
-      wx.showToast({ title: '操作失败，请重试', icon: 'none' });
+      if (sequence !== this.paymentSeq || !this.data.paymentOpen) return;
+      const uncertain = !error.statusCode || error.statusCode === 408
+        || error.statusCode === 429 || error.statusCode >= 500
+        || error.code === 'CONCURRENT_OPERATION';
+      if (uncertain && error.code !== 'AUTH_IDENTITY_CHANGED' && error.code !== 'AUTH_CHANGED') {
+        this.paymentCommand = submission;
+        this.setData({ paymentPending: true, paymentError: '收款结果暂时无法确认，请用原记录重新确认，避免重复登记' });
+      } else {
+        this.setData({ paymentError: error.statusCode === 409
+          ? '账单已变化，请关闭后核对最新待收金额'
+          : error.code === 'AUTH_IDENTITY_CHANGED' || error.code === 'AUTH_CHANGED'
+            ? '登录账号已变化，请重新打开页面'
+            : '登记失败，请核对金额后重试' });
+      }
     } finally {
-      this.setData({ operatingId: '' });
+      if (sequence === this.paymentSeq) this.setData({ paymentSubmitting: false });
     }
   },
 
   async deleteBill(event) {
+    if (!this.hasCurrentAccountData()) return;
     const id = event.currentTarget.dataset.id;
     this.setData({ deleteConfirmation: { ids: [id], count: 1 } });
   }
 }));
-
-
-

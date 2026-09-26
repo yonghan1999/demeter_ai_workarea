@@ -24,6 +24,8 @@ Component({
     bill(value) {
       this.setData({
         amount: money(value.amount),
+        paidAmount: money(value.paidAmount),
+        outstandingAmount: money(value.outstandingAmount),
         dateShort: shortDate(value.date),
         vehicle: String(value.vehicleCargo || '').split('/')[0].trim(),
         selectableClass: this.data.selectable ? 'selectable' : '',
@@ -44,6 +46,8 @@ Component({
 
   data: {
     amount: '¥0.00',
+    paidAmount: '¥0.00',
+    outstandingAmount: '¥0.00',
     dateShort: '',
     vehicle: '',
     selectableClass: '',

@@ -99,8 +99,12 @@
 .status-row {
   display: flex;
   align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 10rpx 16rpx;
   margin-top: 8rpx;
 }
+
+.partial-balance { color: #9a6500; font-size: 20rpx; font-weight: 700; line-height: 46rpx; }
 
 .status-pill {
   display: flex;

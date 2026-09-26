@@ -17,7 +17,9 @@ Page(withSystemLayout({
     mergeDisabled: true,
     mergeText: '合并账单到列表',
     allText: '全选',
-    duplicateCount: 0
+    duplicateCount: 0,
+    recognizedCount: 0,
+    mergeNotice: ''
   },
 
   async onLoad(options) {
@@ -63,6 +65,18 @@ Page(withSystemLayout({
       wx.showToast({ title: '识别结果加载失败', icon: 'none' });
       return;
     }
+    if (task && task.legacyReviewRequired) {
+      this.setData({
+        task: null,
+        reviewBills: [],
+        selectedIds: [],
+        loading: false,
+        loadFailed: false,
+        stateTitle: '旧版合并记录待核对',
+        stateText: '此任务在旧版本中已有合并记录。请到账单列表核对，勿再次合并。'
+      });
+      return;
+    }
     if (!task || task.merged || task.status !== 'completed') {
       this.setData({
         loading: false,
@@ -77,9 +91,9 @@ Page(withSystemLayout({
       .filter((bill) => !task.mergedBillIds.includes(bill.id))
       .map((bill) => ({
         ...bill,
-        selected: bill.confidence >= 0.85,
-        selectedClass: bill.confidence >= 0.85 ? 'checked' : '',
-        mutedClass: '',
+        selected: bill.confidence >= 0.85 && !bill.duplicate,
+        selectedClass: bill.confidence >= 0.85 && !bill.duplicate ? 'checked' : '',
+        mutedClass: bill.duplicate ? 'duplicate-card' : '',
         unpaidClass: bill.status !== 'paid' ? 'active unpaid' : '',
         paidClass: bill.status === 'paid' ? 'active paid' : '',
         confidencePercent: Math.round(bill.confidence * 100),
@@ -94,6 +108,10 @@ Page(withSystemLayout({
       },
       loading: false,
       reviewBills,
+      recognizedCount: task.bills.length,
+      mergeNotice: task.mergedBillIds.length > 0
+        ? `已合并 ${task.mergedBillIds.length} 笔，剩余账单可继续处理`
+        : '',
       duplicateCount: reviewBills.filter((bill) => bill.duplicate).length,
       selectedIds: reviewBills.filter((bill) => bill.selected).map((bill) => bill.id),
       allText: reviewBills.length > 0 && reviewBills.every((bill) => bill.selected) ? '取消全选' : '全选',
@@ -106,12 +124,16 @@ Page(withSystemLayout({
   },
 
   retryLoad() {
-    if (!this.data.id) return;
+    if (!this.data.id) {
+      this.onLoad({});
+      return;
+    }
     this.reviewLoadSeq = (this.reviewLoadSeq || 0) + 1;
     this.loadTask(this.data.id, this.reviewLoadSeq);
   },
 
   toggle(event) {
+    if (this.data.merging) return;
     const id = event.currentTarget.dataset.id;
     const reviewBills = this.data.reviewBills.map((bill) => {
       if (bill.id !== id) return bill;
@@ -127,6 +149,7 @@ Page(withSystemLayout({
   },
 
   toggleAll() {
+    if (this.data.merging) return;
     const shouldSelect = this.data.selectedIds.length !== this.data.reviewBills.length;
     const reviewBills = this.data.reviewBills.map((bill) => ({
       ...bill,
@@ -138,6 +161,7 @@ Page(withSystemLayout({
   },
 
   setField(event) {
+    if (this.data.merging) return;
     const { id, field } = event.currentTarget.dataset;
     const reviewBills = this.data.reviewBills.map((bill) => (
       bill.id === id
@@ -148,6 +172,7 @@ Page(withSystemLayout({
   },
 
   setStatus(event) {
+    if (this.data.merging) return;
     const { id, status } = event.currentTarget.dataset;
     const reviewBills = this.data.reviewBills.map((bill) => (
       bill.id === id
@@ -164,6 +189,7 @@ Page(withSystemLayout({
   },
 
   setDate(event) {
+    if (this.data.merging) return;
     const id = event.currentTarget.dataset.id;
     const reviewBills = this.data.reviewBills.map((bill) => (
       bill.id === id ? { ...bill, date: event.detail.value } : bill
@@ -189,6 +215,27 @@ Page(withSystemLayout({
     this.setData({ total: money(total) });
   },
 
+  removeMergedBills(mergedIds) {
+    const merged = new Set(mergedIds);
+    const reviewBills = this.data.reviewBills.filter((bill) => !merged.has(bill.id));
+    if (reviewBills.length !== this.data.reviewBills.length) {
+      this.applyReviewBills(reviewBills);
+      this.setData({
+        duplicateCount: reviewBills.filter((bill) => bill.duplicate).length,
+        mergeNotice: `已合并 ${this.data.recognizedCount - reviewBills.length} 笔，剩余账单可继续处理`
+      });
+    }
+  },
+
+  async refreshMergedBills() {
+    try {
+      const task = await billService.getOcrTask(this.data.id);
+      this.removeMergedBills(task.mergedBillIds || []);
+    } catch (error) {
+      // Keep the local progress if the task cannot be refreshed yet.
+    }
+  },
+
   async merge() {
     if (this.data.selectedIds.length === 0 || this.data.merging) return;
     const invalid = this.data.reviewBills.find((bill) => (
@@ -211,22 +258,67 @@ Page(withSystemLayout({
     this.data.reviewBills.forEach((bill) => {
       edits[bill.id] = bill;
     });
-    this.setData({ merging: true, mergeDisabled: true, mergeDisabledClass: 'disabled', mergeText: '正在合并…' });
+    await this.mergeCandidates([...this.data.selectedIds], edits);
+  },
+
+  async mergeCandidates(candidateIds, edits, resumePendingId = '') {
+    if (this.data.merging || candidateIds.length === 0) return;
+    this.setData({ merging: true, mergeDisabled: true, mergeDisabledClass: 'disabled' });
     try {
-      const result = await billService.mergeOcrTask(this.data.id, this.data.selectedIds, edits);
-      if (!result.ok) throw new Error('merge failed');
+      let mergedCount = 0;
+      for (let index = 0; index < candidateIds.length; index += 1) {
+        const id = candidateIds[index];
+        this.setData({ mergeText: `正在合并 ${index + 1} / ${candidateIds.length}` });
+        try {
+          const result = await billService.mergeOcrTask(
+            this.data.id, [id], edits, id === resumePendingId
+          );
+          if (!result.ok) throw new Error('merge failed');
+          mergedCount += result.count;
+          this.removeMergedBills([id]);
+        } catch (error) {
+          error.pendingCandidateIds = candidateIds.slice(index);
+          throw error;
+        }
+      }
       this.mergedSuccessfully = true;
-      wx.showToast({ title: `已合并 ${result.count} 笔账单`, icon: 'success' });
+      wx.showToast({ title: `已合并 ${mergedCount} 笔账单`, icon: 'success' });
       setTimeout(() => safeBack(), 400);
     } catch (error) {
+      await this.refreshMergedBills();
+      if (this.data.reviewBills.length === 0) this.mergedSuccessfully = true;
       this.setData({
         merging: false,
         mergeDisabled: this.data.selectedIds.length === 0,
         mergeDisabledClass: this.data.selectedIds.length === 0 ? 'disabled' : '',
-        mergeText: '合并账单到列表'
+        mergeText: '合并账单到列表',
+        mergeNotice: this.data.reviewBills.length > 0
+          ? `部分账单未完成，剩余 ${this.data.reviewBills.length} 笔可继续处理`
+          : this.data.mergeNotice
       });
-      wx.showToast({ title: '合并失败，请重试', icon: 'none' });
+      if (error.code === 'PENDING_OCR_MERGE' && error.message.includes('首次提交')) {
+        const pendingIds = error.pendingCandidateIds || [];
+        wx.showModal({
+          title: '继续上次合并？',
+          content: '这笔账单已提交过。继续会按首次提交的内容确认，当前改动不会用于这笔账单。',
+          confirmText: '继续确认',
+          success: (result) => {
+            if (result.confirm) this.resumePendingMerge(pendingIds, edits);
+          }
+        });
+      } else if (error.code === 'PENDING_OCR_MERGE' || error.code === 'LEGACY_OCR_MERGE') {
+        wx.showModal({ title: '请核对账单', content: error.message, showCancel: false });
+      } else {
+        wx.showToast({ title: '合并失败，请重试', icon: 'none' });
+      }
     }
+  },
+
+  async resumePendingMerge(candidateIds, edits) {
+    if (this.data.merging) return;
+    const remaining = candidateIds.filter((id) => this.data.reviewBills.some((bill) => bill.id === id));
+    if (remaining.length === 0) return;
+    await this.mergeCandidates(remaining, edits, remaining[0]);
   },
 
   back() {

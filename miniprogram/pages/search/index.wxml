@@ -39,6 +39,14 @@
   <view wx:elif="{{hasSearched}}" class="empty">
     <view class="empty-title">未找到相关账单</view>
     <text>换个托运人、单号或路线试试</text>
+    <view class="empty-actions">
+      <button class="empty-action primary" bindtap="clearSearchFilters">清空条件</button>
+      <button class="empty-action" bindtap="createBill">新增账单</button>
+    </view>
+  </view>
+
+  <view wx:elif="{{suggestionsLoading}}" class="search-state suggestion-loading">
+    <view class="loading-dot"></view><view class="search-state-title">正在加载建议</view><text>正在匹配历史托运人和单号</text>
   </view>
 
   <view wx:elif="{{suggestions.length > 0}}" class="suggestion-section">
@@ -56,7 +64,8 @@
     <view class="history-card">
       <view wx:for="{{history}}" wx:key="*this" class="history-item" data-keyword="{{item}}" bindtap="useHistory">
         <image class="history-icon" src="/assets/icons/history.svg" mode="aspectFit" />
-        <text>{{item}}</text>
+        <text class="history-keyword">{{item}}</text>
+        <button class="history-remove" data-keyword="{{item}}" catchtap="deleteHistoryItem" aria-label="删除搜索记录">×</button>
       </view>
     </view>
     <button wx:if="{{history.length > 0}}" class="clear-button" bindtap="clearHistory">清除历史</button>

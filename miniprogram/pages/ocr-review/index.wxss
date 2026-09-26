@@ -138,11 +138,29 @@
   padding-top: 48rpx;
 }
 
+.merge-notice {
+  margin: 16rpx 32rpx 0;
+  border-radius: 20rpx;
+  background: #e7edfb;
+  padding: 18rpx 24rpx;
+  color: #315aaf;
+  font-size: 21rpx;
+  line-height: 32rpx;
+}
+
+.merge-notice + .review-list {
+  padding-top: 20rpx;
+}
+
 .review-card {
   height: 548rpx;
   border-radius: 24rpx;
   padding: 20rpx 32rpx;
   box-shadow: none;
+}
+
+.review-card.duplicate-card {
+  border: 2rpx solid #d7a86a;
 }
 
 .review-card-head {
@@ -175,6 +193,17 @@
 
 .review-card-head .confidence {
   margin-left: auto;
+}
+
+.duplicate-badge {
+  margin-left: 58rpx;
+  border-radius: 16rpx;
+  background: #fff4ec;
+  padding: 6rpx 12rpx;
+  color: #b55800;
+  font-size: 18rpx;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 .review-check-button.checked {

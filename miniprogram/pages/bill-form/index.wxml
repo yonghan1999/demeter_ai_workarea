@@ -1,8 +1,24 @@
 ﻿<view class="page form-page">
   <app-nav title="{{title}}" nav-style="{{systemLayout.navStyle || ''}}" bind:back="back" />
+  <view wx:if="{{pendingSave}}" class="form-recovery-wrap"><button class="form-recovery-button" disabled="{{submitting}}" bindtap="recoverPendingSave">确认上次保存（可能属于另一笔账单）</button></view>
 
   <view wx:if="{{ready}}" class="form-content">
     <view wx:if="{{errorSummary}}" class="form-error-summary">{{errorSummary}}</view>
+    <view wx:if="{{saveConflict}}" class="conflict-panel">
+      <view class="conflict-banner">
+        <view class="conflict-title">账单已发生变化</view>
+        <view class="conflict-copy">其他设备刚刚保存了更新，请先核对最新内容。</view>
+      </view>
+      <view class="conflict-latest-card">
+        <view class="conflict-label">最新账单</view>
+        <view wx:if="{{conflictLatestLoading}}" class="conflict-loading">正在加载最新账单…</view>
+        <view wx:else class="conflict-latest-text">{{conflictLatestText || '点击下方按钮加载最新账单'}}</view>
+        <view wx:if="{{conflictDraftText}}" class="conflict-draft-text">{{conflictDraftText}}</view>
+      </view>
+      <button class="conflict-primary" disabled="{{submitting || conflictLatestLoading}}" bindtap="conflictPrimaryAction">{{conflictPrimaryText}}</button>
+      <button class="conflict-secondary" disabled="{{submitting}}" bindtap="keepDraftAndReturn">保留草稿，返回核对</button>
+    </view>
+    <button wx:if="{{recoveredCreate}}" class="form-recovery-button" disabled="{{submitting}}" bindtap="startAnotherBill">开始另一笔账单</button>
     <view class="bill-code mono">{{billCodeDisplay}}</view>
 
     <view class="form-card amount-card {{errors.amount ? 'field-error-card' : ''}}" bindtap="focusAmount">
@@ -16,6 +32,7 @@
           inputmode="decimal"
           data-field="amount"
           value="{{form.amount}}"
+          disabled="{{submitting}}"
           focus="{{amountFocused}}"
           adjust-position="{{true}}"
           cursor-spacing="32"
@@ -32,7 +49,8 @@
 
     <view class="form-card status-card">
       <view class="form-label">支付状态</view>
-      <view class="status-toggle">
+      <view wx:if="{{form.status === 'partially_paid'}}" class="partial-payment-state">部分收款 · 请在首页登记剩余收款</view>
+      <view wx:else class="status-toggle">
         <button class="status-button {{unpaidClass}}" data-status="unpaid" bindtap="setStatus"><text>未收款</text></button>
         <button class="status-button {{paidClass}}" data-status="paid" bindtap="setStatus"><text>已收款</text></button>
       </view>
@@ -46,11 +64,11 @@
       </view>
       <view class="form-field">
         <view class="field-label">车型</view>
-        <view class="input-shell"><image class="field-icon" src="/assets/icons/truck.svg" mode="aspectFit" /><input class="field-input" data-field="vehicleCargo" value="{{form.vehicleCargo}}" placeholder="请输入车型" maxlength="40" bindinput="setField" /></view>
+        <view class="input-shell"><image class="field-icon" src="/assets/icons/truck.svg" mode="aspectFit" /><input class="field-input" data-field="vehicleCargo" value="{{form.vehicleCargo}}" placeholder="请输入车型" maxlength="40" disabled="{{submitting}}" bindinput="setField" /></view>
       </view>
       <view class="form-field">
         <view class="field-label">日期</view>
-        <picker mode="date" value="{{form.date}}" bindchange="setDate"><view class="input-shell date-field {{errors.date ? 'field-error-shell' : ''}}"><image class="field-icon" src="/assets/icons/calendar.svg" mode="aspectFit" /><text class="mono">{{form.date || '请选择运输日期'}}</text></view></picker>
+        <picker mode="date" value="{{form.date}}" disabled="{{submitting}}" bindchange="setDate"><view class="input-shell date-field {{errors.date ? 'field-error-shell' : ''}}"><image class="field-icon" src="/assets/icons/calendar.svg" mode="aspectFit" /><text class="mono">{{form.date || '请选择运输日期'}}</text></view></picker>
       </view>
     </view>
 
@@ -85,8 +103,18 @@
   </bottom-sheet>
 
   <view wx:if="{{loading}}" class="form-state"><view class="state-spinner"></view><text>正在加载账单</text></view>
-  <view wx:if="{{loadFailed}}" class="form-state"><view class="form-state-title">账单加载失败</view><text>请检查后重试</text><view class="form-state-actions"><button bindtap="retryLoad">重试</button><button class="secondary" bindtap="back">返回</button></view></view>
+  <view wx:if="{{loadFailed}}" class="form-state"><view class="form-state-title">页面加载失败</view><text>{{errorSummary || '请检查后重试'}}</text><view class="form-state-actions"><button bindtap="retryLoad">重试</button><button class="secondary" bindtap="back">返回</button></view></view>
 
   <view wx:if="{{ready}}" class="form-bottom"><button class="primary-button {{saveDisabledClass}}" disabled="{{submitting}}" bindtap="save">{{saveText}}</button></view>
-</view>
 
+  <view wx:if="{{leaveConfirmOpen}}" class="leave-mask" catchtap="stayEditing">
+    <view class="leave-sheet" catchtap="stopPropagation">
+      <view class="leave-title">放弃更改？</view>
+      <view class="leave-copy">可以继续编辑，或确认返回账单列表。</view>
+      <view class="leave-actions">
+        <button class="leave-stay" bindtap="stayEditing">继续编辑</button>
+        <button class="leave-discard" bindtap="discardAndLeave">放弃离开</button>
+      </view>
+    </view>
+  </view>
+</view>

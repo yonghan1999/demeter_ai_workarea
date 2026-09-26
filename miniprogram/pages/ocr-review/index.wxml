@@ -7,20 +7,22 @@
       <image wx:else src="/assets/icons/image.svg" mode="aspectFit" />
     </view>
     <view>
-      <view class="summary-title">共识别 {{reviewBills.length}} 笔账单</view>
+      <view class="summary-title">共识别 {{recognizedCount}} 笔 · 待合并 {{reviewBills.length}} 笔</view>
       <text class="summary-copy">{{task.timeText}} 拍摄 · 点击字段可校对</text>
     </view>
-    <button class="review-select-all" bindtap="toggleAll">{{allText}}</button>
+    <button class="review-select-all" disabled="{{merging}}" bindtap="toggleAll">{{allText}}</button>
   </view>
 
   <view wx:if="{{duplicateCount > 0}}" class="duplicate-notice">发现 {{duplicateCount}} 笔疑似重复账单，请核对后再合并</view>
+  <view wx:if="{{mergeNotice}}" class="merge-notice">{{mergeNotice}}</view>
 
   <view class="review-list">
     <view wx:for="{{reviewBills}}" wx:key="id" class="review-card card {{item.borderClass}} {{item.mutedClass}}">
       <view class="review-card-head">
-        <button class="review-check-button {{item.selectedClass}}" data-id="{{item.id}}" catchtap="toggle">
+        <button class="review-check-button {{item.selectedClass}}" disabled="{{merging}}" data-id="{{item.id}}" catchtap="toggle">
           <text wx:if="{{item.selected}}">✓</text>
         </button>
+        <view wx:if="{{item.duplicate}}" class="duplicate-badge">疑似重复 · 默认未选</view>
         <view class="confidence {{item.confidenceClass}}">
           可信度 {{item.confidencePercent}}%
         </view>
@@ -29,18 +31,18 @@
       <view class="edit-grid">
         <view class="edit-field wide">
           <view class="label">托运人</view>
-          <input class="review-input" data-id="{{item.id}}" data-field="shipper" value="{{item.shipper}}" maxlength="60" bindinput="setField" />
+          <input class="review-input" disabled="{{merging}}" data-id="{{item.id}}" data-field="shipper" value="{{item.shipper}}" maxlength="60" bindinput="setField" />
         </view>
         <view class="edit-field amount">
           <view class="label">金额</view>
-          <view class="review-amount-shell"><text>¥</text><input class="review-input amount-input" type="digit" data-id="{{item.id}}" data-field="amount" value="{{item.amount}}" bindinput="setField" /></view>
+          <view class="review-amount-shell"><text>¥</text><input class="review-input amount-input" disabled="{{merging}}" type="digit" data-id="{{item.id}}" data-field="amount" value="{{item.amount}}" bindinput="setField" /></view>
         </view>
         <view class="edit-field route-field">
           <view class="label">路线</view>
           <view class="route-inputs">
-            <input class="review-input route-input" data-id="{{item.id}}" data-field="from" value="{{item.from}}" maxlength="30" bindinput="setField" />
+            <input class="review-input route-input" disabled="{{merging}}" data-id="{{item.id}}" data-field="from" value="{{item.from}}" maxlength="30" bindinput="setField" />
             <text>→</text>
-            <input class="review-input route-input" data-id="{{item.id}}" data-field="to" value="{{item.to}}" maxlength="30" bindinput="setField" />
+            <input class="review-input route-input" disabled="{{merging}}" data-id="{{item.id}}" data-field="to" value="{{item.to}}" maxlength="30" bindinput="setField" />
           </view>
         </view>
       </view>
@@ -48,17 +50,17 @@
       <view class="review-meta-grid">
         <view class="edit-field vehicle-field">
           <view class="label">车型</view>
-          <input class="review-input" data-id="{{item.id}}" data-field="vehicleCargo" value="{{item.vehicleCargo}}" maxlength="40" bindinput="setField" />
+          <input class="review-input" disabled="{{merging}}" data-id="{{item.id}}" data-field="vehicleCargo" value="{{item.vehicleCargo}}" maxlength="40" bindinput="setField" />
         </view>
         <view class="edit-field date-meta-field">
           <view class="label">日期</view>
-          <picker mode="date" value="{{item.date}}" data-id="{{item.id}}" bindchange="setDate"><view class="review-input review-picker mono">{{item.date}}</view></picker>
+          <picker mode="date" disabled="{{merging}}" value="{{item.date}}" data-id="{{item.id}}" bindchange="setDate"><view class="review-input review-picker mono">{{item.date}}</view></picker>
         </view>
       </view>
 
       <view class="status-pair">
-        <button class="review-status-button {{item.unpaidClass}}" data-id="{{item.id}}" data-status="unpaid" bindtap="setStatus"><text>未收款</text></button>
-        <button class="review-status-button {{item.paidClass}}" data-id="{{item.id}}" data-status="paid" bindtap="setStatus"><text>已收款</text></button>
+        <button class="review-status-button {{item.unpaidClass}}" disabled="{{merging}}" data-id="{{item.id}}" data-status="unpaid" bindtap="setStatus"><text>未收款</text></button>
+        <button class="review-status-button {{item.paidClass}}" disabled="{{merging}}" data-id="{{item.id}}" data-status="paid" bindtap="setStatus"><text>已收款</text></button>
       </view>
     </view>
   </view>
@@ -68,7 +70,7 @@
       <text>已选 {{selectedIds.length}} 笔</text>
       <text class="merge-total">合计 {{total}}</text>
     </view>
-    <button class="primary-button {{mergeDisabledClass}}" disabled="{{mergeDisabled}}" bindtap="merge">{{merging ? '正在合并…' : '合并 ' + selectedIds.length + ' 笔账单到列表'}}</button>
+    <button class="primary-button {{mergeDisabledClass}}" disabled="{{mergeDisabled}}" bindtap="merge">{{merging ? mergeText : '合并 ' + selectedIds.length + ' 笔账单到列表'}}</button>
   </bottom-action-bar>
 </view>
 

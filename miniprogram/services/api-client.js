@@ -17,6 +17,47 @@ function getAccessToken() {
   return typeof token === 'string' ? token : '';
 }
 
+function currentIdentity() {
+  const user = readStorage(USER_KEY);
+  if (!user || !user.id || !user.tenantId) return null;
+  return { id: String(user.id), tenantId: String(user.tenantId) };
+}
+
+function sameIdentity(first, second) {
+  return Boolean(first && second && first.id === second.id
+    && first.tenantId === second.tenantId);
+}
+
+function hasIdentity(identity) {
+  return Boolean(identity && identity.id && identity.tenantId);
+}
+
+function identityChangedError() {
+  const error = new Error('登录身份已变化，请重新打开页面后操作');
+  error.code = 'AUTH_IDENTITY_CHANGED';
+  return error;
+}
+
+function refreshSessionForRetry(originalIdentity, retry) {
+  // Keep the actor marker while rotating only the expired token. Other requests
+  // from the same page may complete during the login round trip; removing the
+  // user marker would make those legitimate responses look cross-account.
+  try {
+    wx.removeStorageSync(ACCESS_TOKEN_KEY);
+  } catch (error) {
+    // The login attempt below will surface an authentication error if cleanup fails.
+  }
+  return ensureLogin().then(() => {
+    const refreshedIdentity = currentIdentity();
+    if (originalIdentity
+      ? !sameIdentity(originalIdentity, refreshedIdentity)
+      : !hasIdentity(refreshedIdentity)) {
+      throw identityChangedError();
+    }
+    return retry();
+  });
+}
+
 function saveSession(response) {
   const token = response && response.accessToken;
   if (!token) throw createError({ statusCode: 502, data: { code: 'AUTH_INVALID_RESPONSE' } });
@@ -62,6 +103,7 @@ function request(options = {}, retryAuth = true) {
     header = {},
     auth = true
   } = options;
+  const initialIdentity = auth ? currentIdentity() : null;
 
   const send = (token) => new Promise((resolve, reject) => {
     wx.request({
@@ -74,10 +116,12 @@ function request(options = {}, retryAuth = true) {
         ...header
       },
       success: (response) => {
+        if (auth && initialIdentity && !sameIdentity(initialIdentity, currentIdentity())) {
+          reject(identityChangedError());
+          return;
+        }
         if (response.statusCode === 401 && auth && retryAuth) {
-          clearSession();
-          ensureLogin()
-            .then(() => request(options, false))
+          refreshSessionForRetry(initialIdentity, () => request(options, false))
             .then(resolve)
             .catch(reject);
           return;
@@ -102,7 +146,12 @@ function request(options = {}, retryAuth = true) {
 
   if (!auth) return send('');
   const token = getAccessToken();
-  return token ? send(token) : ensureLogin().then(() => request(options, retryAuth));
+  return token ? send(token) : ensureLogin().then(() => {
+    if (initialIdentity && !sameIdentity(initialIdentity, currentIdentity())) {
+      throw identityChangedError();
+    }
+    return request(options, retryAuth);
+  });
 }
 
 function uploadFile(options = {}, retryAuth = true) {
@@ -112,11 +161,14 @@ function uploadFile(options = {}, retryAuth = true) {
     name = 'file',
     formData = {},
     header = {},
-    auth = true
+    auth = true,
+    onProgress,
+    onTaskCreated
   } = options;
+  const initialIdentity = auth ? currentIdentity() : null;
 
   const send = (token) => new Promise((resolve, reject) => {
-    wx.uploadFile({
+    const uploadTask = wx.uploadFile({
       url: `${API_BASE_URL}${url}`,
       filePath,
       name,
@@ -126,10 +178,12 @@ function uploadFile(options = {}, retryAuth = true) {
         ...header
       },
       success: (response) => {
+        if (auth && initialIdentity && !sameIdentity(initialIdentity, currentIdentity())) {
+          reject(identityChangedError());
+          return;
+        }
         if (response.statusCode === 401 && auth && retryAuth) {
-          clearSession();
-          ensureLogin()
-            .then(() => uploadFile(options, false))
+          refreshSessionForRetry(initialIdentity, () => uploadFile(options, false))
             .then(resolve)
             .catch(reject);
           return;
@@ -150,11 +204,23 @@ function uploadFile(options = {}, retryAuth = true) {
         reject(uploadError);
       }
     });
+    if (uploadTask) {
+      if (typeof onTaskCreated === 'function') onTaskCreated(uploadTask);
+      if (typeof onProgress === 'function'
+          && typeof uploadTask.onProgressUpdate === 'function') {
+        uploadTask.onProgressUpdate((event) => onProgress(Number(event.progress) || 0));
+      }
+    }
   });
 
   if (!auth) return send('');
   const token = getAccessToken();
-  return token ? send(token) : ensureLogin().then(() => uploadFile(options, retryAuth));
+  return token ? send(token) : ensureLogin().then(() => {
+    if (initialIdentity && !sameIdentity(initialIdentity, currentIdentity())) {
+      throw identityChangedError();
+    }
+    return uploadFile(options, retryAuth);
+  });
 }
 
 function ensureLogin() {

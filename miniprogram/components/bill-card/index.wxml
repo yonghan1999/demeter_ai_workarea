@@ -20,6 +20,7 @@
         <view class="status-dot"></view>
         <text>{{bill.statusText}}</text>
       </view>
+      <text wx:if="{{bill.status === 'partially_paid'}}" class="partial-balance mono">已收 {{paidAmount}} · 待收 {{outstandingAmount}}</text>
     </view>
 
     <view class="summary-row">

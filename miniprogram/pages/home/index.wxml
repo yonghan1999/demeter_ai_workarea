@@ -34,11 +34,16 @@
     <block wx:else>
       <view class="result-count">
         <text>{{total}} 条账单</text>
-        <button wx:if="{{filterCount > 0}}" class="filter-summary" bindtap="clearAdvancedFilters">已筛选 · 清除</button>
+        <button wx:if="{{filterCount > 0 || activeStatus !== 'all'}}" class="filter-summary" bindtap="clearAllFilters">已筛选 · 清除</button>
         <button wx:if="{{total > 0}}" class="export-list-button" bindtap="exportCurrentBills" disabled="{{loading}}">导出对账单</button>
       </view>
-      <text class="swipe-hint">← 左滑标记 / 删除</text>
+      <text class="swipe-hint">← 左滑登记收款 / 删除</text>
     </block>
+  </view>
+
+  <view wx:if="{{batchMode && selectionLimitMessage}}" class="selection-limit" role="status">
+    <text class="selection-limit-icon">!</text>
+    <text>{{selectionLimitMessage}}</text>
   </view>
 
   <view wx:if="{{bills.length > 0}}" class="bill-list">
@@ -48,7 +53,7 @@
     </view>
     <view wx:for="{{bills}}" wx:key="id" wx:for-index="index" class="swipe-wrap">
       <view wx:if="{{!batchMode}}" class="swipe-actions">
-        <button class="action paid-action" data-id="{{item.id}}" bindtap="markPaid"><image class="action-icon" src="/assets/icons/check.svg" mode="aspectFit" /><text>已收款</text></button>
+        <button class="action paid-action {{item.status === 'paid' ? 'disabled' : ''}}" data-id="{{item.id}}" bindtap="openPayment" disabled="{{item.status === 'paid'}}"><image class="action-icon" src="/assets/icons/check.svg" mode="aspectFit" /><text>{{item.status === 'paid' ? '已结清' : '登记收款'}}</text></button>
         <button class="action delete-action" data-id="{{item.id}}" bindtap="deleteBill"><image class="action-icon" src="/assets/icons/trash.svg" mode="aspectFit" /><text>删除</text></button>
       </view>
       <view
@@ -79,8 +84,11 @@
   <view wx:if="{{!loading && !loadFailed && bills.length === 0}}" class="home-state">
     <view class="home-state-title">{{filterCount > 0 || activeStatus !== 'all' ? '暂无符合条件的账单' : '还没有账单'}}</view>
     <text>{{filterCount > 0 || activeStatus !== 'all' ? '可以调整或清除当前筛选条件' : '手动新增账单，或拍照识别手写账本'}}</text>
-    <button wx:if="{{filterCount > 0}}" class="home-state-button" bindtap="clearAdvancedFilters">清除高级筛选</button>
-    <button wx:else class="home-state-button" bindtap="goCreate">新增账单</button>
+    <button wx:if="{{filterCount > 0 || activeStatus !== 'all'}}" class="home-state-button" bindtap="clearAllFilters">清除筛选条件</button>
+    <block wx:else>
+      <button class="home-state-button" bindtap="goCreate">新增账单</button>
+      <button class="home-state-button secondary" bindtap="goCamera">拍照识别</button>
+    </block>
   </view>
 
   <view wx:if="{{dialOpen}}" class="fab-mask" bindtap="closeOverlays"></view>
@@ -103,8 +111,8 @@
       <text>已选 {{selectedIds.length}} 笔合计</text>
       <view class="mono">{{selectedAmount}}</view>
     </view>
-    <button class="batch-export {{selectedIds.length === 0 || deleting ? 'disabled' : ''}}" disabled="{{selectedIds.length === 0 || deleting}}" bindtap="exportSelectedBills">导出并分享</button>
-    <button class="batch-delete {{selectedIds.length === 0 || deleting ? 'disabled' : ''}}" disabled="{{selectedIds.length === 0 || deleting}}" bindtap="deleteSelected">
+    <button class="batch-export {{selectedIds.length === 0 || selectedIds.length > 120 || deleting ? 'disabled' : ''}}" disabled="{{selectedIds.length === 0 || selectedIds.length > 120 || deleting}}" bindtap="exportSelectedBills">导出并分享</button>
+    <button class="batch-delete {{selectedIds.length === 0 || selectedIds.length > 100 || deleting ? 'disabled' : ''}}" disabled="{{selectedIds.length === 0 || selectedIds.length > 100 || deleting}}" bindtap="deleteSelected">
       <image class="batch-delete-icon" src="/assets/icons/trash.svg" mode="aspectFit" />
       <text>{{deleteText}}</text>
     </button>
@@ -120,6 +128,34 @@
       </view>
     </view>
   </view>
+
+  <bottom-sheet visible="{{paymentOpen}}" title="登记收款" subtitle="确认金额后写入收款记录" safe-style="{{systemLayout.bottomSafeStyle}}" bind:close="closePayment">
+    <scroll-view class="payment-sheet-body" scroll-y>
+      <view wx:if="{{paymentLoading}}" class="payment-sheet-state">正在核对最新待收金额…</view>
+      <block wx:elif="{{paymentBill}}">
+        <view class="payment-summary">
+          <view class="payment-summary-head"><text>{{paymentBill.shipper}}</text><text class="mono"># {{paymentBill.code}}</text></view>
+          <view class="payment-summary-amount"><text>账单金额 {{paymentBill.amountLabel}}</text><text class="mono">{{paymentBill.amountDisplay}}</text></view>
+          <view class="payment-summary-amount"><text>已收</text><text class="mono">{{paymentBill.paidDisplay}}</text></view>
+          <view class="payment-summary-due"><text>本次最多可收</text><text class="mono">{{paymentBill.outstandingDisplay}}</text></view>
+        </view>
+        <view wx:if="{{paymentPending}}" class="payment-pending">上次提交结果尚未确认。以下金额和方式已锁定，请用原记录确认，避免重复登记。</view>
+        <view class="payment-field-label">本次收款金额</view>
+        <view class="payment-amount-field {{paymentPending ? 'locked' : ''}}"><text>¥</text><input type="digit" value="{{paymentAmount}}" placeholder="请输入收款金额" disabled="{{paymentPending || paymentSubmitting}}" bindinput="setPaymentAmount" /></view>
+        <view class="payment-field-label">收款方式</view>
+        <view class="payment-methods">
+          <button wx:for="{{paymentMethods}}" wx:key="key" class="payment-method {{paymentMethod === item.key ? 'active' : ''}}" data-method="{{item.key}}" disabled="{{paymentPending || paymentSubmitting}}" bindtap="setPaymentMethod">{{item.text}}</button>
+        </view>
+        <view class="payment-field-label">备注（选填）</view>
+        <textarea class="payment-note" value="{{paymentNote}}" maxlength="240" placeholder="例如本次收款说明" disabled="{{paymentPending || paymentSubmitting}}" bindinput="setPaymentNote" />
+      </block>
+      <view wx:if="{{paymentError}}" class="payment-error">{{paymentError}}</view>
+      <view class="payment-actions">
+        <button class="payment-cancel" disabled="{{paymentSubmitting}}" bindtap="closePayment">取消</button>
+        <button class="payment-confirm" disabled="{{paymentLoading || paymentSubmitting || !paymentBill}}" bindtap="confirmPayment">{{paymentSubmitting ? '正在登记…' : paymentPending ? '确认上次收款' : '确认登记收款'}}</button>
+      </view>
+    </scroll-view>
+  </bottom-sheet>
 
   <bottom-sheet visible="{{filterOpen}}" title="高级筛选" subtitle="筛选当前账单列表" safe-style="{{systemLayout.bottomSafeStyle}}" bind:close="closeFilter">
 

@@ -37,6 +37,17 @@ replacement for target-environment verification.
 - [ ] `MANAGEMENT_ADDRESS` binds to a loopback address; public access goes
       through private network controls only.
 - [ ] `/actuator/info` and `/actuator/prometheus` require the management token.
+- [ ] OCR storage matches the deployment topology: the current filesystem
+      implementation uses one persistent volume shared by API, Worker, and
+      Maintenance on one host. A multi-node rollout has a separately implemented
+      and verified shared object-storage adapter; setting `OCR_STORAGE_SHARED=true`
+      alone is insufficient.
+- [ ] OCR original-image storage is encrypted, durable, and readable by each
+      required role; its backup and restore have been verified in the target
+      environment.
+- [ ] If Qwen OCR is enabled, the API key and HTTPS endpoint are from the same
+      region; data review, cost limits, alerting, and a non-production recognition
+      and retry check are complete.
 - [ ] Optional live preflight was run with `PREFLIGHT_READINESS_URL` and
       `PREFLIGHT_MANAGEMENT_INFO_URL`.
 
@@ -77,7 +88,9 @@ replacement for target-environment verification.
 
 - [ ] PITR is enabled and recent binlogs are available.
 - [ ] Backup encryption and retention were verified.
-- [ ] OCR object storage versioning and server-side encryption are enabled.
+- [ ] For filesystem OCR storage, encrypted-volume backup and recovery were
+      tested. For an object-storage adapter, versioning and server-side
+      encryption were verified.
 - [ ] The latest restore drill recorded restore point, recovery duration,
       validation scope, and approver.
 - [ ] Recovery validation covers tenants, users, sessions, bills, payments,
