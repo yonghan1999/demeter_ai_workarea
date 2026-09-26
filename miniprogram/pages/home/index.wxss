@@ -93,6 +93,17 @@
   box-shadow: 0 5rpx 10rpx rgba(17, 67, 180, 0.3);
 }
 
+.quick-tool.export-quick-tool {
+  border: 0;
+  background: #ffffff;
+  color: #315aaf;
+}
+
+.quick-tool.export-quick-tool[disabled] {
+  background: #ffffff;
+  color: #9aabc2;
+}
+
 .quick-tool.managing {
   background: #17213a;
   color: #ffffff;
@@ -128,6 +139,11 @@
   color: #ffffff;
   font-size: 17rpx;
   font-weight: 800;
+}
+
+.recognition-tool .quick-badge {
+  top: -8rpx;
+  right: -6rpx;
 }
 
 .filter-badge {
@@ -255,46 +271,10 @@
   font-weight: 700;
 }
 
-.ui-button.export-list-button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12rpx;
-  width: 100%;
-  height: 82rpx;
-  margin: 0;
-  border-radius: 24rpx;
-  background: #174fc4;
-  padding: 0 24rpx;
-  color: #ffffff;
-  font-size: 25rpx;
-  font-weight: 700;
-  line-height: normal;
-  box-shadow: 0 8rpx 18rpx rgba(23, 79, 196, 0.2);
-}
-
-.ui-button.export-list-button[disabled] {
-  background: #9aadd8;
-  color: #ffffff;
-  opacity: 1;
-  box-shadow: none;
-}
-
-.list-action-row {
-  margin-top: 12rpx;
-}
-
-.export-list-icon,
 .batch-export-icon {
   flex: none;
   width: 30rpx;
   height: 30rpx;
-}
-
-.export-list-arrow {
-  margin-left: auto;
-  font-size: 32rpx;
-  font-weight: 400;
 }
 
 .swipe-hint {

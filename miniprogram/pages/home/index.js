@@ -490,11 +490,6 @@ Page(withSystemLayout({
     wx.navigateTo({ url: '/pages/bill-form/index?mode=create' });
   },
 
-  goCamera() {
-    if (this.data.batchMode) return;
-    wx.navigateTo({ url: '/pages/ocr-camera/index' });
-  },
-
   handleBillTap(event) {
     if (!this.hasCurrentAccountData()) return;
     const id = event.detail.id;

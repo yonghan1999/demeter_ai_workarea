@@ -9,11 +9,13 @@
 
     <scroll-view class="quick-tools-scroll" scroll-x enhanced show-scrollbar="{{false}}">
       <view class="quick-tools">
-        <view class="quick-tool camera-tool primary {{batchMode ? 'control-disabled' : ''}}" bindtap="goCamera"><image class="quick-tool-icon" src="/assets/icons/camera.svg" mode="aspectFit" /><text>拍照识别</text></view>
-        <view class="quick-tool {{batchMode ? 'control-disabled' : ''}}" bindtap="goOcrTasks">
-          <image class="quick-tool-icon" src="/assets/icons/sparkles.svg" mode="aspectFit" /><text>识别任务</text>
+        <view class="quick-tool recognition-tool primary {{batchMode ? 'control-disabled' : ''}}" bindtap="goOcrTasks">
+          <image class="quick-tool-icon" src="/assets/icons/camera.svg" mode="aspectFit" /><text>识别中心</text>
           <text wx:if="{{pendingOcr + unmergedOcr > 0}}" class="quick-badge">{{pendingOcr + unmergedOcr}}</text>
         </view>
+        <button class="ui-button quick-tool export-quick-tool {{batchMode || total === 0 ? 'control-disabled' : ''}}" bindtap="exportCurrentBills" disabled="{{batchMode || loading || total === 0}}">
+          <image class="quick-tool-icon" src="/assets/icons/download-blue.svg" mode="aspectFit" /><text>导出账单</text>
+        </button>
         <view class="quick-tool batch-tool {{batchMode ? 'managing' : ''}}" bindtap="goSelect"><image class="quick-tool-icon" src="/assets/icons/sliders.svg" mode="aspectFit" /><text>{{batchMode ? '退出管理' : '批量管理'}}</text></view>
         <view class="quick-tool filter-tool {{filterCount > 0 ? 'filtered' : ''}} {{batchMode ? 'control-disabled' : ''}}" bindtap="goFilter"><image class="quick-tool-icon" src="/assets/icons/filter.svg" mode="aspectFit" /><text>高级筛选</text><text wx:if="{{filterCount > 0}}" class="filter-badge">{{filterCount}}</text></view>
       </view>
@@ -38,13 +40,6 @@
           <button class="ui-button filter-summary" wx:if="{{filterCount > 0 || activeStatus !== 'all'}}" bindtap="clearAllFilters">已筛选 · 清除</button>
         </view>
         <text class="swipe-hint">← 左滑登记收款 / 删除</text>
-      </view>
-      <view wx:if="{{total > 0}}" class="list-action-row">
-        <button class="ui-button export-list-button" bindtap="exportCurrentBills" disabled="{{loading}}">
-          <image class="export-list-icon" src="/assets/icons/download.svg" mode="aspectFit" />
-          <text>导出对账单</text>
-          <text class="export-list-arrow">›</text>
-        </button>
       </view>
     </block>
   </view>
