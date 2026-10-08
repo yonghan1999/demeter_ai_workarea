@@ -66,7 +66,7 @@
   font-weight: 700;
 }
 
-.tasks-empty button {
+.tasks-empty .ui-button {
   height: 72rpx;
   margin: 30rpx auto 0;
   border-radius: 24rpx;
@@ -86,10 +86,6 @@
 
 .task-entry + .task-entry {
   margin-top: 32rpx;
-}
-
-.task-entry-processing + .task-entry-completed {
-  margin-top: 272rpx;
 }
 
 .task-completed {
@@ -173,10 +169,16 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 16rpx;
   height: 72rpx;
   color: #17213a;
   font-size: 28rpx;
   font-weight: 700;
+}
+
+.result-summary-copy {
+  flex: 1;
+  min-width: 0;
 }
 
 .result-count {
@@ -191,7 +193,7 @@
   line-height: 40rpx;
 }
 
-.view-button {
+.ui-button.view-button {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -203,6 +205,7 @@
   height: 80rpx;
   min-height: 80rpx;
   max-height: 80rpx;
+  margin: 0 0 0 auto;
   border-radius: 24rpx;
   background: #eef3ff;
   padding: 0;
@@ -213,7 +216,7 @@
   text-align: center;
 }
 
-.view-button > text {
+.ui-button.view-button > text {
   display: block;
   line-height: 30rpx;
 }
@@ -309,10 +312,11 @@
 }
 
 .progress-inner {
-  width: 60%;
+  width: 34%;
   height: 100%;
   border-radius: 6rpx;
   background: #174fc4;
+  animation: task-indeterminate 1.4s ease-in-out infinite alternate;
 }
 
 .processing text {
@@ -325,7 +329,17 @@
   background: #cc1d25;
 }
 
-.retry-task-outside {
+.task-inline-action {
+  color: #174fc4;
+  font-weight: 700;
+}
+
+@keyframes task-indeterminate {
+  from { transform: translateX(0); }
+  to { transform: translateX(195%); }
+}
+
+.ui-button.retry-task-outside {
   display: block;
   width: 220rpx;
   height: 80rpx;
@@ -385,7 +399,7 @@
   background: #ffffff;
 }
 
-.tasks-bottom .primary-button {
+.tasks-bottom .ui-button.primary-button {
   width: 100%;
   height: 104rpx;
   border-radius: 24rpx;

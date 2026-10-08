@@ -1,7 +1,11 @@
 .review-page {
   min-height: 100vh;
-  padding-bottom: 294rpx;
+  padding-bottom: 0;
   background: #edf0f6;
+}
+
+.review-page.has-task {
+  padding-bottom: 294rpx;
 }
 
 .review-page .nav {
@@ -44,7 +48,7 @@
   height: 44rpx;
 }
 
-.review-select-all {
+.ui-button.review-select-all {
   position: absolute;
   right: 24rpx;
   top: 24rpx;
@@ -138,11 +142,29 @@
   padding-top: 48rpx;
 }
 
+.merge-notice {
+  margin: 16rpx 32rpx 0;
+  border-radius: 20rpx;
+  background: #e7edfb;
+  padding: 18rpx 24rpx;
+  color: #315aaf;
+  font-size: 21rpx;
+  line-height: 32rpx;
+}
+
+.merge-notice + .review-list {
+  padding-top: 20rpx;
+}
+
 .review-card {
   height: 548rpx;
   border-radius: 24rpx;
   padding: 20rpx 32rpx;
   box-shadow: none;
+}
+
+.review-card.duplicate-card {
+  border: 2rpx solid #d7a86a;
 }
 
 .review-card-head {
@@ -153,7 +175,7 @@
   height: 48rpx;
 }
 
-.review-check-button {
+.ui-button.review-check-button {
   position: absolute;
   left: 0;
   display: flex;
@@ -177,7 +199,18 @@
   margin-left: auto;
 }
 
-.review-check-button.checked {
+.duplicate-badge {
+  margin-left: 58rpx;
+  border-radius: 16rpx;
+  background: #fff4ec;
+  padding: 6rpx 12rpx;
+  color: #b55800;
+  font-size: 18rpx;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.ui-button.review-check-button.checked {
   border-color: #174fc4;
   background: #174fc4;
 }
@@ -294,7 +327,7 @@
   margin-top: 10rpx;
 }
 
-.review-status-button {
+.ui-button.review-status-button {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -313,7 +346,7 @@
   text-align: center;
 }
 
-.review-status-button text {
+.ui-button.review-status-button text {
   display: block;
   width: 100%;
   line-height: 30rpx;
@@ -377,7 +410,7 @@
   font-weight: 700;
 }
 
-.review-bottom .primary-button {
+.review-bottom .ui-button.primary-button {
   width: 100%;
   height: 104rpx;
   border-radius: 24rpx;
@@ -391,14 +424,15 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 100vh;
+  padding: 48rpx 32rpx;
   background: #edf0f6;
   color: #9aabc2;
   font-size: 24rpx;
+  line-height: 36rpx;
   text-align: center;
 }
 
-.review-state > view:not(.review-spinner):not(.review-state-actions) {
+.review-state-title {
   margin-bottom: 10rpx;
   color: #17213a;
   font-size: 31rpx;
@@ -407,12 +441,18 @@
 
 .review-state-actions {
   display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
   gap: 16rpx;
   margin-top: 28rpx;
 }
 
-.review-state button {
-  height: 68rpx;
+.review-state .ui-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  margin: 0;
   border-radius: 24rpx;
   background: #174fc4;
   padding: 0 36rpx;
@@ -421,7 +461,7 @@
   font-weight: 700;
 }
 
-.review-state .secondary {
+.review-state .ui-button.secondary {
   background: #ffffff;
   color: #3d5275;
 }

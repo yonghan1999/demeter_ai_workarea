@@ -17,6 +17,10 @@ Component({
     compact: {
       type: Boolean,
       value: false
+    },
+    showPayment: {
+      type: Boolean,
+      value: false
     }
   },
 
@@ -24,6 +28,8 @@ Component({
     bill(value) {
       this.setData({
         amount: money(value.amount),
+        paidAmount: money(value.paidAmount),
+        outstandingAmount: money(value.outstandingAmount),
         dateShort: shortDate(value.date),
         vehicle: String(value.vehicleCargo || '').split('/')[0].trim(),
         selectableClass: this.data.selectable ? 'selectable' : '',
@@ -44,6 +50,8 @@ Component({
 
   data: {
     amount: '¥0.00',
+    paidAmount: '¥0.00',
+    outstandingAmount: '¥0.00',
     dateShort: '',
     vehicle: '',
     selectableClass: '',
@@ -54,6 +62,11 @@ Component({
   methods: {
     onTap() {
       this.triggerEvent('tapbill', { id: this.data.bill.id });
+    },
+    onPaymentTap() {
+      const { bill, showPayment, selectable } = this.data;
+      if (!showPayment || selectable || bill.status === 'paid' || Number(bill.outstandingAmount) <= 0) return;
+      this.triggerEvent('paybill', { id: bill.id });
     }
   }
 });

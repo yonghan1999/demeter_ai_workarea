@@ -331,7 +331,7 @@ function pageCount(total) {
   return 1 + Math.ceil((total - rowsPerPage(0)) / rowsPerPage(1));
 }
 
-function renderPages(canvas, data, onProgress) {
+function renderPages(canvas, data, onProgress, onImage = () => {}, shouldCancel = () => false) {
   const ctx = canvas.getContext('2d');
   canvas.width = PAGE_WIDTH;
   canvas.height = PAGE_HEIGHT;
@@ -342,33 +342,44 @@ function renderPages(canvas, data, onProgress) {
 
   return new Promise((resolve, reject) => {
     const next = () => {
-      const limit = rowsPerPage(pageIndex);
-      const bills = data.bills.slice(cursor, cursor + limit);
-      const isLast = cursor + bills.length >= data.bills.length;
-      drawPage(ctx, { ...data, bills, pageIndex, isLast });
-      wx.canvasToTempFilePath({
-        canvas,
-        x: 0,
-        y: 0,
-        width: PAGE_WIDTH,
-        height: PAGE_HEIGHT,
-        destWidth: PAGE_WIDTH,
-        destHeight: PAGE_HEIGHT,
-        fileType: 'jpg',
-        quality: 0.92,
-        success: (result) => {
-          imagePaths.push(result.tempFilePath);
-          onProgress(pageIndex + 1, totalPages);
-          if (isLast) {
-            resolve(imagePaths);
-            return;
-          }
-          cursor += bills.length;
-          pageIndex += 1;
-          next();
-        },
-        fail: reject
-      });
+      try {
+        if (shouldCancel()) throw new Error('导出已取消');
+        const limit = rowsPerPage(pageIndex);
+        const bills = data.bills.slice(cursor, cursor + limit);
+        const isLast = cursor + bills.length >= data.bills.length;
+        drawPage(ctx, { ...data, bills, pageIndex, isLast });
+        wx.canvasToTempFilePath({
+          canvas,
+          x: 0,
+          y: 0,
+          width: PAGE_WIDTH,
+          height: PAGE_HEIGHT,
+          destWidth: PAGE_WIDTH,
+          destHeight: PAGE_HEIGHT,
+          fileType: 'jpg',
+          quality: 0.92,
+          success: (result) => {
+            imagePaths.push(result.tempFilePath);
+            try {
+              onImage(result.tempFilePath);
+              if (shouldCancel()) throw new Error('导出已取消');
+              onProgress(pageIndex + 1, totalPages);
+              if (isLast) {
+                resolve(imagePaths);
+                return;
+              }
+              cursor += bills.length;
+              pageIndex += 1;
+              next();
+            } catch (error) {
+              reject(error);
+            }
+          },
+          fail: reject
+        });
+      } catch (error) {
+        reject(error);
+      }
     };
     next();
   });

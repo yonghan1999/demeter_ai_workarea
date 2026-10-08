@@ -12,10 +12,12 @@ Page(withSystemLayout({
     loading: false,
     loadFailed: false,
     searchSeq: 0,
-    suggestions: []
+    suggestions: [],
+    suggestionsLoading: false
   },
 
   onLoad(options) {
+    this.searchActor = billService.currentActorId();
     let filters = null;
     if (options.filters) {
       try {
@@ -36,11 +38,41 @@ Page(withSystemLayout({
     this.loadHistory();
   },
 
+  onShow() {
+    const actor = billService.currentActorId();
+    if (!this.searchActor) {
+      if (!actor) return;
+      this.searchActor = actor;
+      this.loadHistory();
+      return;
+    }
+    if (this.searchActor === actor) return;
+    if (!actor) {
+      this.searchActor = '';
+    } else {
+      this.searchActor = actor;
+    }
+    this.searchSeq = (this.searchSeq || this.data.searchSeq || 0) + 1;
+    this.suggestionSeq = (this.suggestionSeq || 0) + 1;
+    clearTimeout(this.searchTimer);
+    this.setData({
+      query: '', history: [], results: [], suggestions: [],
+      suggestionsLoading: false, filters: null,
+      hasSearched: false, hasResults: false, loading: false, loadFailed: false
+    });
+    if (actor) this.loadHistory();
+  },
+
   async loadHistory() {
+    const actor = billService.currentActorId();
     try {
       const history = await billService.getSearchHistory();
+      const resolvedActor = billService.currentActorId();
+      if (!actor && resolvedActor) this.searchActor = resolvedActor;
+      if (resolvedActor !== billService.currentActorId() || resolvedActor !== this.searchActor) return;
       this.setData({ history: history.slice(0, 3) });
     } catch (error) {
+      if (actor && (actor !== billService.currentActorId() || actor !== this.searchActor)) return;
       this.setData({ history: [] });
     }
   },
@@ -52,6 +84,7 @@ Page(withSystemLayout({
       query,
       results: [],
       suggestions: [],
+      suggestionsLoading: Boolean(query.trim()),
       hasResults: false,
       hasSearched: false,
       loading: false,
@@ -59,56 +92,79 @@ Page(withSystemLayout({
     }, () => {
       clearTimeout(this.searchTimer);
       if (query.trim()) this.searchTimer = setTimeout(() => this.loadSuggestions(query), 120);
-      else this.setData({ suggestions: [] });
+      else this.setData({ suggestions: [], suggestionsLoading: false });
     });
   },
 
   async loadSuggestions(query) {
+    const actor = billService.currentActorId();
     const value = String(query || '').trim();
-    if (!value) return;
+    if (!value) {
+      this.setData({ suggestionsLoading: false });
+      return;
+    }
     const suggestionSeq = (this.suggestionSeq || 0) + 1;
     this.suggestionSeq = suggestionSeq;
     try {
       const suggestions = await billService.suggestBillKeywords(value);
-      if (suggestionSeq !== this.suggestionSeq || this.data.query.trim() !== value) return;
+      const resolvedActor = billService.currentActorId();
+      if (!actor && resolvedActor) this.searchActor = resolvedActor;
+      if (suggestionSeq !== this.suggestionSeq || this.data.query.trim() !== value
+          || resolvedActor !== billService.currentActorId() || resolvedActor !== this.searchActor) return;
       this.setData({
         suggestions,
+        suggestionsLoading: false,
         results: [],
         hasResults: false,
         hasSearched: false,
         loadFailed: false
       });
     } catch (error) {
-      if (suggestionSeq === this.suggestionSeq) this.setData({ suggestions: [] });
+      if (suggestionSeq === this.suggestionSeq
+          && (!actor || (actor === billService.currentActorId() && actor === this.searchActor))) {
+        this.setData({ suggestions: [], suggestionsLoading: false });
+      }
     }
   },
 
   async search() {
+    const actor = billService.currentActorId();
     const searchSeq = (this.searchSeq || this.data.searchSeq || 0) + 1;
     this.searchSeq = searchSeq;
-    this.setData({ loading: true, loadFailed: false, suggestions: [], searchSeq });
+    this.suggestionSeq = (this.suggestionSeq || 0) + 1;
+    this.setData({ loading: true, loadFailed: false, suggestions: [], suggestionsLoading: false, searchSeq });
     const query = this.data.query.trim();
     try {
       const results = await billService.listBills({
         ...(this.data.filters || {}),
         keyword: query
       });
-      if (this.searchSeq !== searchSeq) return;
+      const resolvedActor = billService.currentActorId();
+      if (!actor && resolvedActor) this.searchActor = resolvedActor;
+      if (this.searchSeq !== searchSeq || resolvedActor !== billService.currentActorId()
+          || resolvedActor !== this.searchActor) return;
       this.setData({ results, hasResults: results.length > 0, hasSearched: true, loading: false });
     } catch (error) {
-      if (this.searchSeq !== searchSeq) return;
+      if (this.searchSeq !== searchSeq || (actor && actor !== billService.currentActorId())
+          || (actor && actor !== this.searchActor)) return;
       this.setData({ loading: false, loadFailed: true, hasSearched: false, hasResults: false });
     }
   },
 
   async confirmSearch() {
+    const actor = billService.currentActorId();
+    if (actor !== this.searchActor) return;
     const query = this.data.query.trim();
     if (!query && !this.data.filters) return;
     if (query) {
       try {
         await billService.saveSearchKeyword(query);
+        const resolvedActor = billService.currentActorId();
+        if (!actor && resolvedActor) this.searchActor = resolvedActor;
+        if (resolvedActor !== billService.currentActorId() || resolvedActor !== this.searchActor) return;
         this.loadHistory();
       } catch (error) {
+        if (actor !== billService.currentActorId() || actor !== this.searchActor) return;
         wx.showToast({ title: '搜索记录保存失败', icon: 'none' });
       }
     }
@@ -119,7 +175,7 @@ Page(withSystemLayout({
     clearTimeout(this.searchTimer);
     this.suggestionSeq = (this.suggestionSeq || 0) + 1;
     this.searchSeq = (this.searchSeq || this.data.searchSeq || 0) + 1;
-    this.setData({ query: '', results: [], suggestions: [], hasResults: false, hasSearched: false, loading: false, loadFailed: false });
+    this.setData({ query: '', results: [], suggestions: [], suggestionsLoading: false, hasResults: false, hasSearched: false, loading: false, loadFailed: false });
   },
 
   useHistory(event) {
@@ -129,12 +185,15 @@ Page(withSystemLayout({
   },
 
   useSuggestion(event) {
-    this.setData({ query: event.currentTarget.dataset.value, suggestions: [] }, () => {
+    this.suggestionSeq = (this.suggestionSeq || 0) + 1;
+    this.setData({ query: event.currentTarget.dataset.value, suggestions: [], suggestionsLoading: false }, () => {
       this.confirmSearch();
     });
   },
 
   async clearHistory() {
+    const actor = billService.currentActorId();
+    if (actor !== this.searchActor) return;
     wx.showModal({
       title: '清除搜索记录？',
       content: '清除后无法恢复。',
@@ -142,18 +201,57 @@ Page(withSystemLayout({
       confirmColor: '#cc1d25',
       success: async (res) => {
         if (!res.confirm) return;
+        if (actor !== billService.currentActorId() || actor !== this.searchActor) return;
         try {
           await billService.clearSearchHistory();
+          if (actor !== billService.currentActorId() || actor !== this.searchActor) return;
           this.setData({ history: [] });
         } catch (error) {
+          if (actor !== billService.currentActorId() || actor !== this.searchActor) return;
           wx.showToast({ title: '清除失败，请重试', icon: 'none' });
         }
       }
     });
   },
 
+  async deleteHistoryItem(event) {
+    const actor = billService.currentActorId();
+    if (actor !== this.searchActor) return;
+    const keyword = String(event.currentTarget.dataset.keyword || '').trim();
+    if (!keyword) return;
+    try {
+      const history = await billService.removeSearchKeyword(keyword);
+      if (actor !== billService.currentActorId() || actor !== this.searchActor) return;
+      this.setData({ history: history.slice(0, 3) });
+    } catch (error) {
+      if (actor === billService.currentActorId() && actor === this.searchActor) {
+        wx.showToast({ title: '删除搜索记录失败', icon: 'none' });
+      }
+    }
+  },
+
   editBill(event) {
     wx.navigateTo({ url: `/pages/bill-form/index?mode=edit&id=${event.detail.id}` });
+  },
+
+  createBill() {
+    wx.navigateTo({ url: '/pages/bill-form/index?mode=create' });
+  },
+
+  clearSearchFilters() {
+    clearTimeout(this.searchTimer);
+    this.suggestionSeq = (this.suggestionSeq || 0) + 1;
+    this.searchSeq = (this.searchSeq || this.data.searchSeq || 0) + 1;
+    this.setData({
+      query: '',
+      filters: null,
+      results: [],
+      suggestions: [],
+      suggestionsLoading: false,
+      hasSearched: false,
+      hasResults: false,
+      loadFailed: false
+    });
   },
 
   back() {

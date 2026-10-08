@@ -2,12 +2,19 @@
   <view class="camera-panel">
     <app-nav title="拍照识别账本" nav-style="{{systemLayout.navStyle || ''}}" close="{{true}}" bind:back="back" />
     <view class="camera-content">
+      <view wx:if="{{errorMessage}}" class="camera-error" role="alert">
+        <text class="camera-error-message">{{errorMessage}}</text>
+        <view wx:if="{{!submitting}}" class="camera-error-actions">
+          <button class="ui-button camera-error-action" wx:if="{{imagePath}}" bindtap="primaryAction">重新识别</button>
+          <button class="ui-button camera-error-action" bindtap="secondaryAction">更换图片</button>
+        </view>
+      </view>
       <view class="capture-card" bindtap="takePhoto">
         <view wx:if="{{cameraDenied}}" class="camera-permission">
           <view class="camera-title">需要相机权限</view>
           <text>请在系统设置中允许使用相机</text>
           <text>也可以从相册选择账本照片</text>
-          <button catchtap="openSettings">前往系统设置</button>
+          <button class="ui-button" catchtap="openSettings">前往系统设置</button>
         </view>
         <view wx:elif="{{imagePath}}" class="camera-placeholder ready">
           <view class="camera-icon"><image class="camera-preview-image" src="{{imagePath}}" mode="aspectFill" /></view>
@@ -17,6 +24,11 @@
         <view wx:else class="camera-placeholder"><view class="camera-icon"><image src="/assets/icons/camera.svg" mode="aspectFit" /></view><view class="camera-title">拍摄手写账本</view><text>对准账本页面，确保字迹清晰</text><text>可一次拍摄多行账单</text></view>
       </view>
       <view class="capture-tips"><view class="capture-tip"><text class="tip-number">01</text><text>光线充足</text></view><view class="capture-tip"><text class="tip-number">02</text><text>页面摆正</text></view><view class="capture-tip"><text class="tip-number">03</text><text>字迹清晰</text></view></view>
+      <view wx:if="{{submitting}}" class="upload-progress-wrap">
+        <view class="upload-progress-head"><text>正在上传图片</text><text>{{uploadProgress}}%</text></view>
+        <view class="upload-progress-track"><view class="upload-progress-value" style="width: {{uploadProgress}}%;"></view></view>
+        <button class="ui-button upload-cancel" bindtap="cancelUpload">取消上传</button>
+      </view>
       <view class="capture-primary {{primaryDisabledClass}}" role="button" bindtap="primaryAction"><image src="/assets/icons/camera.svg" mode="aspectFit" />{{primaryText}}</view>
       <view class="capture-skip {{submitting ? 'disabled' : ''}}" role="button" bindtap="secondaryAction">{{imagePath ? '重新拍摄' : '从相册选择'}}</view>
     </view>

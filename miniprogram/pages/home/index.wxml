@@ -9,11 +9,13 @@
 
     <scroll-view class="quick-tools-scroll" scroll-x enhanced show-scrollbar="{{false}}">
       <view class="quick-tools">
-        <view class="quick-tool camera-tool primary {{batchMode ? 'control-disabled' : ''}}" bindtap="goCamera"><image class="quick-tool-icon" src="/assets/icons/camera.svg" mode="aspectFit" /><text>拍照识别</text></view>
-        <view class="quick-tool {{batchMode ? 'control-disabled' : ''}}" bindtap="goOcrTasks">
-          <image class="quick-tool-icon" src="/assets/icons/sparkles.svg" mode="aspectFit" /><text>识别任务</text>
+        <view class="quick-tool recognition-tool primary {{batchMode ? 'control-disabled' : ''}}" bindtap="goOcrTasks">
+          <image class="quick-tool-icon" src="/assets/icons/camera.svg" mode="aspectFit" /><text>识别中心</text>
           <text wx:if="{{pendingOcr + unmergedOcr > 0}}" class="quick-badge">{{pendingOcr + unmergedOcr}}</text>
         </view>
+        <button class="ui-button quick-tool export-quick-tool {{batchMode || total === 0 ? 'control-disabled' : ''}}" bindtap="exportCurrentBills" disabled="{{batchMode || loading || total === 0}}">
+          <image class="quick-tool-icon" src="/assets/icons/download-blue.svg" mode="aspectFit" /><text>导出账单</text>
+        </button>
         <view class="quick-tool batch-tool {{batchMode ? 'managing' : ''}}" bindtap="goSelect"><image class="quick-tool-icon" src="/assets/icons/sliders.svg" mode="aspectFit" /><text>{{batchMode ? '退出管理' : '批量管理'}}</text></view>
         <view class="quick-tool filter-tool {{filterCount > 0 ? 'filtered' : ''}} {{batchMode ? 'control-disabled' : ''}}" bindtap="goFilter"><image class="quick-tool-icon" src="/assets/icons/filter.svg" mode="aspectFit" /><text>高级筛选</text><text wx:if="{{filterCount > 0}}" class="filter-badge">{{filterCount}}</text></view>
       </view>
@@ -24,7 +26,7 @@
     </view>
   </view>
 
-  <view class="list-meta {{batchMode ? 'batch-list-meta' : ''}}">
+  <view class="list-meta {{batchMode ? 'batch-list-meta' : 'home-list-meta'}}">
     <block wx:if="{{initialLoading}}"><text>正在加载</text></block>
     <block wx:elif="{{loadFailed}}"><text>加载失败</text></block>
     <block wx:elif="{{batchMode}}">
@@ -32,13 +34,19 @@
       <view class="select-all" role="button" bindtap="toggleAll">{{allSelected ? '取消全选' : '全选'}}</view>
     </block>
     <block wx:else>
-      <view class="result-count">
-        <text>{{total}} 条账单</text>
-        <button wx:if="{{filterCount > 0}}" class="filter-summary" bindtap="clearAdvancedFilters">已筛选 · 清除</button>
-        <button wx:if="{{total > 0}}" class="export-list-button" bindtap="exportCurrentBills" disabled="{{loading}}">导出对账单</button>
+      <view class="list-summary-row">
+        <view class="result-count">
+          <text>{{total}} 条账单</text>
+          <button class="ui-button filter-summary" wx:if="{{filterCount > 0 || activeStatus !== 'all'}}" bindtap="clearAllFilters">已筛选 · 清除</button>
+        </view>
+        <text class="swipe-hint">← 左滑登记收款 / 删除</text>
       </view>
-      <text class="swipe-hint">← 左滑标记 / 删除</text>
     </block>
+  </view>
+
+  <view wx:if="{{batchMode && selectionLimitMessage}}" class="selection-limit" role="status">
+    <text class="selection-limit-icon">!</text>
+    <text>{{selectionLimitMessage}}</text>
   </view>
 
   <view wx:if="{{bills.length > 0}}" class="bill-list">
@@ -48,8 +56,8 @@
     </view>
     <view wx:for="{{bills}}" wx:key="id" wx:for-index="index" class="swipe-wrap">
       <view wx:if="{{!batchMode}}" class="swipe-actions">
-        <button class="action paid-action" data-id="{{item.id}}" bindtap="markPaid"><image class="action-icon" src="/assets/icons/check.svg" mode="aspectFit" /><text>已收款</text></button>
-        <button class="action delete-action" data-id="{{item.id}}" bindtap="deleteBill"><image class="action-icon" src="/assets/icons/trash.svg" mode="aspectFit" /><text>删除</text></button>
+        <button class="ui-button action paid-action {{item.status === 'paid' ? 'disabled' : ''}}" data-id="{{item.id}}" bindtap="openPayment" disabled="{{item.status === 'paid'}}"><image class="action-icon" src="/assets/icons/check.svg" mode="aspectFit" /><text>{{item.status === 'paid' ? '已结清' : '登记收款'}}</text></button>
+        <button class="ui-button action delete-action" data-id="{{item.id}}" bindtap="deleteBill"><image class="action-icon" src="/assets/icons/trash.svg" mode="aspectFit" /><text>删除</text></button>
       </view>
       <view
         class="card-front"
@@ -60,7 +68,7 @@
         bindtouchend="onTouchEnd"
         bindtouchcancel="onTouchEnd"
       >
-        <bill-card bill="{{item}}" selectable="{{batchMode}}" selected="{{item.selected}}" bind:tapbill="handleBillTap" />
+        <bill-card bill="{{item}}" selectable="{{batchMode}}" selected="{{item.selected}}" show-payment="{{!batchMode}}" data-id="{{item.id}}" bind:tapbill="handleBillTap" bind:paybill="openPayment" />
       </view>
     </view>
   </view>
@@ -73,29 +81,31 @@
   <view wx:if="{{loadFailed}}" class="home-state">
     <view class="home-state-title">账单加载失败</view>
     <text>网络异常，请检查后重试</text>
-    <button class="home-state-button" bindtap="retryLoad">重新加载</button>
+    <button class="ui-button home-state-button" bindtap="retryLoad">重新加载</button>
   </view>
 
-  <view wx:if="{{!loading && !loadFailed && bills.length === 0}}" class="home-state">
-    <view class="home-state-title">{{filterCount > 0 || activeStatus !== 'all' ? '暂无符合条件的账单' : '还没有账单'}}</view>
-    <text>{{filterCount > 0 || activeStatus !== 'all' ? '可以调整或清除当前筛选条件' : '手动新增账单，或拍照识别手写账本'}}</text>
-    <button wx:if="{{filterCount > 0}}" class="home-state-button" bindtap="clearAdvancedFilters">清除高级筛选</button>
-    <button wx:else class="home-state-button" bindtap="goCreate">新增账单</button>
+  <view wx:if="{{!loading && !loadFailed && bills.length === 0}}" class="home-state {{hasActiveFilter ? 'filtered-empty' : ''}}">
+    <block wx:if="{{hasActiveFilter}}">
+      <view class="empty-filter-summary">
+        <view class="empty-filter-heading">当前筛选条件</view>
+        <text>{{activeFilterSummary}}</text>
+      </view>
+      <view class="empty-filter-content">
+        <view class="home-state-title">暂无符合条件的账单</view>
+        <text>可以调整或清除当前筛选条件。清除筛选不会删除任何账单。</text>
+        <button class="ui-button home-state-button" bindtap="clearAllFilters">清除筛选条件</button>
+        <button class="ui-button home-state-button secondary" bindtap="goFilter">调整筛选</button>
+      </view>
+    </block>
+    <block wx:else>
+      <view class="home-state-title">还没有账单</view>
+      <text>手动新增账单，或拍照识别手写账本</text>
+      <button class="ui-button home-state-button" bindtap="goCreate">新增账单</button>
+    </block>
   </view>
 
-  <view wx:if="{{dialOpen}}" class="fab-mask" bindtap="closeOverlays"></view>
-  <view wx:if="{{!batchMode && !filterOpen}}" class="fab-group">
-    <view wx:if="{{dialOpen}}" class="fab-options">
-      <button class="fab-option" bindtap="goCamera">
-        <text class="fab-small-icon">拍</text>
-        <text>拍照识别</text>
-      </button>
-      <button class="fab-option" bindtap="goCreate">
-        <text class="fab-small-icon muted">+</text>
-        <text>手动新增</text>
-      </button>
-    </view>
-    <button class="fab" bindtap="toggleDial">+</button>
+  <view wx:if="{{!batchMode && !filterOpen && bills.length > 0}}" class="fab-group">
+    <button class="ui-button fab" bindtap="goCreate">+</button>
   </view>
 
   <view wx:if="{{batchMode}}" class="batch-bottom" style="{{systemLayout.bottomSafeStyle}}">
@@ -103,8 +113,11 @@
       <text>已选 {{selectedIds.length}} 笔合计</text>
       <view class="mono">{{selectedAmount}}</view>
     </view>
-    <button class="batch-export {{selectedIds.length === 0 || deleting ? 'disabled' : ''}}" disabled="{{selectedIds.length === 0 || deleting}}" bindtap="exportSelectedBills">导出并分享</button>
-    <button class="batch-delete {{selectedIds.length === 0 || deleting ? 'disabled' : ''}}" disabled="{{selectedIds.length === 0 || deleting}}" bindtap="deleteSelected">
+    <button class="ui-button batch-export {{selectedIds.length === 0 || selectedIds.length > 120 || deleting ? 'disabled' : ''}}" disabled="{{selectedIds.length === 0 || selectedIds.length > 120 || deleting}}" bindtap="exportSelectedBills">
+      <image class="batch-export-icon" src="/assets/icons/download.svg" mode="aspectFit" />
+      <text>导出对账单</text>
+    </button>
+    <button class="ui-button batch-delete {{selectedIds.length === 0 || selectedIds.length > 100 || deleting ? 'disabled' : ''}}" disabled="{{selectedIds.length === 0 || selectedIds.length > 100 || deleting}}" bindtap="deleteSelected">
       <image class="batch-delete-icon" src="/assets/icons/trash.svg" mode="aspectFit" />
       <text>{{deleteText}}</text>
     </button>
@@ -115,16 +128,44 @@
       <view class="delete-confirm-title">确认删除 {{deleteConfirmation.count}} 笔账单？</view>
       <text>删除后无法恢复，请确认所选账单无误。</text>
       <view class="delete-confirm-actions">
-        <button bindtap="cancelDelete"><text>取消</text></button>
-        <button class="danger" bindtap="confirmDelete"><text>{{deleting ? '正在删除' : '确认删除'}}</text></button>
+        <button class="ui-button" bindtap="cancelDelete"><text>取消</text></button>
+        <button class="ui-button danger" bindtap="confirmDelete"><text>{{deleting ? '正在删除' : '确认删除'}}</text></button>
       </view>
     </view>
   </view>
 
+  <bottom-sheet visible="{{paymentOpen}}" title="登记收款" subtitle="确认金额后写入收款记录" safe-style="{{systemLayout.bottomSafeStyle}}" bind:close="closePayment">
+    <scroll-view class="payment-sheet-body" scroll-y>
+      <view wx:if="{{paymentLoading}}" class="payment-sheet-state">正在核对最新待收金额…</view>
+      <block wx:elif="{{paymentBill}}">
+        <view class="payment-summary">
+          <view class="payment-summary-head"><text>{{paymentBill.shipper}}</text><text class="mono"># {{paymentBill.code}}</text></view>
+          <view class="payment-summary-amount"><text>账单金额 {{paymentBill.amountLabel}}</text><text class="mono">{{paymentBill.amountDisplay}}</text></view>
+          <view class="payment-summary-amount"><text>已收</text><text class="mono">{{paymentBill.paidDisplay}}</text></view>
+          <view class="payment-summary-due"><text>本次最多可收</text><text class="mono">{{paymentBill.outstandingDisplay}}</text></view>
+        </view>
+        <view wx:if="{{paymentPending}}" class="payment-pending">上次提交结果尚未确认。以下金额和方式已锁定，请用原记录确认，避免重复登记。</view>
+        <view class="payment-field-label">本次收款金额</view>
+        <view class="payment-amount-field {{paymentPending ? 'locked' : ''}}"><text>¥</text><input type="digit" value="{{paymentAmount}}" placeholder="请输入收款金额" disabled="{{paymentPending || paymentSubmitting}}" bindinput="setPaymentAmount" /></view>
+        <view class="payment-field-label">收款方式</view>
+        <view class="payment-methods">
+          <button class="ui-button payment-method {{paymentMethod === item.key ? 'active' : ''}}" wx:for="{{paymentMethods}}" wx:key="key" data-method="{{item.key}}" disabled="{{paymentPending || paymentSubmitting}}" bindtap="setPaymentMethod">{{item.text}}</button>
+        </view>
+        <view class="payment-field-label">备注（选填）</view>
+        <textarea class="payment-note" value="{{paymentNote}}" maxlength="240" placeholder="例如本次收款说明" disabled="{{paymentPending || paymentSubmitting}}" bindinput="setPaymentNote" />
+      </block>
+      <view wx:if="{{paymentError}}" class="payment-error">{{paymentError}}</view>
+      <view class="payment-actions">
+        <button class="ui-button payment-cancel" disabled="{{paymentSubmitting}}" bindtap="closePayment">取消</button>
+        <button class="ui-button payment-confirm" disabled="{{paymentLoading || paymentSubmitting || !paymentBill}}" bindtap="confirmPayment">{{paymentSubmitting ? '正在登记…' : paymentPending ? '确认上次收款' : '确认登记收款'}}</button>
+      </view>
+    </scroll-view>
+  </bottom-sheet>
+
   <bottom-sheet visible="{{filterOpen}}" title="高级筛选" subtitle="筛选当前账单列表" safe-style="{{systemLayout.bottomSafeStyle}}" bind:close="closeFilter">
 
       <view class="filter-sheet-body">
-        <view class="inline-filter-toolbar"><text>筛选条件</text><button class="inline-filter-reset" bindtap="resetFilterDraft">重置</button></view>
+        <view class="inline-filter-toolbar"><text>筛选条件</text><button class="ui-button inline-filter-reset" bindtap="resetFilterDraft">重置</button></view>
         <view class="inline-filter-card">
           <view class="inline-filter-label">订单号</view>
           <view class="inline-filter-input"><text>#</text><input class="inline-filter-input-field" data-field="code" value="{{filterDraft.code}}" placeholder="输入订单编号" bindinput="setFilterField" /></view>
@@ -142,6 +183,6 @@
         </view>
       </view>
 
-      <button class="apply-filter" bindtap="applyFilter"><image class="apply-filter-icon" src="/assets/icons/filter.svg" mode="aspectFit" /><text>查看筛选结果</text></button>
+      <button class="ui-button apply-filter" bindtap="applyFilter"><image class="apply-filter-icon" src="/assets/icons/filter.svg" mode="aspectFit" /><text>查看筛选结果</text></button>
   </bottom-sheet>
 </view>

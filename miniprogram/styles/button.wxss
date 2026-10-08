@@ -1,0 +1,17 @@
+/* Two classes override native v2 button defaults, including isolated components. */
+.ui-button.ui-button {
+  width: auto;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  line-height: inherit;
+  box-sizing: border-box;
+}
+
+.ui-button::after {
+  display: none;
+}

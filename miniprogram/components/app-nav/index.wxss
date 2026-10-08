@@ -1,3 +1,5 @@
+@import "../../styles/button.wxss";
+
 .app-nav {
   position: sticky;
   top: 0;
@@ -26,7 +28,7 @@
   white-space: nowrap;
 }
 
-.app-nav-back {
+.ui-button.app-nav-back {
   position: absolute;
   bottom: 0;
   left: 16rpx;
@@ -43,11 +45,11 @@
   background: transparent;
 }
 
-.app-nav-back::after {
+.ui-button.app-nav-back::after {
   display: none;
 }
 
-.app-nav-back image {
+.app-nav-back-icon {
   width: 44rpx;
   height: 44rpx;
 }

@@ -1,8 +1,59 @@
 const billService = require('./bill-service');
 const renderer = require('../utils/bill-export-renderer');
 
+const USER_KEY = 'demeter:auth:user';
 const SESSION_PREFIX = 'demeter:bill-export:';
 const FILE_PREFIX = 'demeter-bill-export';
+const MAX_BILLS = 120;
+const PAGE_SIZE = 100;
+const SELECTED_BATCH_SIZE = 5;
+const STALE_FILE_AGE_MS = 24 * 60 * 60 * 1000;
+const RANGE_CHANGED_MESSAGE = '账单列表已变化，请返回刷新后重试';
+const OWNER_CHANGED_MESSAGE = '登录身份已变化，请重新导出对账单';
+
+function currentOwner() {
+  const user = wx.getStorageSync(USER_KEY);
+  if (!user || !user.id || !user.tenantId) return null;
+  return { userId: String(user.id), tenantId: String(user.tenantId) };
+}
+
+function requireOwner() {
+  const owner = currentOwner();
+  if (!owner) throw new Error('无法确认当前用户，请重新登录');
+  return owner;
+}
+
+function assertSessionOwner(id, owner) {
+  const record = wx.getStorageSync(`${SESSION_PREFIX}${id}`);
+  if (!record || typeof record !== 'object') throw new Error('导出任务已失效');
+  const actor = currentOwner();
+  if (!actor || (owner && (actor.userId !== owner.userId || actor.tenantId !== owner.tenantId))) {
+    throw new Error(OWNER_CHANGED_MESSAGE);
+  }
+  if (!record.owner || record.owner.userId !== actor.userId
+      || record.owner.tenantId !== actor.tenantId) {
+    throw new Error(OWNER_CHANGED_MESSAGE);
+  }
+  return record;
+}
+
+function requireWithinLimit(count) {
+  if (count > MAX_BILLS) {
+    throw new Error(`一次最多导出 ${MAX_BILLS} 笔账单，请缩小筛选范围`);
+  }
+}
+
+function selectedIds(ids) {
+  if (!Array.isArray(ids) || ids.length === 0) throw new Error('请先选择要导出的账单');
+  requireWithinLimit(ids.length);
+  const values = ids.map(Number);
+  if (ids.some((id, index) => !Number.isSafeInteger(values[index]) || values[index] <= 0
+      || !/^[1-9]\d*$/.test(String(id)))
+      || new Set(values).size !== values.length) {
+    throw new Error('已选账单无效，请返回刷新后重试');
+  }
+  return values;
+}
 
 function pad(value) {
   return String(value).padStart(2, '0');
@@ -23,6 +74,31 @@ function fs() {
   return wx.getFileSystemManager();
 }
 
+function userDataPath() {
+  return wx.env && wx.env.USER_DATA_PATH;
+}
+
+async function cleanupStaleFiles() {
+  const directory = userDataPath();
+  if (!directory) return;
+  let names;
+  try {
+    names = fs().readdirSync(directory);
+  } catch (error) {
+    return;
+  }
+  const now = Date.now();
+  await Promise.all(names.filter((name) => name.startsWith(`${FILE_PREFIX}-`)).map(async (name) => {
+    if (!/\.(pdf|json)$/.test(name)) return;
+    const id = name.slice(FILE_PREFIX.length + 1).replace(/\.(pdf|json)$/, '');
+    const timestamp = Number(id.split('-')[0]);
+    if (Number.isSafeInteger(timestamp) && now - timestamp > STALE_FILE_AGE_MS) {
+      await removeFile(`${directory}/${name}`);
+      wx.removeStorageSync(`${SESSION_PREFIX}${id}`);
+    }
+  }));
+}
+
 function removeFile(path) {
   if (!path) return Promise.resolve();
   return new Promise((resolve) => {
@@ -31,17 +107,16 @@ function removeFile(path) {
 }
 
 function createSession(payload) {
+  const owner = requireOwner();
   const id = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
   const record = {
     id,
+    owner,
     mode: payload && payload.mode,
     createdAt: Date.now()
   };
   if (record.mode === 'selected') {
-    const bills = Array.isArray(payload.bills) ? payload.bills : [];
-    const dataPath = pathFor(`${id}.json`);
-    fs().writeFileSync(dataPath, JSON.stringify(bills), 'utf8');
-    record.dataPath = dataPath;
+    record.ids = selectedIds(payload && payload.ids);
   } else {
     record.payload = {
       mode: 'current',
@@ -53,17 +128,17 @@ function createSession(payload) {
 }
 
 async function readSession(id) {
-  const record = wx.getStorageSync(`${SESSION_PREFIX}${id}`);
-  if (!record || typeof record !== 'object') {
-    throw new Error('导出任务已失效');
-  }
+  const record = assertSessionOwner(id);
   if (record.mode === 'selected') {
-    if (!record.dataPath) throw new Error('导出任务已失效');
-    const data = await readTextFile(record.dataPath);
-    return { mode: 'selected', bills: JSON.parse(data), dataPath: record.dataPath };
+    return { mode: 'selected', ids: selectedIds(record.ids) };
   }
   if (!record.payload) throw new Error('导出任务已失效');
   return record.payload;
+}
+
+function assertGeneratedOwner(id) {
+  if (!id) throw new Error('导出任务已失效');
+  return assertSessionOwner(id);
 }
 
 function removeSession(id) {
@@ -74,6 +149,7 @@ function readFile(path) {
   return new Promise((resolve, reject) => {
     fs().readFile({
       filePath: path,
+      encoding: 'base64',
       success: (result) => resolve(result.data),
       fail: reject
     });
@@ -81,23 +157,13 @@ function readFile(path) {
 }
 
 function toBytes(data) {
-  if (data instanceof Uint8Array) return data;
-  if (data instanceof ArrayBuffer) return new Uint8Array(data);
-  if (data && data.buffer instanceof ArrayBuffer) {
-    return new Uint8Array(data.buffer, data.byteOffset || 0, data.byteLength);
+  if (typeof data !== 'string') throw new Error('对账单图片读取失败');
+  try {
+    const buffer = wx.base64ToArrayBuffer(data);
+    return new Uint8Array(buffer);
+  } catch (error) {
+    throw new Error('对账单图片读取失败');
   }
-  throw new Error('对账单图片读取失败');
-}
-
-function readTextFile(path) {
-  return new Promise((resolve, reject) => {
-    fs().readFile({
-      filePath: path,
-      encoding: 'utf8',
-      success: (result) => resolve(result.data),
-      fail: reject
-    });
-  });
 }
 
 function ascii(value) {
@@ -157,23 +223,69 @@ function summarize(bills) {
   };
 }
 
-async function loadBills(payload, onProgress) {
+async function loadBills(id, owner, payload, onProgress, shouldCancel) {
   if (payload.mode === 'selected') {
-    return Array.isArray(payload.bills) ? payload.bills : [];
+    const bills = [];
+    for (let index = 0; index < payload.ids.length; index += SELECTED_BATCH_SIZE) {
+      if (shouldCancel()) throw new Error('导出已取消');
+      try {
+        const batch = payload.ids.slice(index, index + SELECTED_BATCH_SIZE);
+        bills.push(...await Promise.all(batch.map((billId) => billService.getBill(billId))));
+        assertSessionOwner(id, owner);
+      } catch (error) {
+        if (error.statusCode === 403 || error.statusCode === 404) {
+          throw new Error('有已选账单已删除或不可访问，请返回刷新后重试');
+        }
+        throw error;
+      }
+    }
+    if (bills.some((bill, index) => !bill || bill.id !== payload.ids[index])) {
+      throw new Error('有已选账单已删除或不可访问，请返回刷新后重试');
+    }
+    return bills;
   }
-  const first = await billService.listBillsPage(payload.filters || {}, 0, 100);
+  const first = await billService.listBillsPage(payload.filters || {}, 0, PAGE_SIZE);
+  assertSessionOwner(id, owner);
+  const expectedCount = Number(first.totalElements);
+  if (!Number.isSafeInteger(expectedCount) || expectedCount < 0) {
+    throw new Error(RANGE_CHANGED_MESSAGE);
+  }
+  requireWithinLimit(expectedCount);
   const bills = [...first.content];
+  if (bills.some((bill) => !bill || !Number.isSafeInteger(bill.id))) {
+    throw new Error(RANGE_CHANGED_MESSAGE);
+  }
   const totalPages = Math.max(1, Number(first.totalPages || 1));
+  if (!Number.isSafeInteger(totalPages) || totalPages !== Math.max(1, Math.ceil(expectedCount / PAGE_SIZE))) {
+    throw new Error(RANGE_CHANGED_MESSAGE);
+  }
   onProgress(0, totalPages);
   for (let page = 1; page < totalPages; page += 1) {
-    const result = await billService.listBillsPage(payload.filters || {}, page, 100);
+    if (shouldCancel()) throw new Error('导出已取消');
+    const result = await billService.listBillsPage(payload.filters || {}, page, PAGE_SIZE);
+    assertSessionOwner(id, owner);
+    if (Number(result.totalElements) !== expectedCount || Number(result.totalPages) !== totalPages) {
+      throw new Error(RANGE_CHANGED_MESSAGE);
+    }
     bills.push(...result.content);
     onProgress(page, totalPages);
+  }
+  if (bills.length !== expectedCount || new Set(bills.map((bill) => bill.id)).size !== expectedCount) {
+    throw new Error(RANGE_CHANGED_MESSAGE);
+  }
+  if (totalPages > 1) {
+    const latestFirst = await billService.listBillsPage(payload.filters || {}, 0, PAGE_SIZE);
+    assertSessionOwner(id, owner);
+    if (Number(latestFirst.totalElements) !== expectedCount
+        || latestFirst.content.length !== first.content.length
+        || latestFirst.content.some((bill, index) => bill.id !== first.content[index].id)) {
+      throw new Error(RANGE_CHANGED_MESSAGE);
+    }
   }
   return bills;
 }
 
-async function createPdf(imagePaths) {
+async function createPdf(id, imagePaths) {
   const images = [];
   for (const imagePath of imagePaths) {
     const image = toBytes(await readFile(imagePath));
@@ -234,47 +346,71 @@ async function createPdf(imagePaths) {
   ].join('\n')));
 
   const bytes = concatBytes(parts);
-  const pdfPath = pathFor(`${Date.now()}.pdf`);
-  await new Promise((resolve, reject) => {
-    fs().writeFile({
-      filePath: pdfPath,
-      data: arrayBufferFromBytes(bytes),
-      success: resolve,
-      fail: reject
+  const pdfPath = pathFor(`${id}.pdf`);
+  // A failed write can leave a partial file at the destination.
+  try {
+    await new Promise((resolve, reject) => {
+      fs().writeFile({
+        filePath: pdfPath,
+        data: arrayBufferFromBytes(bytes),
+        success: resolve,
+        fail: reject
+      });
     });
-  });
+  } catch (error) {
+    await removeFile(pdfPath);
+    throw error;
+  }
   return pdfPath;
 }
 
-async function generate(id, canvas, onProgress = () => {}) {
-  const payload = await readSession(id);
+async function generate(id, canvas, onProgress = () => {}, shouldCancel = () => false) {
   const imagePaths = [];
-  const dataPath = payload.dataPath;
   try {
-    const bills = await loadBills(payload, onProgress);
+    const owner = requireOwner();
+    const payload = await readSession(id);
+    assertSessionOwner(id, owner);
+    if (shouldCancel()) throw new Error('导出已取消');
+    const bills = await loadBills(id, owner, payload, onProgress, shouldCancel);
+    assertSessionOwner(id, owner);
+    if (shouldCancel()) throw new Error('导出已取消');
     if (bills.length === 0) throw new Error('没有符合条件的账单');
+    requireWithinLimit(bills.length);
     const overview = summarize(bills);
-    const rendered = await renderer.renderPages(canvas, {
+    await renderer.renderPages(canvas, {
       ...overview,
       bills,
       generatedDate: dateLabel()
-    }, onProgress);
-    imagePaths.push(...rendered);
-    const pdfPath = await createPdf(imagePaths);
-    await removeFile(dataPath);
+    }, onProgress, (imagePath) => imagePaths.push(imagePath), () => {
+      assertSessionOwner(id, owner);
+      return shouldCancel();
+    });
+    assertSessionOwner(id, owner);
+    if (shouldCancel()) throw new Error('导出已取消');
+    const pdfPath = await createPdf(id, imagePaths);
+    try {
+      assertSessionOwner(id, owner);
+    } catch (error) {
+      await removeFile(pdfPath);
+      throw error;
+    }
+    if (shouldCancel()) {
+      await removeFile(pdfPath);
+      throw new Error('导出已取消');
+    }
     return { ...overview, imagePaths, pdfPath };
   } catch (error) {
-    await removeFile(dataPath);
     await Promise.all(imagePaths.map(removeFile));
+    await cleanup(null, id);
     throw error;
   }
 }
 
-async function cleanup(result, id, options = {}) {
+async function cleanup(result, id) {
   if (result && Array.isArray(result.imagePaths)) {
     await Promise.all(result.imagePaths.map(removeFile));
   }
-  if (!options.keepPdf && result && result.pdfPath) {
+  if (result && result.pdfPath) {
     await removeFile(result.pdfPath);
   }
   if (id) {
@@ -286,6 +422,10 @@ async function cleanup(result, id, options = {}) {
 
 module.exports = {
   createSession,
+  assertSessionOwner,
+  assertGeneratedOwner,
   generate,
-  cleanup
+  cleanup,
+  cleanupStaleFiles,
+  MAX_BILLS
 };

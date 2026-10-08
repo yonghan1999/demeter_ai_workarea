@@ -1,12 +1,12 @@
 <view class="page filter-page">
   <view class="filter-nav" style="{{systemLayout.navStyle}}">
-    <button class="filter-back" bindtap="back"><image src="/assets/icons/back.svg" mode="aspectFit" /></button>
+    <button class="ui-button filter-back" bindtap="back"><image src="/assets/icons/back.svg" mode="aspectFit" /></button>
     <view class="filter-title">高级筛选</view>
   </view>
   <view class="filter-content">
     <view class="filter-toolbar">
       <text>筛选条件</text>
-      <button class="filter-reset" bindtap="reset">重置</button>
+      <button class="ui-button filter-reset" bindtap="reset">重置</button>
     </view>
     <view class="filter-card info-card">
       <view class="filter-label section-label">账单信息</view>
@@ -19,5 +19,5 @@
       <status-segmented options="{{statusOptions}}" value="{{form.status}}" bind:change="setStatus" />
     </view>
   </view>
-  <view class="filter-bottom"><button class="primary-button" bindtap="submit"><image src="/assets/icons/filter.svg" mode="aspectFit" />确定筛选</button></view>
+  <view class="filter-bottom"><button class="ui-button primary-button" bindtap="submit"><image src="/assets/icons/filter.svg" mode="aspectFit" />确定筛选</button></view>
 </view>

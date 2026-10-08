@@ -49,7 +49,7 @@ Page(withSystemLayout({
           return {
             ...task,
             timeText: formatTaskTime(task.createdAt),
-            statusText: task.status === 'processing' ? '识别中' : task.status === 'failed' ? '识别失败' : task.merged ? '已合并' : '已完成',
+            statusText: task.status === 'processing' ? '识别中' : task.status === 'failed' ? '识别失败' : task.legacyReviewRequired ? '旧版记录待核对' : task.merged ? '已合并' : '已完成',
             statusPrefix: task.status === 'completed' && !task.merged ? '✓ ' : '',
             mergedClass: task.merged ? 'merged' : '',
             isProcessing: task.status === 'processing',
@@ -99,7 +99,15 @@ Page(withSystemLayout({
 
   review(event) {
     const task = this.data.tasks.find((item) => item.id === event.currentTarget.dataset.id);
-    if (!task || task.status !== 'completed') return;
+    if (!task) return;
+    if (task.status === 'failed') {
+      this.retryTask(event);
+      return;
+    }
+    if (task.status === 'processing') {
+      wx.showToast({ title: '识别仍在进行，请稍后查看', icon: 'none' });
+      return;
+    }
     if (task.merged) {
       wx.reLaunch({ url: '/pages/home/index' });
       return;
