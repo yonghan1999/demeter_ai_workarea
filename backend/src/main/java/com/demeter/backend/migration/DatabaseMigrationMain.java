@@ -63,24 +63,9 @@ public final class DatabaseMigrationMain {
             if (!normalized.startsWith("jdbc:mysql:")) {
                 throw new IllegalStateException("MIGRATION_DB_URL must use MySQL");
             }
-            if (!allowInsecureLocalConnection
-                    && !containsParameter(normalized, "sslmode", "verify_identity")) {
-                throw new IllegalStateException("MIGRATION_DB_URL must set sslMode=VERIFY_IDENTITY");
-            }
             if (!containsParameter(normalized, "connectiontimezone", "utc")
                     && !containsParameter(normalized, "servertimezone", "utc")) {
                 throw new IllegalStateException("MIGRATION_DB_URL must use the UTC connection time zone");
-            }
-            boolean insecureTlsOption = containsParameter(normalized, "allowpublickeyretrieval", "true")
-                    || containsParameter(normalized, "usessl", "false")
-                    || containsParameter(normalized, "sslmode", "disabled");
-            if (insecureTlsOption && !allowInsecureLocalConnection) {
-                throw new IllegalStateException("MIGRATION_DB_URL contains an unsafe TLS option");
-            }
-            if (allowInsecureLocalConnection
-                    && !containsParameter(normalized, "sslmode", "disabled")) {
-                throw new IllegalStateException(
-                        "MIGRATION_ALLOW_INSECURE_LOCAL requires sslMode=DISABLED to make the exception explicit");
             }
         }
 

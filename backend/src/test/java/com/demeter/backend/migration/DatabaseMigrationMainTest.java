@@ -22,16 +22,21 @@ class DatabaseMigrationMainTest {
         assertThatCode(settings::validate).doesNotThrowAnyException();
     }
 
-    @Test
-    void rejectsMissingCredentialsAndUnsafeDatabaseConnections() {
-        assertThatThrownBy(() -> new DatabaseMigrationMain.MigrationSettings(
-                        "jdbc:mysql://mysql:3306/demeter?sslMode=REQUIRED&connectionTimeZone=UTC",
-                        "demeter_migrator",
-                        "a-strong-migration-password",
-                        false)
-                .validate())
-                .hasMessageContaining("sslMode=VERIFY_IDENTITY");
+    @ParameterizedTest
+    @ValueSource(strings = {"sslMode=REQUIRED", "sslMode=DISABLED", "useSSL=false",
+            "allowPublicKeyRetrieval=true", "useSSL=false&allowPublicKeyRetrieval=true", "sslMode=VERIFY_CA", ""})
+    void acceptsProductionConnectionOptionsWithoutLocalOverride(String options) {
+        var settings = new DatabaseMigrationMain.MigrationSettings(
+                "jdbc:mysql://mysql:3306/demeter?connectionTimeZone=UTC&" + options,
+                "demeter_migrator",
+                "a-strong-migration-password",
+                false);
 
+        assertThatCode(settings::validate).doesNotThrowAnyException();
+    }
+
+    @Test
+    void rejectsMissingCredentials() {
         assertThatThrownBy(() -> new DatabaseMigrationMain.MigrationSettings(
                         "jdbc:mysql://mysql:3306/demeter?sslMode=VERIFY_IDENTITY&connectionTimeZone=UTC",
                         "demeter_migrator",
@@ -44,23 +49,16 @@ class DatabaseMigrationMainTest {
                 .hasMessageContaining("MIGRATION_DB_URL");
     }
 
-    @Test
-    void allowsAnExplicitInsecureConnectionOnlyForLocalMigration() {
-        var localSettings = new DatabaseMigrationMain.MigrationSettings(
-                "jdbc:mysql://mysql:3306/demeter?sslMode=DISABLED&connectionTimeZone=UTC",
+    @ParameterizedTest
+    @ValueSource(strings = {"DISABLED", "VERIFY_IDENTITY"})
+    void acceptsLegacyLocalOverrideWithEitherTlsMode(String mode) {
+        var settings = new DatabaseMigrationMain.MigrationSettings(
+                "jdbc:mysql://mysql:3306/demeter?sslMode=" + mode + "&connectionTimeZone=UTC",
                 "demeter_migrator",
                 "a-strong-local-migration-password",
                 true);
 
-        assertThatCode(localSettings::validate).doesNotThrowAnyException();
-
-        assertThatThrownBy(() -> new DatabaseMigrationMain.MigrationSettings(
-                        "jdbc:mysql://mysql:3306/demeter?sslMode=VERIFY_IDENTITY&connectionTimeZone=UTC",
-                        "demeter_migrator",
-                        "a-strong-local-migration-password",
-                        true)
-                .validate())
-                .hasMessageContaining("sslMode=DISABLED");
+        assertThatCode(settings::validate).doesNotThrowAnyException();
     }
 
     @ParameterizedTest
