@@ -150,7 +150,7 @@ resilience4j:
   timelimiter:
     instances:
       ocrProvider:
-        timeout-duration: ${OCR_PROVIDER_TIMEOUT:20s}
+        timeout-duration: ${OCR_PROVIDER_TIMEOUT:60s}
         cancel-running-future: true
 
 demeter:

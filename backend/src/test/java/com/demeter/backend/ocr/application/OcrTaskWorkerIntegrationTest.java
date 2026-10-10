@@ -23,6 +23,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
@@ -111,6 +112,18 @@ class OcrTaskWorkerIntegrationTest {
         assertThat(task.getAttemptCount()).isEqualTo(1);
         assertThat(task.getLastErrorCode()).isEqualTo("OCR_PROVIDER_RETRYABLE");
         assertThat(task.getLeaseUntil()).isNull();
+    }
+
+    @Test
+    void classifiesProviderTimeoutAsAStableRetryableFailure() {
+        fakeOcrProvider.mode = ProviderMode.TIMEOUT;
+
+        worker.poll();
+
+        var task = taskRepository.findById(1501L).orElseThrow();
+        assertThat(task.getStatus()).isEqualTo(OcrTaskStatus.RETRYING);
+        assertThat(task.getLastErrorCode()).isEqualTo("OCR_PROVIDER_RETRYABLE");
+        assertThat(task.getLastErrorMessage()).isEqualTo("OCR provider request timed out and will be retried");
     }
 
     @Test
@@ -302,6 +315,7 @@ class OcrTaskWorkerIntegrationTest {
     enum ProviderMode {
         SUCCESS,
         FAIL,
+        TIMEOUT,
         INVALID,
         INVALID_INPUT,
         QUOTA_EXCEEDED,
@@ -318,6 +332,9 @@ class OcrTaskWorkerIntegrationTest {
             lastRequest.set(request);
             if (mode == ProviderMode.FAIL) {
                 throw new IllegalStateException("simulated provider failure");
+            }
+            if (mode == ProviderMode.TIMEOUT) {
+                throw new RuntimeException(new TimeoutException("simulated provider timeout"));
             }
             if (mode == ProviderMode.INVALID) {
                 return new OcrRecognitionResult("", null, List.of());

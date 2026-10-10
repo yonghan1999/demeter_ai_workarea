@@ -28,6 +28,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Clock;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.TimeoutException;
+import io.github.resilience4j.bulkhead.BulkheadFullException;
+import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import org.springframework.beans.factory.ObjectProvider;
@@ -303,6 +307,24 @@ public class OcrTaskWorker {
     private static void classifyProviderFailure(ProcessTaskContext context, RuntimeException exception) {
         OcrProviderFailure failure = findProviderFailure(exception);
         if (failure == null) {
+            if (findCause(exception, TimeoutException.class) != null) {
+                context.fail(
+                        "OCR_PROVIDER_RETRYABLE",
+                        "OCR provider request timed out and will be retried",
+                        false,
+                        OcrTaskMetrics.FailureCategory.PROVIDER_RETRYABLE);
+                return;
+            }
+            if (findCause(exception, CallNotPermittedException.class) != null
+                    || findCause(exception, BulkheadFullException.class) != null
+                    || findCause(exception, CancellationException.class) != null) {
+                context.fail(
+                        "OCR_PROVIDER_RETRYABLE",
+                        "OCR provider is temporarily unavailable and will be retried",
+                        false,
+                        OcrTaskMetrics.FailureCategory.PROVIDER_RETRYABLE);
+                return;
+            }
             context.fail(
                     "OCR_PROVIDER_RETRYABLE",
                     "OCR provider failed unexpectedly and will be retried",
@@ -339,10 +361,14 @@ public class OcrTaskWorker {
     }
 
     private static OcrProviderFailure findProviderFailure(Throwable exception) {
+        return findCause(exception, OcrProviderFailure.class);
+    }
+
+    private static <T extends Throwable> T findCause(Throwable exception, Class<T> type) {
         Throwable current = exception;
         for (int depth = 0; current != null && depth < 20; depth++) {
-            if (current instanceof OcrProviderFailure providerFailure) {
-                return providerFailure;
+            if (type.isInstance(current)) {
+                return type.cast(current);
             }
             Throwable cause = current.getCause();
             if (cause == current) {
