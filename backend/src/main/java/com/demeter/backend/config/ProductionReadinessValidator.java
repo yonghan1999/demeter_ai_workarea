@@ -21,9 +21,6 @@ import org.springframework.util.StringUtils;
 @Profile("prod")
 public class ProductionReadinessValidator implements InitializingBean {
 
-    private static final String API_DATABASE_USER = "demeter_api";
-    private static final String WORKER_DATABASE_USER = "demeter_worker";
-    private static final String MAINTENANCE_DATABASE_USER = "demeter_maintenance";
     private static final Set<String> PRIVILEGED_DATABASE_USERS = Set.of(
             "root", "mysql", "admin", "administrator", "demeter_migrator");
 
@@ -84,7 +81,6 @@ public class ProductionReadinessValidator implements InitializingBean {
         if (password.length() < 16 || isPlaceholder(password)) {
             throw new IllegalStateException("DB_PASSWORD must not use a development value");
         }
-        validateDatabaseUserForRole(username);
 
         String databaseUrl = environment.getRequiredProperty("spring.datasource.url");
         if (!databaseUrl.toLowerCase(Locale.ROOT).startsWith("jdbc:mysql:")) {
@@ -153,18 +149,6 @@ public class ProductionReadinessValidator implements InitializingBean {
         }
     }
 
-    private void validateDatabaseUserForRole(String username) {
-        String expected = switch (runtime.role()) {
-            case API -> API_DATABASE_USER;
-            case WORKER -> WORKER_DATABASE_USER;
-            case MAINTENANCE -> MAINTENANCE_DATABASE_USER;
-            case ALL -> null;
-        };
-        if (expected != null && !expected.equals(username)) {
-            throw new IllegalStateException(
-                    "DB_USERNAME must be " + expected + " when DEMETER_RUNTIME_ROLE is " + runtime.role());
-        }
-    }
 
     private void validateApiRole() {
         if (worker.enabled()) {

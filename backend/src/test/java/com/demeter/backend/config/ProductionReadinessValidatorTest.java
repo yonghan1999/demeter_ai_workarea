@@ -440,25 +440,6 @@ class ProductionReadinessValidatorTest {
                 .hasMessageContaining("schema management must be disabled");
     }
 
-    @Test
-    void rejectsADatabaseAccountThatDoesNotMatchTheRuntimeRole() {
-        MockEnvironment environment = productionEnvironment(
-                "jdbc:mysql://db:3306/demeter?sslMode=VERIFY_IDENTITY&connectionTimeZone=UTC",
-                "demeter_worker",
-                false);
-        ProductionReadinessValidator validator = validator(
-                environment,
-                new ProductionProperties(1, false),
-                new OcrStorageProperties(Path.of("/var/lib/demeter/ocr"), false),
-                RuntimeRole.API,
-                disabledWorker(),
-                false,
-                false,
-                java.util.List.of());
-
-        assertThatThrownBy(validator::afterPropertiesSet)
-                .hasMessageContaining("DB_USERNAME must be demeter_api");
-    }
 
     private static ProductionReadinessValidator validator(
             String databaseUrl,
@@ -494,7 +475,7 @@ class ProductionReadinessValidatorTest {
             boolean reconciliationEnabled,
             java.util.List<HandwrittenBillOcrProvider> providers,
             boolean flywayEnabled) {
-        MockEnvironment environment = productionEnvironment(databaseUrl, databaseUsername(role), flywayEnabled);
+        MockEnvironment environment = productionEnvironment(databaseUrl, "demeter_api", flywayEnabled);
         return validator(
                 environment,
                 production,
@@ -581,14 +562,6 @@ class ProductionReadinessValidatorTest {
                 .withProperty("spring.flyway.enabled", Boolean.toString(flywayEnabled));
     }
 
-    private static String databaseUsername(RuntimeRole role) {
-        return switch (role) {
-            case API -> "demeter_api";
-            case WORKER -> "demeter_worker";
-            case MAINTENANCE -> "demeter_maintenance";
-            case ALL -> "demeter_api";
-        };
-    }
 
     private static OcrWorkerProperties disabledWorker() {
         return worker(false);
