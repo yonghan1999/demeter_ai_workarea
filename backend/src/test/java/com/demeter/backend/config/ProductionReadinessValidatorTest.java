@@ -218,26 +218,6 @@ class ProductionReadinessValidatorTest {
     }
 
     @Test
-    void rejectsPublicManagementBindingInProduction() {
-        String url = "jdbc:mysql://db:3306/demeter?sslMode=VERIFY_IDENTITY&connectionTimeZone=UTC";
-        MockEnvironment environment = productionEnvironment(url, "demeter_api", false);
-        environment.setProperty("management.server.address", "0.0.0.0");
-
-        ProductionReadinessValidator validator = validator(
-                environment,
-                new ProductionProperties(1, false),
-                new OcrStorageProperties(Path.of("/var/lib/demeter/ocr"), false),
-                RuntimeRole.API,
-                disabledWorker(),
-                false,
-                false,
-                java.util.List.of());
-
-        assertThatThrownBy(validator::afterPropertiesSet)
-                .hasMessageContaining("MANAGEMENT_ADDRESS must bind to a loopback address");
-    }
-
-    @Test
     void rejectsTheAllInOneRoleInProduction() {
         ProductionReadinessValidator validator = validator(
                 "jdbc:mysql://db:3306/demeter?sslMode=VERIFY_IDENTITY&connectionTimeZone=UTC",

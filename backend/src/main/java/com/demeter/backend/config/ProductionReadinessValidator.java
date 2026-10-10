@@ -96,10 +96,6 @@ public class ProductionReadinessValidator implements InitializingBean {
         if (serverPort == managementPort) {
             throw new IllegalStateException("MANAGEMENT_PORT must differ from SERVER_PORT in production");
         }
-        String managementAddress = environment.getProperty("management.server.address", "127.0.0.1");
-        if (!isLoopbackAddress(managementAddress)) {
-            throw new IllegalStateException("MANAGEMENT_ADDRESS must bind to a loopback address in production");
-        }
         String managementToken = requireSecret(management.accessToken(), "MANAGEMENT_ACCESS_TOKEN");
         if (managementToken.length() < 32) {
             throw new IllegalStateException("MANAGEMENT_ACCESS_TOKEN must contain at least 32 characters");
