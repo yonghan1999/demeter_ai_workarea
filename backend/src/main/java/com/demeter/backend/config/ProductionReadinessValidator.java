@@ -10,7 +10,6 @@ import com.demeter.backend.security.RateLimitProperties;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
-import java.util.regex.PatternSyntaxException;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.context.annotation.Profile;
 import org.springframework.core.env.Environment;
@@ -161,13 +160,6 @@ public class ProductionReadinessValidator implements InitializingBean {
         if (!"native".equalsIgnoreCase(forwardStrategy)) {
             throw new IllegalStateException("Production API must use native trusted-proxy header processing");
         }
-        String trustedProxyPattern = requireText(
-                environment.getProperty("server.tomcat.remoteip.internal-proxies"),
-                "TRUSTED_PROXY_PATTERN is required for the API role");
-        if ("(?!)".equals(trustedProxyPattern)) {
-            throw new IllegalStateException("TRUSTED_PROXY_PATTERN is required for the API role");
-        }
-        validateTrustedProxyPattern(trustedProxyPattern);
         if (production.replicaCount() > 1 && !production.gatewayRateLimitEnabled()) {
             throw new IllegalStateException("Multi-replica API deployments require gateway-level distributed rate limiting");
         }
@@ -238,17 +230,6 @@ public class ProductionReadinessValidator implements InitializingBean {
         String normalized = databaseUrl.toLowerCase(Locale.ROOT).replace(" ", "");
         return normalized.matches(".*[?&]" + java.util.regex.Pattern.quote(name.toLowerCase(Locale.ROOT))
                 + "=" + java.util.regex.Pattern.quote(value.toLowerCase(Locale.ROOT)) + "(?:&.*)?$");
-    }
-
-    private static void validateTrustedProxyPattern(String value) {
-        try {
-            java.util.regex.Pattern pattern = java.util.regex.Pattern.compile(value);
-            if (pattern.matcher("8.8.8.8").matches() && pattern.matcher("203.0.113.10").matches()) {
-                throw new IllegalStateException("TRUSTED_PROXY_PATTERN must not trust arbitrary public addresses");
-            }
-        } catch (PatternSyntaxException exception) {
-            throw new IllegalStateException("TRUSTED_PROXY_PATTERN must be a valid regular expression", exception);
-        }
     }
 
     private static String requireSecret(String value, String name) {

@@ -534,7 +534,6 @@ class ProductionReadinessValidatorTest {
                 .withProperty("management.server.port", "9090")
                 .withProperty("management.server.address", "127.0.0.1")
                 .withProperty("server.forward-headers-strategy", "native")
-                .withProperty("server.tomcat.remoteip.internal-proxies", "10\\.0\\.0\\.1")
                 .withProperty("server.tomcat.mbeanregistry.enabled", "false")
                 .withProperty("spring.jmx.enabled", "false")
                 .withProperty("spring.jpa.hibernate.ddl-auto", "none")
