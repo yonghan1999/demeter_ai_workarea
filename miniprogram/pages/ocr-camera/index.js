@@ -65,7 +65,8 @@ Page(withSystemLayout({
       if (this.uploadCancelled) return;
       wx.showToast({ title: '识别任务已创建', icon: 'success' });
       setTimeout(() => {
-        wx.redirectTo({ url: '/pages/ocr-tasks/index' });
+        // 返回进入拍照页的任务列表，由列表 onShow 触发刷新，避免重复压入列表页。
+        wx.navigateBack({ delta: 1 });
       }, 350);
     } catch (error) {
       if (this.uploadCancelled) return;
