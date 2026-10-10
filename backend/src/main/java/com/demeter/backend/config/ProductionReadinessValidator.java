@@ -86,9 +86,6 @@ public class ProductionReadinessValidator implements InitializingBean {
         if (!databaseUrl.toLowerCase(Locale.ROOT).startsWith("jdbc:mysql:")) {
             throw new IllegalStateException("Production DB_URL must use MySQL");
         }
-        if (containsParameter(databaseUrl, "allowPublicKeyRetrieval", "true")) {
-            throw new IllegalStateException("Production DB_URL must not enable allowPublicKeyRetrieval");
-        }
         if (!containsParameter(databaseUrl, "connectionTimeZone", "UTC")
                 && !containsParameter(databaseUrl, "serverTimezone", "UTC")) {
             throw new IllegalStateException("Production DB_URL must use the UTC connection time zone");

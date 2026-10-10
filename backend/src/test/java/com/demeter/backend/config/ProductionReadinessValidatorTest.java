@@ -108,6 +108,7 @@ class ProductionReadinessValidatorTest {
             "sslMode=DISABLED&connectionTimeZone=UTC",
             "useSSL=false&connectionTimeZone=UTC",
             "sslMode=REQUIRED&connectionTimeZone=UTC",
+            "allowPublicKeyRetrieval=true&connectionTimeZone=UTC",
             "connectionTimeZone=UTC"
     })
     void acceptsAMySqlConnectionWithoutSslVerification(String parameters) {
