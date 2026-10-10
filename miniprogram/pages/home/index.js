@@ -201,7 +201,7 @@ Page(withSystemLayout({
         this.setData({ loading: false, initialLoading: false, loadFailed: true });
         return;
       }
-      const tasks = await billService.listOcrTasks();
+      const tasks = await billService.listUnreadOcrTasks();
       if (loadSeq !== this.loadSeq) return;
       const currentActor = billService.currentActorId();
       if (!currentActor || currentActor !== actorAfterBills) {

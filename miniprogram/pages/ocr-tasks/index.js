@@ -12,6 +12,7 @@ Page(withSystemLayout({
 
   onShow() {
     this.active = true;
+    this.viewedOcrTasksMarked = false;
     this.loadSeq = (this.loadSeq || 0) + 1;
     this.loadTasks();
   },
@@ -35,6 +36,11 @@ Page(withSystemLayout({
     try {
       const tasks = await billService.listOcrTasks();
       if (!this.active || loadSeq !== this.loadSeq) return;
+      if (!this.viewedOcrTasksMarked) {
+        await billService.markOcrTasksViewed(tasks);
+        if (!this.active || loadSeq !== this.loadSeq) return;
+        this.viewedOcrTasksMarked = true;
+      }
       this.setData({
         loading: false,
         loadFailed: false,

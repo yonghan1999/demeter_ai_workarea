@@ -22,7 +22,7 @@ test('failed home refresh clears previously displayed bills', async () => {
     replaceModule(billServicePath, {
       currentActorId: () => 'tenant-a:7',
       listBills: async () => { throw new Error('network unavailable'); },
-      listOcrTasks: async () => []
+      listUnreadOcrTasks: async () => []
     }),
     replaceModule(systemPath, { withSystemLayout: (page) => page })
   ];

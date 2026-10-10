@@ -4,6 +4,7 @@ const SEARCH_HISTORY_PREFIX = 'demeter:search-history:v2';
 const LEGACY_OCR_MERGED_TASKS_KEY = 'demeter:ocr:merged-tasks:v1';
 const OCR_MERGED_TASKS_PREFIX = 'demeter:ocr:merged-tasks:v2';
 const OCR_MERGE_JOURNAL_PREFIX = 'demeter:ocr:merge-journal:v1';
+const OCR_VIEWED_TASKS_PREFIX = 'demeter:ocr:viewed-tasks:v1';
 const USER_KEY = 'demeter:auth:user';
 const PENDING_SAVE_PREFIX = 'demeter:bill:pending-save:v1';
 const BILL_DRAFT_PREFIX = 'demeter:bill:form-draft:v1';
@@ -673,6 +674,33 @@ async function listOcrTasks(options = {}) {
   return tasks;
 }
 
+function ocrTaskViewState(task) {
+  return `${task.status}:${task.merged ? '1' : '0'}`;
+}
+
+async function markOcrTasksViewed(tasks) {
+  const key = await actorStorageKey(OCR_VIEWED_TASKS_PREFIX);
+  const viewed = wx.getStorageSync(key);
+  const snapshot = viewed && typeof viewed === 'object' && !Array.isArray(viewed) ? viewed : {};
+  (Array.isArray(tasks) ? tasks : []).forEach((task) => {
+    if (task && task.id !== undefined && task.id !== null) {
+      snapshot[String(task.id)] = ocrTaskViewState(task);
+    }
+  });
+  wx.setStorageSync(key, snapshot);
+}
+
+async function listUnreadOcrTasks(options = {}) {
+  const tasks = await listOcrTasks(options);
+  const key = await actorStorageKey(OCR_VIEWED_TASKS_PREFIX);
+  const viewed = wx.getStorageSync(key);
+  const snapshot = viewed && typeof viewed === 'object' && !Array.isArray(viewed) ? viewed : {};
+  return tasks.filter((task) => (
+    task && task.id !== undefined && task.id !== null
+      && snapshot[String(task.id)] !== ocrTaskViewState(task)
+  ));
+}
+
 async function createOcrTask(imagePath, options = {}) {
   const actorId = await activeActorId();
   requireSameActor(actorId);
@@ -854,6 +882,8 @@ module.exports = {
   resolveShipperName,
   suggestBillKeywords,
   listOcrTasks,
+  listUnreadOcrTasks,
+  markOcrTasksViewed,
   createOcrTask,
   getOcrTask,
   retryOcrTask,
