@@ -4,6 +4,7 @@ const { withSystemLayout, safeBack } = require('../../utils/system');
 Page(withSystemLayout({
   data: {
     imagePath: '',
+    recognitionHint: '',
     primaryText: '拍摄账本',
     submitting: false,
     primaryDisabledClass: '',
@@ -40,6 +41,11 @@ Page(withSystemLayout({
     });
   },
 
+  onRecognitionHintInput(event) {
+    if (this.submitting || this.data.submitting) return;
+    this.setData({ recognitionHint: event.detail.value });
+  },
+
   async createTask(imagePath) {
     if (this.submitting || this.data.submitting) return;
     this.submitting = true;
@@ -54,6 +60,7 @@ Page(withSystemLayout({
     });
     try {
       await billService.createOcrTask(imagePath, {
+        recognitionHint: this.data.recognitionHint,
         onProgress: (progress) => {
           if (!this.submitting || this.uploadCancelled) return;
           this.setData({ uploadProgress: Math.max(0, Math.min(100, progress)) });

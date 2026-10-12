@@ -708,6 +708,7 @@ async function createOcrTask(imagePath, options = {}) {
     url: '/ocr/tasks',
     filePath: imagePath,
     name: 'image',
+    formData: { recognitionHint: (options.recognitionHint || '').trim() },
     onProgress: options.onProgress,
     onTaskCreated: options.onTaskCreated,
     header: {

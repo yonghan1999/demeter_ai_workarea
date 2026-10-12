@@ -238,6 +238,44 @@
   font-size: 22rpx;
 }
 
+.recognition-hint-card {
+  margin-top: 24rpx;
+  border-radius: 24rpx;
+  background: #1c2946;
+  padding: 24rpx;
+}
+
+.recognition-hint-head {
+  display: flex;
+  justify-content: space-between;
+  font-size: 26rpx;
+}
+
+.recognition-hint-count,
+.recognition-hint-help,
+.recognition-hint-placeholder {
+  color: #9aabc2;
+  font-size: 22rpx;
+}
+
+.recognition-hint-input {
+  box-sizing: border-box;
+  width: 100%;
+  height: 180rpx;
+  margin: 20rpx 0 16rpx;
+  border-radius: 16rpx;
+  background: #0d1629;
+  padding: 20rpx;
+  color: #ffffff;
+  font-size: 26rpx;
+  line-height: 38rpx;
+}
+
+.recognition-hint-help {
+  display: block;
+  line-height: 34rpx;
+}
+
 .upload-progress-head {
   display: flex;
   justify-content: space-between;

@@ -114,8 +114,8 @@ public class OcrTaskService {
         this.retryChain = buildRetryChain();
     }
 
-    public OcrTaskResponse create(MultipartFile image, String idempotencyKey) {
-        return chainExecutor.execute(createChain, new CreateTaskContext(image, idempotencyKey));
+    public OcrTaskResponse create(MultipartFile image, String idempotencyKey, String recognitionHint) {
+        return chainExecutor.execute(createChain, new CreateTaskContext(image, idempotencyKey, recognitionHint));
     }
 
     public OcrTaskResponse get(String publicId) {
@@ -138,13 +138,24 @@ public class OcrTaskService {
                         BusinessHandler.named("resolve-actor", this::resolveActor),
                         BusinessHandler.named("validate-idempotency", context ->
                                 context.idempotencyKey = requireIdempotencyKey(context.requestedIdempotencyKey)),
+                        BusinessHandler.named("validate-recognition-hint", context -> {
+                            if (context.recognitionHint.length() > OcrTask.MAX_RECOGNITION_HINT_LENGTH) {
+                                throw new BusinessRuleException("识别补充说明不能超过 500 字");
+                            }
+                            context.recognitionHint = context.recognitionHint.strip();
+                        }),
                         BusinessHandler.named("read-and-validate-image", this::readAndValidateImage),
                         BusinessHandler.named("compute-request-hash", context -> {
                             context.contentSha256 = TokenDigests.sha256Bytes(context.document.content());
-                            context.requestHash = CanonicalValues.sha256(
-                                    context.contentSha256,
-                                    context.contentType,
-                                    context.document.content().length);
+                            CanonicalValues.Encoder fingerprint = CanonicalValues.builder()
+                                    .add(context.contentSha256)
+                                    .add(context.contentType)
+                                    .add(context.document.content().length);
+                            // Preserve fingerprints for uploads created before hints were supported.
+                            if (!context.recognitionHint.isEmpty()) {
+                                fingerprint.add(context.recognitionHint);
+                            }
+                            context.requestHash = fingerprint.digest();
                         }),
                         BusinessHandler.named("resolve-idempotency", context -> transactionTemplate.executeWithoutResult(
                                 status -> taskRepository.findByTenantIdAndIdempotencyKey(
@@ -152,7 +163,7 @@ public class OcrTaskService {
                                         .ifPresent(existing -> {
                                             if (!existing.getRequestHash().equals(context.requestHash)) {
                                                 throw new ConflictException(
-                                                        "The Idempotency-Key was already used for a different OCR image");
+                                                        "The Idempotency-Key was already used for a different OCR request");
                                             }
                                             context.task = existing;
                                             context.result = OcrTaskResponse.from(existing, objectMapper);
@@ -347,6 +358,7 @@ public class OcrTaskService {
                         context.contentSha256,
                         context.idempotencyKey,
                         context.requestHash,
+                        context.recognitionHint,
                         workerProperties.maxAttempts(),
                         clock.instant());
                 context.task = taskRepository.saveAndFlush(task);
@@ -369,7 +381,7 @@ public class OcrTaskService {
             }
             if (!existing.getRequestHash().equals(context.requestHash)) {
                 throw new ConflictException(
-                        "The Idempotency-Key was already used for a different OCR image");
+                        "The Idempotency-Key was already used for a different OCR request");
             }
             context.task = existing;
         } catch (RuntimeException exception) {
@@ -473,14 +485,16 @@ public class OcrTaskService {
         private String fileName;
         private String contentSha256;
         private String requestHash;
+        private String recognitionHint;
         private String storageKey;
         private OcrDocument document;
         private OcrTask task;
         private OcrTaskResponse result;
 
-        private CreateTaskContext(MultipartFile image, String requestedIdempotencyKey) {
+        private CreateTaskContext(MultipartFile image, String requestedIdempotencyKey, String recognitionHint) {
             this.image = image;
             this.requestedIdempotencyKey = requestedIdempotencyKey;
+            this.recognitionHint = recognitionHint == null ? "" : recognitionHint;
         }
     }
 

@@ -7,10 +7,16 @@ public record OcrRecognitionRequest(
         String taskId,
         int attempt,
         OcrDocument document,
-        OcrRecognitionMemory memory) {
+        OcrRecognitionMemory memory,
+        String recognitionHint) {
 
     public OcrRecognitionRequest(String taskId, int attempt, OcrDocument document) {
-        this(taskId, attempt, document, OcrRecognitionMemory.empty());
+        this(taskId, attempt, document, OcrRecognitionMemory.empty(), "");
+    }
+
+    public OcrRecognitionRequest(
+            String taskId, int attempt, OcrDocument document, OcrRecognitionMemory memory) {
+        this(taskId, attempt, document, memory, "");
     }
 
     public OcrRecognitionRequest {
@@ -22,5 +28,6 @@ public record OcrRecognitionRequest(
         }
         Objects.requireNonNull(document, "document");
         memory = memory == null ? OcrRecognitionMemory.empty() : memory;
+        recognitionHint = recognitionHint == null ? "" : recognitionHint;
     }
 }

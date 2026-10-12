@@ -115,6 +115,21 @@ class OcrTaskWorkerIntegrationTest {
     }
 
     @Test
+    void forwardsTheSavedHintOnInitialRecognitionAndAutomaticRetry() {
+        jdbcTemplate.update("UPDATE ocr_tasks SET recognition_hint = ? WHERE id = 1501", "最后一列为金额");
+        fakeOcrProvider.mode = ProviderMode.FAIL;
+        worker.poll();
+        assertThat(fakeOcrProvider.lastRequest.get().recognitionHint()).isEqualTo("最后一列为金额");
+
+        jdbcTemplate.update("UPDATE ocr_tasks SET next_attempt_at = created_at WHERE id = 1501");
+        fakeOcrProvider.mode = ProviderMode.SUCCESS;
+        worker.poll();
+        assertThat(taskRepository.findById(1501L).orElseThrow().getStatus()).isEqualTo(OcrTaskStatus.SUCCEEDED);
+        assertThat(fakeOcrProvider.lastRequest.get().attempt()).isEqualTo(2);
+        assertThat(fakeOcrProvider.lastRequest.get().recognitionHint()).isEqualTo("最后一列为金额");
+    }
+
+    @Test
     void classifiesProviderTimeoutAsAStableRetryableFailure() {
         fakeOcrProvider.mode = ProviderMode.TIMEOUT;
 
@@ -270,7 +285,7 @@ class OcrTaskWorkerIntegrationTest {
         jdbcTemplate.update(
                 """
                 UPDATE ocr_tasks
-                SET status = 'PENDING', attempt_count = 0, next_attempt_at = CURRENT_TIMESTAMP,
+                SET status = 'PENDING', attempt_count = 0, next_attempt_at = created_at,
                     lease_until = NULL, last_error_code = NULL, last_error_message = NULL,
                     started_at = NULL, completed_at = NULL, version = version + 1,
                     updated_at = CURRENT_TIMESTAMP

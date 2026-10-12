@@ -156,7 +156,8 @@ public class OcrTaskWorker {
                                                         context.claim.publicId(),
                                                         context.claim.attempt(),
                                                         context.document,
-                                                        context.memory))
+                                                        context.memory,
+                                                        context.claim.recognitionHint()))
                                         .toCompletableFuture()
                                         .join();
                             } catch (RuntimeException exception) {
@@ -233,6 +234,7 @@ public class OcrTaskWorker {
                     task.getStorageKey(),
                     task.getOriginalFilename(),
                     task.getContentType(),
+                    task.getRecognitionHint(),
                     task.getAttemptCount(),
                     false);
         });
@@ -453,6 +455,7 @@ public class OcrTaskWorker {
             String storageKey,
             String originalFilename,
             String contentType,
+            String recognitionHint,
             int attempt,
             boolean exhausted) {
 
@@ -466,6 +469,7 @@ public class OcrTaskWorker {
                     task.getStorageKey(),
                     task.getOriginalFilename(),
                     task.getContentType(),
+                    task.getRecognitionHint(),
                     task.getAttemptCount(),
                     true);
         }

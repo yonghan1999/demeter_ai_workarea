@@ -405,7 +405,7 @@ class MySqlMigrationIT {
     }
 
     private static List<String> expectedMigrationVersions() {
-                return java.util.stream.IntStream.rangeClosed(1, 23)
+                return java.util.stream.IntStream.rangeClosed(1, 24)
                 .mapToObj(Integer::toString)
                 .toList();
     }

@@ -96,6 +96,72 @@ class OcrTaskControllerIntegrationTest {
     }
 
     @Test
+    void persistsTheNormalizedHintAndIncludesItInIdempotency() throws Exception {
+        MockMultipartFile image = new MockMultipartFile("image", "ledger.png", "image/png", VALID_PNG);
+        MvcResult first = mockMvc.perform(multipart("/api/v1/ocr/tasks").file(image)
+                        .param("recognitionHint", "  左侧为托运人，右侧为金额  ")
+                        .header("Idempotency-Key", "ocr-hint")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + ALPHA_TOKEN))
+                .andExpect(status().isAccepted()).andReturn();
+        String id = objectMapper.readTree(first.getResponse().getContentAsString()).get("id").asText();
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT recognition_hint FROM ocr_tasks WHERE public_id = ?", String.class, id))
+                .isEqualTo("左侧为托运人，右侧为金额");
+        mockMvc.perform(multipart("/api/v1/ocr/tasks").file(image)
+                        .param("recognitionHint", "左侧为托运人，右侧为金额")
+                        .header("Idempotency-Key", "ocr-hint")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + ALPHA_TOKEN))
+                .andExpect(status().isAccepted()).andExpect(jsonPath("$.id", is(id)));
+        mockMvc.perform(multipart("/api/v1/ocr/tasks").file(image)
+                        .param("recognitionHint", "左侧为金额")
+                        .header("Idempotency-Key", "ocr-hint")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + ALPHA_TOKEN))
+                .andExpect(status().isConflict());
+
+        jdbcTemplate.update("""
+                UPDATE ocr_tasks SET status = 'FAILED', completed_at = CURRENT_TIMESTAMP,
+                    last_error_code = 'TEST_FAILURE', last_error_message = 'test failure'
+                WHERE public_id = ?
+                """, id);
+        mockMvc.perform(post("/api/v1/ocr/tasks/{id}/retry", id)
+                        .header("Idempotency-Key", "ocr-hint-retry")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + ALPHA_TOKEN))
+                .andExpect(status().isOk());
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT recognition_hint FROM ocr_tasks WHERE public_id = ?", String.class, id))
+                .isEqualTo("左侧为托运人，右侧为金额");
+    }
+
+    @Test
+    void rejectsOversizedHintsBeforeCreatingATask() throws Exception {
+        mockMvc.perform(multipart("/api/v1/ocr/tasks")
+                        .file(new MockMultipartFile("image", "ledger.png", "image/png", VALID_PNG))
+                        .param("recognitionHint", "字".repeat(501))
+                        .header("Idempotency-Key", "ocr-long-hint")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + ALPHA_TOKEN))
+                .andExpect(status().isBadRequest());
+        assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM ocr_tasks", Integer.class)).isZero();
+    }
+
+    @Test
+    void blankHintsKeepTheLegacyImageFingerprint() throws Exception {
+        MvcResult first = upload("ocr-blank-hint", VALID_PNG, ALPHA_TOKEN)
+                .andExpect(status().isAccepted()).andReturn();
+        String id = objectMapper.readTree(first.getResponse().getContentAsString()).get("id").asText();
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT request_hash FROM ocr_tasks WHERE public_id = ?", String.class, id))
+                .isEqualTo(com.demeter.backend.common.idempotency.CanonicalValues.sha256(
+                        com.demeter.backend.security.TokenDigests.sha256Bytes(VALID_PNG),
+                        "image/png", VALID_PNG.length));
+        mockMvc.perform(multipart("/api/v1/ocr/tasks")
+                        .file(new MockMultipartFile("image", "ledger.png", "image/png", VALID_PNG))
+                        .param("recognitionHint", " \n ")
+                        .header("Idempotency-Key", "ocr-blank-hint")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + ALPHA_TOKEN))
+                .andExpect(status().isAccepted()).andExpect(jsonPath("$.id", is(id)));
+    }
+
+    @Test
     void rejectsADeclaredImageWhoseBytesAreNotAnImage() throws Exception {
         upload("ocr-invalid-image", new byte[] {1, 2, 3}, ALPHA_TOKEN)
                 .andExpect(status().isBadRequest())

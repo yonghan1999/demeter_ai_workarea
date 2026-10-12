@@ -17,6 +17,8 @@ import java.util.UUID;
 @Table(name = "ocr_tasks")
 public class OcrTask {
 
+    public static final int MAX_RECOGNITION_HINT_LENGTH = 500;
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -54,6 +56,9 @@ public class OcrTask {
 
     @Column(name = "request_hash", nullable = false, length = 64, updatable = false)
     private String requestHash;
+
+    @Column(name = "recognition_hint", length = MAX_RECOGNITION_HINT_LENGTH, updatable = false)
+    private String recognitionHint;
 
     @Column(length = 80)
     private String provider;
@@ -117,6 +122,7 @@ public class OcrTask {
             String contentSha256,
             String idempotencyKey,
             String requestHash,
+            String recognitionHint,
             int maxAttempts,
             Instant now) {
         this.publicId = UUID.randomUUID().toString();
@@ -130,6 +136,7 @@ public class OcrTask {
         this.contentSha256 = contentSha256;
         this.idempotencyKey = idempotencyKey;
         this.requestHash = requestHash;
+        this.recognitionHint = recognitionHint;
         this.maxAttempts = maxAttempts;
         this.nextAttemptAt = now;
         this.createdAt = now;
@@ -150,6 +157,10 @@ public class OcrTask {
         lastErrorCode = null;
         lastErrorMessage = null;
         updatedAt = now;
+    }
+
+    public String getRecognitionHint() {
+        return recognitionHint == null ? "" : recognitionHint;
     }
 
     public boolean isClaimable(Instant now) {

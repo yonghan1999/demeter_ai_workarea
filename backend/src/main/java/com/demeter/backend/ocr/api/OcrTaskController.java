@@ -4,6 +4,7 @@ import com.demeter.backend.bill.api.PageResponse;
 import com.demeter.backend.config.ConditionalOnRuntimeRole;
 import com.demeter.backend.config.RuntimeRole;
 import com.demeter.backend.ocr.application.OcrTaskService;
+import com.demeter.backend.ocr.domain.OcrTask;
 import com.demeter.backend.ocr.domain.OcrTaskStatus;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -46,8 +47,9 @@ public class OcrTaskController {
     @Operation(summary = "Upload an image and enqueue an OCR task")
     ResponseEntity<OcrTaskResponse> create(
             @RequestHeader("Idempotency-Key") @NotBlank @Size(max = 128) String idempotencyKey,
-            @RequestPart("image") MultipartFile image) {
-        OcrTaskResponse created = taskService.create(image, idempotencyKey);
+            @RequestPart("image") MultipartFile image,
+            @RequestParam(required = false) @Size(max = OcrTask.MAX_RECOGNITION_HINT_LENGTH) String recognitionHint) {
+        OcrTaskResponse created = taskService.create(image, idempotencyKey, recognitionHint);
         return ResponseEntity.accepted()
                 .location(URI.create("/api/v1/ocr/tasks/" + created.id()))
                 .body(created);
