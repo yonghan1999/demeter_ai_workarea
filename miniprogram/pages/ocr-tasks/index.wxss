@@ -92,6 +92,10 @@
   height: 464rpx;
 }
 
+.task-completed.task-empty-result {
+  height: auto;
+}
+
 .task-head {
   display: flex;
   align-items: flex-start;

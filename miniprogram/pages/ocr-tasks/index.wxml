@@ -6,7 +6,7 @@
     <state-panel wx:elif="{{loadFailed}}" title="任务加载失败" subtitle="请检查网络后重试" action-text="重新加载" bind:action="retryLoad" />
     <block wx:else>
     <view wx:for="{{tasks}}" wx:key="id" class="task-entry task-entry-{{item.status}}">
-    <view class="task-card task-{{item.status}}" data-id="{{item.id}}" bindtap="review">
+    <view class="task-card task-{{item.status}} {{item.isCompleted && item.bills.length === 0 ? 'task-empty-result' : ''}}" data-id="{{item.id}}" bindtap="review">
       <view class="task-head">
         <view class="task-image"><image src="/assets/icons/image.svg" mode="aspectFit" /></view>
         <view class="task-head-copy"><view class="task-status {{item.status}} {{item.mergedClass}}">{{item.statusPrefix}}{{item.statusText}}</view><view class="task-time">{{item.timeText}}</view></view>
