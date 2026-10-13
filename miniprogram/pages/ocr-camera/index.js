@@ -5,12 +5,26 @@ Page(withSystemLayout({
   data: {
     imagePath: '',
     recognitionHint: '',
+    recognitionHintLoading: true,
     primaryText: '拍摄账本',
     submitting: false,
     primaryDisabledClass: '',
     cameraDenied: false,
     errorMessage: '',
     uploadProgress: 0
+  },
+
+  async onLoad() {
+    try {
+      const recognitionHint = await billService.getOcrRecognitionHint();
+      if (!this.recognitionHintEdited && !this.data.submitting) {
+        this.setData({ recognitionHint });
+      }
+    } catch (error) {
+      // 上传流程仍会负责登录和账号变化校验，回显失败不阻塞新建任务。
+    } finally {
+      this.setData({ recognitionHintLoading: false });
+    }
   },
 
   chooseImage(sourceType) {
@@ -44,13 +58,15 @@ Page(withSystemLayout({
   onRecognitionHintInput(event) {
     if (this.submitting || this.data.submitting) return;
     this.setData({ recognitionHint: event.detail.value });
+    this.recognitionHintEdited = true;
   },
 
   async createTask(imagePath) {
-    if (this.submitting || this.data.submitting) return;
+    if (this.submitting || this.data.submitting || this.data.recognitionHintLoading) return;
     this.submitting = true;
     this.uploadCancelled = false;
     this.uploadTask = null;
+    const recognitionHint = String(this.data.recognitionHint || '').trim();
     this.setData({
       submitting: true,
       primaryText: '正在创建…',
@@ -60,7 +76,7 @@ Page(withSystemLayout({
     });
     try {
       await billService.createOcrTask(imagePath, {
-        recognitionHint: this.data.recognitionHint,
+        recognitionHint,
         onProgress: (progress) => {
           if (!this.submitting || this.uploadCancelled) return;
           this.setData({ uploadProgress: Math.max(0, Math.min(100, progress)) });

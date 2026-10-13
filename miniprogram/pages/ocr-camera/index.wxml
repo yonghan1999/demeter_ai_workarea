@@ -26,7 +26,7 @@
       <view class="capture-tips"><view class="capture-tip"><text class="tip-number">01</text><text>光线充足</text></view><view class="capture-tip"><text class="tip-number">02</text><text>页面摆正</text></view><view class="capture-tip"><text class="tip-number">03</text><text>字迹清晰</text></view></view>
       <view class="recognition-hint-card">
         <view class="recognition-hint-head"><text>识别补充说明（选填）</text><text class="recognition-hint-count">{{recognitionHint.length}}/500</text></view>
-        <textarea class="recognition-hint-input" value="{{recognitionHint}}" maxlength="500" disabled="{{submitting}}" bindinput="onRecognitionHintInput" placeholder="例如：从左到右是日期、托运人、起点、终点、车型、金额" placeholder-class="recognition-hint-placeholder" cursor-spacing="24" adjust-position="{{true}}" />
+        <textarea class="recognition-hint-input" value="{{recognitionHint}}" maxlength="500" disabled="{{submitting || recognitionHintLoading}}" bindinput="onRecognitionHintInput" placeholder="例如：从左到右是日期、托运人、起点、终点、车型、金额" placeholder-class="recognition-hint-placeholder" cursor-spacing="24" adjust-position="{{true}}" />
         <text class="recognition-hint-help">可说明列顺序、简称或易混淆的字，帮助识别；结果仍需核对。</text>
       </view>
       <view wx:if="{{submitting}}" class="upload-progress-wrap">

@@ -5,6 +5,7 @@ const LEGACY_OCR_MERGED_TASKS_KEY = 'demeter:ocr:merged-tasks:v1';
 const OCR_MERGED_TASKS_PREFIX = 'demeter:ocr:merged-tasks:v2';
 const OCR_MERGE_JOURNAL_PREFIX = 'demeter:ocr:merge-journal:v1';
 const OCR_VIEWED_TASKS_PREFIX = 'demeter:ocr:viewed-tasks:v1';
+const OCR_RECOGNITION_HINT_PREFIX = 'demeter:ocr:recognition-hint:v1';
 const USER_KEY = 'demeter:auth:user';
 const PENDING_SAVE_PREFIX = 'demeter:bill:pending-save:v1';
 const BILL_DRAFT_PREFIX = 'demeter:bill:form-draft:v1';
@@ -704,11 +705,17 @@ async function listUnreadOcrTasks(options = {}) {
 async function createOcrTask(imagePath, options = {}) {
   const actorId = await activeActorId();
   requireSameActor(actorId);
+  const recognitionHint = String(options.recognitionHint || '').trim();
+  try {
+    wx.setStorageSync(`${OCR_RECOGNITION_HINT_PREFIX}:${actorId}`, recognitionHint);
+  } catch (error) {
+    // A local preference write must not prevent an OCR upload.
+  }
   const response = await api.uploadFile({
     url: '/ocr/tasks',
     filePath: imagePath,
     name: 'image',
-    formData: { recognitionHint: (options.recognitionHint || '').trim() },
+    formData: { recognitionHint },
     onProgress: options.onProgress,
     onTaskCreated: options.onTaskCreated,
     header: {
@@ -717,6 +724,14 @@ async function createOcrTask(imagePath, options = {}) {
   });
   requireSameActor(actorId);
   return ocrTaskViewModel(response.data, false, actorId);
+}
+
+async function getOcrRecognitionHint() {
+  const actorId = await activeActorId();
+  requireSameActor(actorId);
+  const value = wx.getStorageSync(`${OCR_RECOGNITION_HINT_PREFIX}:${actorId}`);
+  requireSameActor(actorId);
+  return typeof value === 'string' ? value : '';
 }
 
 async function getOcrTask(id) {
@@ -886,6 +901,7 @@ module.exports = {
   listUnreadOcrTasks,
   markOcrTasksViewed,
   createOcrTask,
+  getOcrRecognitionHint,
   getOcrTask,
   retryOcrTask,
   mergeOcrTask,
