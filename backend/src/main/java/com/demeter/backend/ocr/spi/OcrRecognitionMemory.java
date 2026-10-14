@@ -7,17 +7,19 @@ public record OcrRecognitionMemory(
         List<String> shippers,
         List<String> origins,
         List<String> destinations,
-        List<String> vehicleCargo) {
+        List<String> vehicleCargo,
+        List<String> recognitionHints) {
 
     public OcrRecognitionMemory {
         shippers = immutable(shippers);
         origins = immutable(origins);
         destinations = immutable(destinations);
         vehicleCargo = immutable(vehicleCargo);
+        recognitionHints = immutable(recognitionHints);
     }
 
     public static OcrRecognitionMemory empty() {
-        return new OcrRecognitionMemory(List.of(), List.of(), List.of(), List.of());
+        return new OcrRecognitionMemory(List.of(), List.of(), List.of(), List.of(), List.of());
     }
 
     private static List<String> immutable(List<String> values) {

@@ -45,6 +45,14 @@ public interface OcrTaskRepository extends JpaRepository<OcrTask, Long>, JpaSpec
 
     Page<OcrTask> findAllByTenantIdAndStatus(long tenantId, OcrTaskStatus status, Pageable pageable);
 
+    @Query("""
+            select task
+            from OcrTask task
+            where task.tenantId = :tenantId
+            order by task.createdAt desc, task.id desc
+            """)
+    List<OcrTask> findRecentTasksByTenantId(@Param("tenantId") long tenantId, Pageable pageable);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""
             select task

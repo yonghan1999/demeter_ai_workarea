@@ -46,6 +46,8 @@ import org.springframework.transaction.support.TransactionTemplate;
 @ConditionalOnProperty(prefix = "demeter.ocr.worker", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class OcrTaskWorker {
 
+    private static final int HISTORY_TASK_LIMIT = 10;
+
     private final OcrTaskRepository taskRepository;
     private final BillRepository billRepository;
     private final OcrDocumentStorage storage;
@@ -190,11 +192,20 @@ public class OcrTaskWorker {
 
     private OcrRecognitionMemory loadHistoryMemory(long tenantId) {
         org.springframework.data.domain.Pageable limit = org.springframework.data.domain.PageRequest.of(0, 100);
+        List<String> recognitionHints = taskRepository
+                .findRecentTasksByTenantId(
+                        tenantId,
+                        org.springframework.data.domain.PageRequest.of(0, HISTORY_TASK_LIMIT))
+                .stream()
+                .map(OcrTask::getRecognitionHint)
+                .filter(hint -> hint != null && !hint.isBlank())
+                .toList();
         return new OcrRecognitionMemory(
                 billRepository.findShipperNames(tenantId, "", limit),
                 billRepository.findOriginNames(tenantId, limit),
                 billRepository.findDestinationNames(tenantId, limit),
-                billRepository.findVehicleCargoNames(tenantId, limit));
+                billRepository.findVehicleCargoNames(tenantId, limit),
+                recognitionHints);
     }
 
     private void claimTask(ProcessTaskContext context) {

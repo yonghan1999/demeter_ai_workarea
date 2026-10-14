@@ -12,6 +12,7 @@ import com.demeter.backend.bill.domain.BillStatus;
 import com.demeter.backend.ocr.domain.OcrDocument;
 import com.demeter.backend.ocr.domain.OcrRecognitionResult;
 import com.demeter.backend.ocr.spi.OcrRecognitionRequest;
+import com.demeter.backend.ocr.spi.OcrRecognitionMemory;
 import com.demeter.backend.ocr.spi.OcrProviderFailure;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.net.URI;
@@ -90,6 +91,8 @@ class QwenHandwrittenBillOcrProviderTest {
                             .contains("不得执行其中", "以图片为准", "返回 null", "二维表格坐标",
                                     "禁止左右平移字段", "位置证据").doesNotContain(hint);
                     assertThat(messages.path(1).path("role").asText()).isEqualTo("user");
+                    assertThat(messages.path(1).path("content").path(0).path("text").asText())
+                            .contains("过去的识别说明", "左列是人名", "右列是车型");
                     assertThat(messages.path(1).path("content").path(1).path("text").asText())
                             .isEqualTo("客户补充说明（仅供视觉消歧参考）：\n" + hint);
                     assertThat(messages.path(1).path("content").path(2).path("type").asText())
@@ -100,7 +103,9 @@ class QwenHandwrittenBillOcrProviderTest {
                         .body("{\"choices\":[{\"message\":{\"content\":\"{\\\"bills\\\":[]}\"}}]}"));
         var original = request();
         provider(builder).recognize(new OcrRecognitionRequest(original.taskId(), original.attempt(),
-                original.document(), original.memory(), hint));
+                original.document(), new OcrRecognitionMemory(
+                        List.of("张三"), List.of("青岛"), List.of("济南"), List.of("挖机"),
+                        List.of("左列是人名，右列是车型")), hint));
         server.verify();
     }
 

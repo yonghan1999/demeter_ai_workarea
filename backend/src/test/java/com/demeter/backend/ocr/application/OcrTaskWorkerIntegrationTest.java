@@ -120,6 +120,8 @@ class OcrTaskWorkerIntegrationTest {
         fakeOcrProvider.mode = ProviderMode.FAIL;
         worker.poll();
         assertThat(fakeOcrProvider.lastRequest.get().recognitionHint()).isEqualTo("最后一列为金额");
+        assertThat(fakeOcrProvider.lastRequest.get().memory().recognitionHints())
+                .contains("最后一列为金额");
 
         jdbcTemplate.update("UPDATE ocr_tasks SET next_attempt_at = created_at WHERE id = 1501");
         fakeOcrProvider.mode = ProviderMode.SUCCESS;
@@ -127,6 +129,44 @@ class OcrTaskWorkerIntegrationTest {
         assertThat(taskRepository.findById(1501L).orElseThrow().getStatus()).isEqualTo(OcrTaskStatus.SUCCEEDED);
         assertThat(fakeOcrProvider.lastRequest.get().attempt()).isEqualTo(2);
         assertThat(fakeOcrProvider.lastRequest.get().recognitionHint()).isEqualTo("最后一列为金额");
+    }
+
+    @Test
+    void loadsHintsFromTheMostRecentTenTasksWithinTheTenant() {
+        Instant historyStart = Instant.now().minusSeconds(1_000);
+        jdbcTemplate.update(
+                "UPDATE ocr_tasks SET created_at = ?, updated_at = ?, next_attempt_at = ?, recognition_hint = NULL WHERE id = 1501",
+                Timestamp.from(historyStart.minusSeconds(1)),
+                Timestamp.from(historyStart.minusSeconds(1)),
+                Timestamp.from(historyStart.minusSeconds(1)));
+
+        for (int index = 1; index <= 11; index++) {
+            insertHistoricalTask(
+                    1600L + index,
+                    1001L,
+                    historyStart.plusSeconds(index),
+                    index == 2 ? "" : "租户甲提示-" + index);
+        }
+        insertHistoricalTask(
+                1701L,
+                1002L,
+                historyStart.plusSeconds(100),
+                "租户乙提示");
+
+        worker.poll();
+
+        assertThat(fakeOcrProvider.lastRequest.get().memory().recognitionHints())
+                .containsExactly(
+                        "租户甲提示-11",
+                        "租户甲提示-10",
+                        "租户甲提示-9",
+                        "租户甲提示-8",
+                        "租户甲提示-7",
+                        "租户甲提示-6",
+                        "租户甲提示-5",
+                        "租户甲提示-4",
+                        "租户甲提示-3")
+                .doesNotContain("租户甲提示-1", "租户乙提示");
     }
 
     @Test
@@ -314,6 +354,36 @@ class OcrTaskWorkerIntegrationTest {
                 "1001/worker-fixture-" + id + ".jpg",
                 "worker-fixture-" + id,
                 String.format("%064d", id));
+    }
+
+    private void insertHistoricalTask(long id, long tenantId, Instant createdAt, String recognitionHint) {
+        long userId = tenantId == 1001L ? 1101L : 1102L;
+        jdbcTemplate.update(
+                """
+                INSERT INTO ocr_tasks (
+                    id, public_id, tenant_id, created_by, status, storage_key, original_filename,
+                    content_type, size_bytes, content_sha256, idempotency_key, request_hash,
+                    recognition_hint, provider, provider_request_id, result_json, attempt_count, max_attempts,
+                    next_attempt_at, lease_until, last_error_code, last_error_message, started_at,
+                    completed_at, version, created_at, updated_at)
+                VALUES (?, ?, ?, ?, 'FAILED', ?, 'history-fixture.jpg', 'image/jpeg', 4,
+                    ?, ?, ?, ?, NULL, NULL, NULL, 1, 3, ?, NULL, 'OCR_HISTORY_FIXTURE',
+                    'history fixture', ?, ?, 0, ?, ?)
+                """,
+                id,
+                String.format("00000000-0000-0000-0000-%012d", id),
+                tenantId,
+                userId,
+                tenantId + "/history-fixture-" + id + ".jpg",
+                String.format("%064d", id),
+                "history-fixture-" + id,
+                String.format("%064d", id),
+                recognitionHint,
+                Timestamp.from(createdAt),
+                Timestamp.from(createdAt),
+                Timestamp.from(createdAt),
+                Timestamp.from(createdAt),
+                Timestamp.from(createdAt));
     }
 
     private static void await(CountDownLatch latch) {
