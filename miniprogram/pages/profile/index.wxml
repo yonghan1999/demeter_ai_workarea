@@ -1,0 +1,16 @@
+<view class="page profile-page">
+  <app-nav title="我的昵称" nav-style="{{systemLayout.navStyle || ''}}" bind:back="goBack" />
+  <view class="profile-content" style="{{systemLayout.bottomSafeStyle}}">
+    <view class="profile-description">点击输入框可选择微信昵称，也可以手动填写。昵称选填，保存后用于账本账户展示。</view>
+    <view wx:if="{{loading}}" class="profile-state">正在加载昵称…</view>
+    <form wx:else bindsubmit="saveNickname">
+      <view class="profile-card">
+        <label for="nickname" class="profile-label">昵称</label>
+        <input id="nickname" name="nickname" type="nickname" value="{{nickname}}" maxlength="120" placeholder="选择或填写昵称" disabled="{{saving || loadFailed}}" bindinput="onNicknameInput" bindblur="onNicknameInput" bindnicknamereview="onNicknameReview" />
+      </view>
+      <view wx:if="{{errorMessage}}" class="profile-error" role="alert">{{errorMessage}}</view>
+      <button wx:if="{{loadFailed}}" class="ui-button profile-save" bindtap="retryLoad" disabled="{{saving}}">重新加载</button>
+      <button wx:else class="ui-button profile-save" form-type="submit" disabled="{{saving}}" loading="{{saving}}">{{saving ? '正在保存…' : '保存昵称'}}</button>
+    </form>
+  </view>
+</view>

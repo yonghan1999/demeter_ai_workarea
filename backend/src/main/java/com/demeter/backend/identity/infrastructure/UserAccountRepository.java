@@ -18,6 +18,12 @@ public interface UserAccountRepository extends JpaRepository<UserAccount, Long>,
 
     Optional<UserAccount> findByOpenId(String openId);
 
+    Optional<UserAccount> findByIdAndTenantId(long id, long tenantId);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select user from UserAccount user where user.id = :id and user.tenantId = :tenantId")
+    Optional<UserAccount> findByIdAndTenantIdForUpdate(@Param("id") long id, @Param("tenantId") long tenantId);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select user from UserAccount user where user.id = :id")
     Optional<UserAccount> findByIdForUpdate(@Param("id") long id);

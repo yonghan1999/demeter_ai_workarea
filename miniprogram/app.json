@@ -2,6 +2,7 @@
   "pages": [
     "pages/home/index",
     "pages/search/index",
+    "pages/profile/index",
     "pages/bill-form/index",
     "pages/bill-export/index",
     "pages/ocr-camera/index",

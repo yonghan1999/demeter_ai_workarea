@@ -148,6 +148,11 @@ Page(withSystemLayout({
     return false;
   },
 
+  openProfile() {
+    if (this.data.batchMode) return;
+    wx.navigateTo({ url: '/pages/profile/index' });
+  },
+
   refreshTabs() {
     const source = [
       { key: 'all', text: '全部' },

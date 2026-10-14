@@ -18,6 +18,7 @@
         </button>
         <view class="quick-tool batch-tool {{batchMode ? 'managing' : ''}}" bindtap="goSelect"><image class="quick-tool-icon" src="/assets/icons/sliders.svg" mode="aspectFit" /><text>{{batchMode ? '退出管理' : '批量管理'}}</text></view>
         <view class="quick-tool filter-tool {{filterCount > 0 ? 'filtered' : ''}} {{batchMode ? 'control-disabled' : ''}}" bindtap="goFilter"><image class="quick-tool-icon" src="/assets/icons/filter.svg" mode="aspectFit" /><text>高级筛选</text><text wx:if="{{filterCount > 0}}" class="filter-badge">{{filterCount}}</text></view>
+        <button class="ui-button quick-tool" disabled="{{batchMode}}" bindtap="openProfile"><image class="quick-tool-icon" src="/assets/icons/person.svg" mode="aspectFit" /><text>我的昵称</text></button>
       </view>
     </scroll-view>
 

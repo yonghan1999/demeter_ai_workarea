@@ -261,6 +261,21 @@ function ensureLogin() {
   return loginPromise;
 }
 
+function getCurrentUser() {
+  const user = readStorage(USER_KEY);
+  return user && user.id && user.tenantId ? { ...user } : null;
+}
+
+function cacheCurrentUser(user, expectedUser) {
+  if (!sameIdentity(expectedUser, currentIdentity())) throw identityChangedError();
+  const identity = user && { id: String(user.id), tenantId: String(user.tenantId) };
+  if (!sameIdentity(expectedUser, identity) || typeof user.displayName !== 'string') {
+    throw createError({ statusCode: 502, data: { code: 'AUTH_INVALID_RESPONSE' } });
+  }
+  wx.setStorageSync(USER_KEY, { id: user.id, tenantId: user.tenantId, displayName: user.displayName });
+  return getCurrentUser();
+}
+
 function newIdempotencyKey(prefix) {
   const random = Math.random().toString(36).slice(2, 10);
   return `${prefix}-${Date.now()}-${random}`;
@@ -271,6 +286,8 @@ module.exports = {
   request,
   uploadFile,
   ensureLogin,
+  getCurrentUser,
+  cacheCurrentUser,
   clearSession,
   newIdempotencyKey
 };

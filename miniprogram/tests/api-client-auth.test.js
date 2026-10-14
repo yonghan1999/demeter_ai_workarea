@@ -58,6 +58,34 @@ test('a 401 retries the same account with the original idempotency key and body'
   }
 });
 
+test('silent login submits only the code', async () => {
+  const previousWx = global.wx;
+  const requests = [];
+  global.wx = {
+    getStorageSync: () => '',
+    setStorageSync: () => {},
+    removeStorageSync: () => {},
+    login: ({ success }) => success({ code: 'nickname-login-code' }),
+    getUserProfile: () => assert.fail('silent login must not request profile data'),
+    request: (options) => {
+      requests.push(options);
+      options.success({ statusCode: 200, data: {
+        accessToken: 'nickname-session', user: { id: 7, tenantId: 'tenant-a', displayName: '微信昵称' }
+      } });
+    }
+  };
+  delete require.cache[modulePath];
+  const api = require(modulePath);
+  try {
+    await api.ensureLogin();
+    const loginRequest = requests.find((request) => request.url.endsWith('/auth/wechat/login'));
+    assert.deepEqual(loginRequest.data, { code: 'nickname-login-code' });
+  } finally {
+    delete require.cache[modulePath];
+    global.wx = previousWx;
+  }
+});
+
 test('a 401 can establish the account when the user cache is missing', async () => {
   const context = fixture({ id: 7, tenantId: 'tenant-a' });
   context.storage.delete('demeter:auth:user');
