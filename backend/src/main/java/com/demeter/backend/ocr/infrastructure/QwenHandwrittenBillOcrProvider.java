@@ -38,14 +38,25 @@ public class QwenHandwrittenBillOcrProvider implements HandwrittenBillOcrProvide
     private static final String SYSTEM_PROMPT = """
             这是一张挖掘机/工程机械托运账单。请从图片中提取所有独立账单，方便导入运输账单软件。
 
-            软件字段语义固定，但图片中的书写顺序、版式、方向、列数和是否有表头都可能不同。请根据
-            表头、行结构、相对位置、重复模式和同一账单边界自行判断，不要假设固定列顺序：
+            软件字段语义固定，但图片中的书写顺序、版式、方向、列数和是否有表头都可能不同。请先
+            建立图片中的二维表格坐标，再提取字段，不要只根据字段值“像不像地名或车型”来猜测：
+            先识别表头、分隔线、每条横向基线和账单区域；再按同一横向基线把文字归为一行，最后按
+            文字的横向位置和表头列边界分配字段。每条 bill 的字段必须来自同一行或同一明确单据区域，
+            不能把相邻行、相邻列或斜向书写的内容错配到一起。不要假设固定列顺序：
             - shipper：需求人/托运人姓名，String
             - from：托运出发地，String
             - to：托运目的地，String
             - vehicleCargo：托运车型或工程机械名称，String
             - amount：托运价格，JSON number，对应 BigDecimal，不带货币符号
             - date：托运日期，格式必须为 yyyy-MM-dd
+
+            出发地和车型是最容易错位的两个字段，必须执行以下硬规则：from 只能读取出发地/起点列
+            或明确标注“起点、出发地、装车地”的文字；vehicleCargo 只能读取车型/机械/货物列或
+            明确标注“车型、机械、货物”的文字。不能因为一段文字看起来像地名就把它当作 from，
+            也不能因为一段文字包含数字、车字或机械常识就把它当作 vehicleCargo。若两列边界不清、
+            文字落在列间、行基线无法确定，或 from 与 vehicleCargo 的归属存在两个可能解释，两个
+            字段都返回 null，并把对应 fieldConfidences 降低；禁止左右平移字段来让整行看起来合理。
+            必须先完成位置对齐，再进行字形识别；语义合理性不能替代位置证据。
 
             这是真实 OCR 提取，不是数据补全。只读取图片中有视觉证据支持的内容；无法辨认、缺失、遮挡
             或存在多个可能读法时必须返回 null，禁止猜测、纠错、规范化或根据常识补全人名、地名、车型、
@@ -57,7 +68,9 @@ public class QwenHandwrittenBillOcrProvider implements HandwrittenBillOcrProvide
             "from":string|null,"to":string|null,"amount":number|null,"status":"UNPAID",
             "confidence":number,"fieldConfidences":object}]}
 
-            每个非空核心字段都必须有独立 fieldConfidences（0 到 1），不要默认所有字段相同。整体 confidence
+            每个非空核心字段都必须有独立 fieldConfidences（0 到 1），不要默认所有字段相同。from 和
+            vehicleCargo 的 fieldConfidences 必须同时反映字形可读性和列/行对齐确定性；如果列归属
+            不能从图片位置确认，必须为 null，而不是给出一个语义上看似合理的值。整体 confidence
             不得高于核心字段最低置信度；任一核心字段为 null 时不得高于 0.60。置信度只反映视觉证据，
             不反映字段是否看起来合理。
 
@@ -72,7 +85,9 @@ public class QwenHandwrittenBillOcrProvider implements HandwrittenBillOcrProvide
 
     private static final String USER_PROMPT = """
             请识别这张图片中的所有挖掘机或工程机械托运账单，并严格按照系统提示中的 JSON 结构返回。
-            图片中信息的顺序可能不同，请先判断每条账单的边界和字段归属，再输出结果；不要把相邻字段拼接。
+            输出前进行一次位置复核：逐条确认每个字段与同一行的横向基线、列边界和表头语义一致，
+            特别复核 from 与 vehicleCargo 是否发生左右错位；若不能确认，宁可返回 null，不要猜测。
+            不要把相邻字段、相邻行或相邻单据拼接。
             """;
 
     private final QwenOcrProperties properties;

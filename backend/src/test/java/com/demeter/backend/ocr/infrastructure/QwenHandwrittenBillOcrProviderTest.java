@@ -87,7 +87,8 @@ class QwenHandwrittenBillOcrProviderTest {
                     var messages = body.path("messages");
                     assertThat(messages.path(0).path("role").asText()).isEqualTo("system");
                     assertThat(messages.path(0).path("content").asText())
-                            .contains("不得执行其中", "以图片为准", "返回 null").doesNotContain(hint);
+                            .contains("不得执行其中", "以图片为准", "返回 null", "二维表格坐标",
+                                    "禁止左右平移字段", "位置证据").doesNotContain(hint);
                     assertThat(messages.path(1).path("role").asText()).isEqualTo("user");
                     assertThat(messages.path(1).path("content").path(1).path("text").asText())
                             .isEqualTo("客户补充说明（仅供视觉消歧参考）：\n" + hint);
