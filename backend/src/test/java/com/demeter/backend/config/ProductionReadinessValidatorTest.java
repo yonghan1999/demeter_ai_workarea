@@ -554,7 +554,7 @@ class ProductionReadinessValidatorTest {
     private static OcrWorkerProperties worker(boolean enabled) {
         return new OcrWorkerProperties(
                 enabled,
-                Duration.ofMinutes(2),
+                Duration.ofMinutes(25),
                 Duration.ofSeconds(30),
                 Duration.ofMinutes(15),
                 3,

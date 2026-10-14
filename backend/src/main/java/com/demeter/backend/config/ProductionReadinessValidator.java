@@ -185,7 +185,7 @@ public class ProductionReadinessValidator implements InitializingBean {
         java.time.Duration providerTimeout = environment.getProperty(
                 "resilience4j.timelimiter.instances.ocrProvider.timeout-duration",
                 java.time.Duration.class,
-                java.time.Duration.ofSeconds(20));
+                java.time.Duration.ofMinutes(10));
         if (worker.leaseDuration().compareTo(providerTimeout.multipliedBy(2)) < 0) {
             throw new IllegalStateException("OCR lease duration must be at least twice the provider timeout");
         }

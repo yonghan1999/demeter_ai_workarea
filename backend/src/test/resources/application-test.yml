@@ -72,7 +72,7 @@ demeter:
       filesystem-enabled: true
     worker:
       enabled: false
-      lease-duration: 2m
+      lease-duration: 25m
       retry-delay: 1s
       max-retry-delay: 1m
       max-attempts: 3
