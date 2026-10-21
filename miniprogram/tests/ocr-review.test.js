@@ -129,6 +129,64 @@ test('merge validation highlights every invalid field and clears errors while ed
   assert.equal(page.data.reviewBills[0].validationMessage, '');
 });
 
+test('merge validates all selected bills and ignores incomplete unselected bills', async () => {
+  const { page } = setup({});
+  const valid = { shipper: '托运人', from: '上海', to: '北京', date: '2026-10-01', amount: 100 };
+  page.data.reviewBills = [
+    { ...valid, id: 'line-1', selected: true },
+    { ...valid, id: 'line-2', selected: true, to: '' },
+    { ...valid, id: 'line-3', selected: true, amount: 0 },
+    { id: 'line-4', selected: false }
+  ];
+  page.data.selectedIds = ['line-1', 'line-2', 'line-3'];
+  let merged;
+  page.mergeCandidates = async (ids, edits) => { merged = { ids, edits }; };
+
+  await page.merge();
+
+  assert.equal(merged, undefined);
+  assert.deepEqual(page.data.reviewBills[0].validationErrors, {});
+  assert.deepEqual(page.data.reviewBills[1].validationErrors, { to: '请选择目的地' });
+  assert.deepEqual(page.data.reviewBills[2].validationErrors, { amount: '请输入有效账单金额' });
+  assert.equal(page.data.reviewBills[3].validationChecked, undefined);
+
+  page.setField({ currentTarget: { dataset: { id: 'line-2', field: 'to' } }, detail: { value: '北京' } });
+  page.setField({ currentTarget: { dataset: { id: 'line-3', field: 'amount' } }, detail: { value: '0.01' } });
+  await page.merge();
+
+  assert.deepEqual(merged.ids, ['line-1', 'line-2', 'line-3']);
+  assert.equal(merged.edits['line-2'].to, '北京');
+  assert.equal(merged.edits['line-3'].amount, '0.01');
+});
+
+test('validation feedback alone does not count as an unsaved review edit', async () => {
+  const { page, modals } = setup({
+    getOcrTask: async () => ({
+      id: 'task-1', status: 'completed', merged: false, mergedBillIds: [],
+      bills: [{ id: 'line-1', confidence: 1, shipper: '托运人', from: '上海', to: '上海', date: '2026-10-01', amount: 100 }]
+    })
+  });
+  global.getCurrentPages = () => [{}, {}];
+  let navigations = 0;
+  global.wx.navigateBack = () => { navigations += 1; };
+  try {
+    page.reviewLoadSeq = 1;
+    await page.loadTask('task-1', 1);
+    await page.merge();
+    page.back();
+
+    assert.equal(modals.length, 0);
+    assert.equal(navigations, 1);
+
+    page.setField({ currentTarget: { dataset: { id: 'line-1', field: 'to' } }, detail: { value: '北京' } });
+    page.back();
+    assert.equal(modals.length, 1);
+    assert.equal(modals[0].title, '放弃复核更改？');
+  } finally {
+    delete global.getCurrentPages;
+  }
+});
+
 test('legacy merge marker shows manual review state without merge controls', async () => {
   const { page } = setup({
     getOcrTask: async () => ({

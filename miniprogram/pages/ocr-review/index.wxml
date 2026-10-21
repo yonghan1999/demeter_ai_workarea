@@ -18,7 +18,7 @@
   <view wx:if="{{mergeNotice}}" class="merge-notice">{{mergeNotice}}</view>
 
   <view class="review-list">
-    <view wx:for="{{reviewBills}}" wx:key="id" class="review-card card {{item.borderClass}} {{item.mutedClass}}">
+    <view wx:for="{{reviewBills}}" wx:key="id" class="review-card card {{item.borderClass}} {{item.mutedClass}} {{item.validationMessage ? 'has-errors' : ''}}">
       <view class="review-card-head">
         <button class="ui-button review-check-button {{item.selectedClass}}" disabled="{{merging}}" data-id="{{item.id}}" catchtap="toggle">
           <text wx:if="{{item.selected}}">✓</text>

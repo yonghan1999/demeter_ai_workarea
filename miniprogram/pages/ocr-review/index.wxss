@@ -167,6 +167,11 @@
   border: 2rpx solid #d7a86a;
 }
 
+.review-card.has-errors {
+  height: auto;
+  min-height: 548rpx;
+}
+
 .review-card-head {
   position: relative;
   display: flex;

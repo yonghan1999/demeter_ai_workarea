@@ -25,8 +25,18 @@ function validateReviewBill(bill) {
   return errors;
 }
 
-function reviewValidationMessage(errors) {
-  return [...new Set(Object.values(errors))].join('；');
+function withReviewValidation(bill) {
+  const validationErrors = validateReviewBill(bill);
+  return {
+    ...bill,
+    validationChecked: true,
+    validationErrors,
+    validationMessage: [...new Set(Object.values(validationErrors))].join('；')
+  };
+}
+
+function reviewSnapshot(bills) {
+  return JSON.stringify(bills.map(({ validationChecked, validationErrors, validationMessage, ...bill }) => bill));
 }
 
 Page(withSystemLayout({
@@ -149,7 +159,7 @@ Page(withSystemLayout({
       mergeDisabledClass: reviewBills.every((bill) => !bill.selected) ? 'disabled' : ''
     }, () => {
       this.computeTotal();
-      this.initialReview = JSON.stringify(this.data.reviewBills);
+      this.initialReview = reviewSnapshot(this.data.reviewBills);
     });
   },
 
@@ -222,27 +232,14 @@ Page(withSystemLayout({
     if (this.data.merging) return;
     const id = event.currentTarget.dataset.id;
     const reviewBills = this.data.reviewBills.map((bill) => (
-      bill.id === id ? { ...bill, date: event.detail.value } : bill
+      bill.id === id ? this.updateReviewBillField(bill, 'date', event.detail.value) : bill
     ));
-    const updated = reviewBills.find((bill) => bill.id === id);
-    if (updated && updated.validationChecked) {
-      const validationErrors = validateReviewBill(updated);
-      Object.assign(updated, {
-        validationErrors,
-        validationMessage: reviewValidationMessage(validationErrors)
-      });
-    }
     this.applyReviewBills(reviewBills);
   },
 
   updateReviewBillField(bill, field, value) {
     const updated = { ...bill, [field]: value };
-    if (bill.validationChecked) {
-      const validationErrors = validateReviewBill(updated);
-      updated.validationErrors = validationErrors;
-      updated.validationMessage = reviewValidationMessage(validationErrors);
-    }
-    return updated;
+    return bill.validationChecked ? withReviewValidation(updated) : updated;
   },
 
   applyReviewBills(reviewBills) {
@@ -286,23 +283,11 @@ Page(withSystemLayout({
 
   async merge() {
     if (this.data.selectedIds.length === 0 || this.data.merging) return;
-    const invalidIds = new Set();
-    const reviewBills = this.data.reviewBills.map((bill) => {
-      if (!bill.selected) return bill;
-      const validationErrors = validateReviewBill(bill);
-      if (Object.keys(validationErrors).length === 0) {
-        return { ...bill, validationChecked: true, validationErrors: {}, validationMessage: '' };
-      }
-      invalidIds.add(bill.id);
-      return {
-        ...bill,
-        validationChecked: true,
-        validationErrors,
-        validationMessage: reviewValidationMessage(validationErrors)
-      };
-    });
-    if (invalidIds.size > 0) {
-      this.setData({ reviewBills });
+    const reviewBills = this.data.reviewBills.map((bill) => (
+      bill.selected ? withReviewValidation(bill) : bill
+    ));
+    this.setData({ reviewBills });
+    if (reviewBills.some((bill) => bill.selected && bill.validationMessage)) {
       wx.showToast({ title: '请检查标红字段', icon: 'none' });
       return;
     }
@@ -375,7 +360,7 @@ Page(withSystemLayout({
 
   back() {
     if (this.data.merging) return;
-    const changed = this.initialReview && JSON.stringify(this.data.reviewBills) !== this.initialReview;
+    const changed = this.initialReview && reviewSnapshot(this.data.reviewBills) !== this.initialReview;
     if (!changed || this.mergedSuccessfully) {
       safeBack();
       return;
