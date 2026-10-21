@@ -102,6 +102,33 @@ test('review fields and selection stay frozen while merge is in progress', () =>
   assert.deepEqual(page.data.selectedIds, ['line-1', 'line-2']);
 });
 
+test('merge validation highlights every invalid field and clears errors while editing', async () => {
+  const { page, toasts } = setup({});
+  page.data.reviewBills = [{
+    id: 'line-1', selected: true, shipper: '', from: '上海', to: '上海',
+    date: '2026/10/01', amount: '100.123'
+  }];
+  page.data.selectedIds = ['line-1'];
+  page.mergeCandidates = async () => { throw new Error('should not merge'); };
+
+  await page.merge();
+
+  const invalid = page.data.reviewBills[0];
+  assert.deepEqual(Object.keys(invalid.validationErrors).sort(), ['amount', 'date', 'from', 'shipper', 'to']);
+  assert.match(invalid.validationMessage, /托运人不能为空/);
+  assert.match(invalid.validationMessage, /始发地与目的地不能相同/);
+  assert.equal(toasts.at(-1).title, '请检查标红字段');
+
+  page.setField({ currentTarget: { dataset: { id: 'line-1', field: 'shipper' } }, detail: { value: '托运人' } });
+  page.setField({ currentTarget: { dataset: { id: 'line-1', field: 'from' } }, detail: { value: '上海' } });
+  page.setField({ currentTarget: { dataset: { id: 'line-1', field: 'to' } }, detail: { value: '北京' } });
+  page.setField({ currentTarget: { dataset: { id: 'line-1', field: 'amount' } }, detail: { value: '100.12' } });
+  page.setDate({ currentTarget: { dataset: { id: 'line-1' } }, detail: { value: '2026-10-01' } });
+
+  assert.deepEqual(page.data.reviewBills[0].validationErrors, {});
+  assert.equal(page.data.reviewBills[0].validationMessage, '');
+});
+
 test('legacy merge marker shows manual review state without merge controls', async () => {
   const { page } = setup({
     getOcrTask: async () => ({

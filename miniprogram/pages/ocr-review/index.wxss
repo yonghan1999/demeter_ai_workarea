@@ -268,6 +268,20 @@
   font-weight: 500;
 }
 
+.review-input.field-error,
+.review-amount-shell.field-error {
+  border: 2rpx solid #cc1d25;
+  background: #fff2f3;
+}
+
+.review-validation-message {
+  margin-top: 12rpx;
+  color: #cc1d25;
+  font-size: 19rpx;
+  font-weight: 600;
+  line-height: 28rpx;
+}
+
 .review-amount-shell {
   display: flex;
   align-items: center;

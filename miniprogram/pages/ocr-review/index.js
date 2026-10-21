@@ -2,6 +2,33 @@ const billService = require('../../services/bill-service');
 const { money, formatTaskTime } = require('../../utils/format');
 const { withSystemLayout, safeBack } = require('../../utils/system');
 
+function validateReviewBill(bill) {
+  const errors = {};
+  const amount = Number(bill.amount);
+  const shipper = String(bill.shipper || '').trim();
+  const from = String(bill.from || '').trim();
+  const to = String(bill.to || '').trim();
+  const date = String(bill.date || '');
+
+  if (!shipper) errors.shipper = '托运人不能为空';
+  if (!from) errors.from = '请选择始发地';
+  if (!to) errors.to = '请选择目的地';
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) errors.date = '请选择有效运输日期';
+  if (!Number.isFinite(amount) || amount <= 0) errors.amount = '请输入有效账单金额';
+  else if (amount > 99999999.99 || !/^\d+(\.\d{1,2})?$/.test(String(bill.amount).trim())) {
+    errors.amount = '金额格式或范围无效';
+  }
+  if (from && to && from === to) {
+    errors.from = '始发地与目的地不能相同';
+    errors.to = '始发地与目的地不能相同';
+  }
+  return errors;
+}
+
+function reviewValidationMessage(errors) {
+  return [...new Set(Object.values(errors))].join('；');
+}
+
 Page(withSystemLayout({
   data: {
     id: '',
@@ -100,6 +127,9 @@ Page(withSystemLayout({
         confidenceLevel: bill.confidence >= 0.85 ? '高' : bill.confidence >= 0.65 ? '中' : '低',
         confidenceClass: bill.confidence >= 0.85 ? 'high' : bill.confidence >= 0.65 ? 'mid' : 'low',
         borderClass: bill.status === 'paid' ? 'paid-border' : 'unpaid-border',
+        validationChecked: false,
+        validationErrors: {},
+        validationMessage: ''
       }));
     this.setData({
       task: {
@@ -165,7 +195,7 @@ Page(withSystemLayout({
     const { id, field } = event.currentTarget.dataset;
     const reviewBills = this.data.reviewBills.map((bill) => (
       bill.id === id
-        ? { ...bill, [field]: event.detail.value }
+        ? this.updateReviewBillField(bill, field, event.detail.value)
         : bill
     ));
     this.applyReviewBills(reviewBills);
@@ -194,7 +224,25 @@ Page(withSystemLayout({
     const reviewBills = this.data.reviewBills.map((bill) => (
       bill.id === id ? { ...bill, date: event.detail.value } : bill
     ));
+    const updated = reviewBills.find((bill) => bill.id === id);
+    if (updated && updated.validationChecked) {
+      const validationErrors = validateReviewBill(updated);
+      Object.assign(updated, {
+        validationErrors,
+        validationMessage: reviewValidationMessage(validationErrors)
+      });
+    }
     this.applyReviewBills(reviewBills);
+  },
+
+  updateReviewBillField(bill, field, value) {
+    const updated = { ...bill, [field]: value };
+    if (bill.validationChecked) {
+      const validationErrors = validateReviewBill(updated);
+      updated.validationErrors = validationErrors;
+      updated.validationMessage = reviewValidationMessage(validationErrors);
+    }
+    return updated;
   },
 
   applyReviewBills(reviewBills) {
@@ -238,20 +286,24 @@ Page(withSystemLayout({
 
   async merge() {
     if (this.data.selectedIds.length === 0 || this.data.merging) return;
-    const invalid = this.data.reviewBills.find((bill) => (
-      bill.selected && (
-        !String(bill.shipper || '').trim()
-        || !String(bill.from || '').trim()
-        || !String(bill.to || '').trim()
-        || !/^\d{4}-\d{2}-\d{2}$/.test(String(bill.date || ''))
-        || !Number.isFinite(Number(bill.amount))
-        || Number(bill.amount) <= 0
-        || Number(bill.amount) > 99999999.99
-        || String(bill.from || '').trim() === String(bill.to || '').trim()
-      )
-    ));
-    if (invalid) {
-      wx.showToast({ title: '请补全所选账单信息', icon: 'none' });
+    const invalidIds = new Set();
+    const reviewBills = this.data.reviewBills.map((bill) => {
+      if (!bill.selected) return bill;
+      const validationErrors = validateReviewBill(bill);
+      if (Object.keys(validationErrors).length === 0) {
+        return { ...bill, validationChecked: true, validationErrors: {}, validationMessage: '' };
+      }
+      invalidIds.add(bill.id);
+      return {
+        ...bill,
+        validationChecked: true,
+        validationErrors,
+        validationMessage: reviewValidationMessage(validationErrors)
+      };
+    });
+    if (invalidIds.size > 0) {
+      this.setData({ reviewBills });
+      wx.showToast({ title: '请检查标红字段', icon: 'none' });
       return;
     }
     const edits = {};
